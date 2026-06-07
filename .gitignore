@@ -41,6 +41,4 @@ dist-ssr
 */eslint.config.js
 */package-lock.json
 .venv/
-_history/
-_scratch/
 secrets.json
