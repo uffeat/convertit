@@ -51,11 +51,12 @@ const control = component.from(
 // Get elements
 const dimensionSelect = control.find(`select.dimension`);
 const fromUnitSelect = control.find(`select.from`);
-const fromValueInput = control.find(`input[name="from]`);
+const fromValueInput = control.find(`input[name="from"]`);
 
 // Create states
 const dimensionState = new Ref();
 const fromUnitState = new Ref();
+const fromValueState = new Ref();
 
 // Populate dimension select
 for (const value of Object.keys(dimensions)) {
@@ -64,16 +65,17 @@ for (const value of Object.keys(dimensions)) {
     value,
     parent: dimensionSelect,
   });
-  
 }
 // Update dimension state
 dimensionState.update(dimensionSelect.value);
 
+/* Effects */
+
 dimensionState.effects.add((current) => {
-  //console.log("dimension:", current); //
+  console.log("dimension state:", current); //
   fromUnitSelect.clear();
   const units = dimensions[current].units;
-  console.log("units:", units); //
+  //console.log("units:", units); //
   // Populate dimension select
   for (const value of units) {
     const option = component.option({
@@ -87,9 +89,16 @@ dimensionState.effects.add((current) => {
 });
 
 fromUnitState.effects.add((current) => {
-  console.log("from unit:", current); //
-  
+  console.log("from unit state:", current); //
 });
+
+fromValueState.effects.add((current) => {
+  console.log("from value state:", current); //
+
+  //console.log("typeof current:", typeof current); //
+});
+
+/* Event handlers */
 
 dimensionSelect.on.change((event) => {
   //console.log("value:", event.target.value); //
@@ -101,4 +110,10 @@ fromUnitSelect.on.change((event) => {
   //console.log("value:", event.target.value); //
   // Update from unit state
   fromUnitState.update(event.target.value);
+});
+
+fromValueInput.on.change((event) => {
+  //console.log("value:", event.target.value); //
+  // Update from unit state
+  fromValueState.update(+event.target.value);
 });
