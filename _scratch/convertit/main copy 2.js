@@ -15,9 +15,11 @@ const properties = {
 };
 
 const sheet = css`
+
   form {
     display: flex;
   }
+  
 
   select.property {
     //max-width: 8rem;
@@ -37,17 +39,9 @@ const page = component.div(`container py-3`, { parent: frame });
 
 const form = component.from(
   html`<form class="input-group">
-    <select
-      name="property"
-      class="form-select property"
-      title="Property"
-    ></select>
+    <select name="property" class="form-select property" title="Property"></select>
     <input name="from_value" type="number" class="form-control" />
-    <select
-      name="from_unit"
-      class="form-select unit from"
-      title="Unit"
-    ></select>
+    <select name="from_unit" class="form-select unit from" title="Unit"></select>
     <input name="to_value" type="number" class="form-control" />
     <select name="to_unit" class="form-select unit to" title="Unit"></select>
   </form>`,
@@ -55,48 +49,12 @@ const form = component.from(
 );
 
 // Get elements
-//console.dir(form); //
-//console.log(form.elements.property); //
+
+const propertySelect = form.find(`select.property`);
+const fromUnitSelect = form.find(`select.from`);
+const fromValueInput = form.find(`input[name="from_value"]`);
 
 // Create states
-
-form.$({ foo: 42 });
-
-console.log("state:", form.state.current); //
-console.log("foo:", form.$.foo); //
-
-form.effects.add(
-  (change, message) => {
-    //console.log("change:", change); ////
-    //console.log("message:", message); ////
-    if (change._property) {
-      form.elements.from_unit.clear();
-      form.elements.to_unit.clear();
-      const units = properties[change._property].units;
-      //console.log("units:", units); //
-      // Populate unit selects
-      for (const value of units) {
-        form.elements.from_unit.append(
-          component.option({
-            text: value,
-            value,
-          }),
-        );
-        form.elements.to_unit.append(
-          component.option({
-            text: value,
-            value,
-          }),
-        );
-      }
-    }
-  },
-  ["_property", "from_unit", "from_value", "to_unit", "to_value"],
-);
-
-form.$({ foo: 43 });
-form.$({ bar: 43 });
-
 const propertyState = new Ref();
 const fromUnitState = new Ref();
 const fromValueState = new Ref();
@@ -106,17 +64,17 @@ for (const value of Object.keys(properties)) {
   const option = component.option({
     text: capitalize(value),
     value,
-    parent: form.elements.property,
+    parent: propertySelect,
   });
 }
 // Update property state
-propertyState.update(form.elements.property.value);
+propertyState.update(propertySelect.value);
 
 /* Effects */
 
 propertyState.effects.add((current) => {
-  //console.log("property state:", current); ////
-  form.elements.from_unit.clear();
+  console.log("property state:", current); //
+  fromUnitSelect.clear();
   const units = properties[current].units;
   //console.log("units:", units); //
   // Populate property select
@@ -124,11 +82,11 @@ propertyState.effects.add((current) => {
     const option = component.option({
       text: value,
       value,
-      parent: form.elements.from_unit,
+      parent: fromUnitSelect,
     });
   }
   // Update from unit state
-  fromUnitState.update(form.elements.from_unit.value);
+  fromUnitState.update(fromUnitSelect.value);
 });
 
 fromUnitState.effects.add((current) => {
@@ -143,25 +101,29 @@ fromValueState.effects.add((current) => {
 
 /* Event handlers */
 
-form.elements.property.on.change((event) => {
+propertySelect.on.Xchange((event) => {
   //console.log("value:", event.target.value); //
-  // Update property state
-
-  form.$({ _property: event.target.value });
+  // Update dimension state
+  propertyState.update(event.target.value);
 });
 
-form.elements.from_unit.on.Xchange((event) => {
+fromUnitSelect.on.Xchange((event) => {
   //console.log("value:", event.target.value); //
   // Update from unit state
   fromUnitState.update(event.target.value);
 });
 
-form.elements.from_value.on.Xchange((event) => {
+fromValueInput.on.Xchange((event) => {
   //console.log("value:", event.target.value); //
   // Update from unit state
   fromValueState.update(+event.target.value);
 });
 
+
+
+
 form.on.change((event) => {
-  console.log("event:", event); ////
+  console.log("event:", event); //
+ 
+ 
 });
