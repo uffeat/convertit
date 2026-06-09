@@ -6,36 +6,13 @@ const { Form, Input } = await use("@/form/");
 await use(`@/bootstrap/`);
 
 const properties = {
-  area: { units: ["cm\u00B2", "m\u00B2", "km\u00B2"] },
-  length: { units: ["cm", "m", "km"] },
-  mass: { units: ["kg", "g"] },
+  area: { units: ["km^2", "m^2"] },
+  length: { unit: "m", units: ["km", "m"] },
+  mass: { unit: "kg", units: ["kg", "g"] },
   speed: { units: ["km/h", "m/s"] },
   time: { units: ["h", "s"] },
-  volume: { units: ["m\u00B3", "l"] },
+  volume: { units: ["m^2", "l"] },
 };
-
-const factors = {
-  cm: 100 ** -1,
-  m: 1,
-  km: 1000 ** 1,
-
-  "cm\u00B2": 100 ** -2,
-  "m\u00B2": 1,
-  "km\u00B2": 1000 ** 2,
-};
-
-//console.log(factors["km\u00B2"]); ////
-
-function convert(value, from, to) {
-  from = factors[from];
-  to = factors[to];
-  if (value && from && to) {
-    return value * (from / to);
-  }
-}
-
-const result = convert(1, "m", "cm");
-//console.log("result:", result); ////
 
 const sheet = css`
   form {
@@ -54,6 +31,8 @@ const sheet = css`
   select.unit {
     max-width: 8rem;
   }
+
+ 
 `.use();
 
 const page = component.div(`container py-3`, { parent: frame });
@@ -79,7 +58,7 @@ const form = component.from(
 
 // Get elements
 //console.dir(form); //
-//console.log(form.elements.property); ////
+//console.log(form.elements.property); //
 const elements = form.elements;
 
 // Add effects
@@ -111,29 +90,11 @@ form.effects.add(
       }
     } else if (change._from_unit) {
       console.log("From unit is now:", change._from_unit); ////
-    } else if (change._to_unit) {
+    }else if (change._to_unit) {
       console.log("To unit is now:", change._to_unit); ////
-    } else if (change._from_value) {
-      console.log("From value is now:", change._from_value); ////
-    } else if (change._to_value) {
-      console.log("To value is now:", change._to_value); ////
     }
-
-
-
-    const value = form.$._from_value
-    console.log("value:", value); ////
-    const from = form.$._from_unit
-    console.log("from:", from); ////
-    const to = form.$._to_unit
-    console.log("to:", to); ////
-
-
-
-    const converted = convert(value, from, to);
-    console.log("converted:", converted); ////
   },
-  ["_property", "_from_unit", "_from_value", "_to_unit", "_to_value"],
+  ["_property", "_from_unit", "from_value", "_to_unit", "to_value"],
 );
 
 // Populate property select
@@ -146,6 +107,7 @@ for (const value of Object.keys(properties)) {
 }
 // Update property state
 form.$({ _property: elements.property.value });
+
 
 /* Event handlers */
 form.on.change((event) => {
@@ -160,8 +122,7 @@ form.on.change((event) => {
   } else if (target === elements.to_unit) {
     console.log("To unit changed to: ", target.value); ////
     form.$({ _to_unit: target.value });
-  } else if (target === elements.from_value) {
-    console.log("From value changed to: ", target.value); ////
-    form.$({ _from_value: +target.value });
-  } 
+  }
 });
+
+
