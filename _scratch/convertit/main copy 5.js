@@ -36,7 +36,7 @@ function convert(value, from, to) {
   }
 }
 
-const result = convert(1, "m", "cm");
+//const result = convert(1, "m", "cm");
 //console.log("result:", result); ////
 
 const sheet = css`
@@ -132,8 +132,8 @@ form.effects.add(
 
 
 
-    const converted = convert(value, from, to);
-    console.log("converted:", converted); ////
+    //const converted = convert(value, from, to);
+    //console.log("converted:", converted); ////
   },
   ["_property", "_from_unit", "_from_value", "_to_unit", "_to_value"],
 );
