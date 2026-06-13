@@ -51,9 +51,6 @@ const icons = {
   wind: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-wind" viewBox="0 0 16 16">
   <path d="M12.5 2A2.5 2.5 0 0 0 10 4.5a.5.5 0 0 1-1 0A3.5 3.5 0 1 1 12.5 8H.5a.5.5 0 0 1 0-1h12a2.5 2.5 0 0 0 0-5m-7 1a1 1 0 0 0-1 1 .5.5 0 0 1-1 0 2 2 0 1 1 2 2h-5a.5.5 0 0 1 0-1h5a1 1 0 0 0 0-2M0 9.5A.5.5 0 0 1 .5 9h10.042a3 3 0 1 1-3 3 .5.5 0 0 1 1 0 2 2 0 1 0 2-2H.5a.5.5 0 0 1-.5-.5"/>
 </svg>`,
-  x: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x" viewBox="0 0 16 16">
-  <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
-</svg>`,
 };
 
 // Create footer
@@ -90,30 +87,12 @@ const icons = {
 })();
 
 const units = {
-  // area
-  "cm\u00B2": [(v) => v / 100 ** 2, (v) => v * 100 ** 2],
-  "m\u00B2": [(v) => v, (v) => v],
-  "km\u00B2": [(v) => v * 1_000 ** 2, (v) => v / 1_000 ** 2],
-  // length
   cm: [(v) => v / 100, (v) => v * 100],
   m: [(v) => v, (v) => v],
   km: [(v) => v * 1_000, (v) => v / 1_000],
-  // mass
-  kg: [(v) => v, (v) => v],
-  g: [(v) => v / 1000, (v) => v * 1000],
-  // speed
-  "m/s": [(v) => v, (v) => v],
-  "km/h": [(v) => v / 3.6, (v) => v * 3.6],
-  // temperature
-  "\u00B0C": [(v) => v, (v) => v],
-  "\u00B0F": [(v) => (5 / 9) * (v - 32), (v) => v * (9 / 5) + 32],
-  K: [(v) => v + 273.15, (v) => v - 273.15],
-  // time
-  s: [(v) => v, (v) => v],
-  h: [(v) => v / 3600, (v) => v + 3600],
-  // volume
-  "m\u00B3": [(v) => v, (v) => v],
-  l: [(v) => v * 1000, (v) => v / 1000],
+  "cm\u00B2": [(v) => v / 100 ** 2, (v) => v * 100 ** 2],
+  "m\u00B2": [(v) => v, (v) => v],
+  "km\u00B2": [(v) => v * 1_000 ** 2, (v) => v / 1_000 ** 2],
 };
 
 const properties = {
@@ -127,15 +106,15 @@ const properties = {
     icon: "arrows",
     units: ["cm", "m", "km"],
   },
-  mass: { base: "kg", icon: "minecart-loaded", units: ["kg", "g"] },
-  speed: { base: "m/s", icon: "spedometer", units: ["km/h", "m/s"] },
+  mass: { base: "kg", icon: "minecart-loaded", units: [["kg"], ["g"]] },
+  speed: { base: "m/s", icon: "spedometer", units: [["km/h"], ["m/s"]] },
   temperature: {
     base: "\u00B0C",
     icon: "thermometer",
-    units: ["\u00B0C", "\u00B0F", "K"],
+    units: [["\u00B0C"], ["\u00B0F"], ["K"]],
   },
-  time: { base: "s", icon: "hourglass", units: ["h", "s"] },
-  volume: { base: "m\u00B3", icon: "beaker", units: ["m\u00B3", "l"] },
+  time: { base: "s", icon: "hourglass", units: [["h"], ["s"]] },
+  volume: { base: "m\u00B3", icon: "beaker", units: [["m\u00B3"], ["l"]] },
 };
 
 //const result = convert(1, "m", "cm");
@@ -204,10 +183,6 @@ page.innerHTML = html`
           justify-content: center;
         }
 
-        input {
-          //text-align: right;
-        }
-
         select.unit {
           max-width: 6rem;
         }
@@ -218,13 +193,6 @@ page.innerHTML = html`
 
         select > option[selected] {
           color: var(--bs-primary-text-emphasis);
-        }
-
-        fieldset {
-          border: none;
-          padding: 0;
-          margin: 0;
-          min-width: 0; /* Fixes grid/flexbox overflow quirks in fieldsets */
         }
       }
     }
@@ -237,6 +205,8 @@ page.innerHTML = html`
   </style>
   <h1 class="mb-3">Unit conversion made <span>simple</span></h1>
 `;
+
+
 
 const form = component.from(
   html` <!--foo-->
@@ -251,62 +221,36 @@ const form = component.from(
         <output class="input-group-text" icon name="icon">icon</output>
       </div>
 
-      <fieldset class="input-group" name="a">
-        <select name="unit" class="form-select unit" title="Unit"></select>
+      <div class="input-group">
+        <label class="input-group-text">From</label>
         <input
-          name="value"
+          name="value1"
           type="number"
           class="form-control"
           placeholder="Value to convert"
           value="1"
         />
-        <button class="input-group-text" type="button" name="reset" icon></button>
-        
-      </fieldset>
+        <select name="unit1" class="form-select unit" title="Unit"></select>
+      </div>
 
-      <fieldset class="input-group" name="b">
-        <select name="unit" class="form-select unit" title="Unit"></select>
+      <div class="input-group">
+        <label class="input-group-text">To</label>
         <input
-          name="value"
+          name="value2"
           type="number"
           class="form-control"
           placeholder="Converted value"
         />
-        <button class="input-group-text" type="button" name="reset" icon></button>
-      </fieldset>
+        <select name="unit2" class="form-select unit" title="Unit"></select>
+      </div>
     </form>`,
   { parent: page },
 );
 
 // Get elements
 const elements = form.elements;
-const a = form.elements.a.elements;
-const b = form.elements.b.elements;
 
-a.reset.innerHTML = icons.x;
-b.reset.innerHTML = icons.x;
-
-(() => {
-  const onclick = (event) => {
-    const fieldset = event.target.closest(`fieldset`);
-    fieldset.elements.value.value = 1
-    input.update(fieldset.elements.value);
-
-    if (input.current === a.value) {
-      b.value.value = convert(input.current.value, a.unit.value, b.unit.value);
-    } else {
-      a.value.value = convert(input.current.value, b.unit.value, a.unit.value);
-    }
-
-
-    
-  };
-  a.reset.on.click(onclick);
-  b.reset.on.click(onclick);
-
-})();
-
-const input = new Ref(a.value);
+const input = new Ref(elements.value1);
 
 /* */
 function select(target, value) {
@@ -343,6 +287,7 @@ for (const value of Object.keys(properties)) {
   });
 }
 
+
 // Add event handlers
 elements.property.on.change(
   (event) => {
@@ -354,19 +299,19 @@ elements.property.on.change(
     // Set icon
     elements.icon.innerHTML = icons[properties[value].icon];
     // Popuilate unit selects
-    a.unit.clear();
-    b.unit.clear();
+    elements.unit1.clear();
+    elements.unit2.clear();
     const units = properties[value].units;
     // Populate unit selects
     for (const unit of units) {
-      a.unit.append(
+      elements.unit1.append(
         component.option({
           text: unit,
           value: unit,
           "[value]": unit,
         }),
       );
-      b.unit.append(
+      elements.unit2.append(
         component.option({
           text: unit,
           value: unit,
@@ -376,12 +321,20 @@ elements.property.on.change(
     }
     // Set default select value
     const base = properties[value].base;
-    select(a.unit, base);
-    select(b.unit, base);
-    if (input.current === a.value) {
-      b.value.value = convert(input.current.value, a.unit.value, b.unit.value);
+    select(elements.unit1, base);
+    select(elements.unit2, base);
+    if (input.current === elements.value1) {
+      elements.value2.value = convert(
+        input.current.value,
+        elements.unit1.value,
+        elements.unit2.value,
+      );
     } else {
-      a.value.value = convert(input.current.value, b.unit.value, a.unit.value);
+      elements.value1.value = convert(
+        input.current.value,
+        elements.unit2.value,
+        elements.unit1.value,
+      );
     }
   },
   { run: true },
@@ -390,27 +343,43 @@ elements.property.on.change(
 (() => {
   const onchange = (event) => {
     select(event.target, event.target.value);
-    if (input.current === a.value) {
-      b.value.value = convert(input.current.value, a.unit.value, b.unit.value);
+    if (input.current === elements.value1) {
+      elements.value2.value = convert(
+        input.current.value,
+        elements.unit1.value,
+        elements.unit2.value,
+      );
     } else {
-      a.value.value = convert(input.current.value, b.unit.value, a.unit.value);
+      elements.value1.value = convert(
+        input.current.value,
+        elements.unit2.value,
+        elements.unit1.value,
+      );
     }
   };
-  a.unit.on.change(onchange);
-  b.unit.on.change(onchange);
+  elements.unit1.on.change(onchange);
+  elements.unit2.on.change(onchange);
 })();
 
 (() => {
   const onchange = (event) => {
     input.update(event.target);
 
-    if (input.current === a.value) {
-      b.value.value = convert(input.current.value, a.unit.value, b.unit.value);
+    if (input.current === elements.value1) {
+      elements.value2.value = convert(
+        input.current.value,
+        elements.unit1.value,
+        elements.unit2.value,
+      );
     } else {
-      a.value.value = convert(input.current.value, b.unit.value, a.unit.value);
+      elements.value1.value = convert(
+        input.current.value,
+        elements.unit2.value,
+        elements.unit1.value,
+      );
     }
   };
 
-  a.value.on.change(onchange);
-  b.value.on.change(onchange);
+  elements.value1.on.change(onchange);
+  elements.value2.on.change(onchange);
 })();
