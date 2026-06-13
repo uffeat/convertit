@@ -279,7 +279,7 @@ const form = component.from(
 );
 
 // Get elements
-
+const elements = form.elements;
 const a = form.elements.a.elements;
 const b = form.elements.b.elements;
 
@@ -339,12 +339,12 @@ for (const value of Object.keys(properties)) {
   const option = component.option({
     text: capitalize(value),
     value,
-    parent: form.elements.property,
+    parent: elements.property,
   });
 }
 
 // Add event handlers
-form.elements.property.on.change(
+elements.property.on.change(
   (event) => {
     //console.log("event:", event); ////
     const target = event.target;
@@ -352,7 +352,7 @@ form.elements.property.on.change(
     // Unset/set selected option
     select(target, value);
     // Set icon
-    form.elements.icon.innerHTML = icons[properties[value].icon];
+    elements.icon.innerHTML = icons[properties[value].icon];
     // Popuilate unit selects
     a.unit.clear();
     b.unit.clear();
