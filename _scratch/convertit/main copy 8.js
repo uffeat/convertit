@@ -1,16 +1,6 @@
 const { default: use } = await import(`https://rolloh.vercel.app/anvil/use.js`);
-const {
-  Reactive,
-  Ref,
-  Sheet,
-  app,
-  breakpoints,
-  capitalize,
-  component,
-  css,
-  html,
-  is,
-} = await use("@/rollo/");
+const { Reactive, Ref, Sheet, app, capitalize, component, css, html, is } =
+  await use("@/rollo/");
 const { frame } = await use("@/frame/");
 const { Form, Input } = await use("@/form/");
 await use(`@/bootstrap/`);
@@ -86,40 +76,14 @@ const icons = {
   section.append(text);
 })();
 
-const units = {
-  cm: [(v) => v / 100, (v) => v * 100],
-  m: [(v) => v, (v) => v],
-  km: [(v) => v * 1_000, (v) => v / 1_000],
-  "cm\u00B2": [(v) => v / 100 ** 2, (v) => v * 100 ** 2],
-  "m\u00B2": [(v) => v, (v) => v],
-  "km\u00B2": [(v) => v * 1_000 ** 2, (v) => v / 1_000 ** 2],
-
-
-};
-
 const properties = {
-  area: {
-    base: "m\u00B2",
-    icon: "area",
-    units: ["cm\u00B2","m\u00B2","km\u00B2",
-    ],
-  },
-  length: {
-    base: "m",
-    icon: "arrows",
-    units: ["cm","m","km"],
-    
-   
-  },
-  mass: { base: "kg", icon: "minecart-loaded", units: [["kg"], ["g"]] },
-  speed: { base: "m/s", icon: "spedometer", units: [["km/h"], ["m/s"]] },
-  temperature: {
-    base: "\u00B0C",
-    icon: "thermometer",
-    units: [["\u00B0C"], ["\u00B0F"], ["K"]],
-  },
-  time: { base: "s", icon: "hourglass", units: [["h"], ["s"]] },
-  volume: { base: "m\u00B3", icon: "beaker", units: [["m\u00B3"], ["l"]] },
+  area: { icon: "area", units: ["cm\u00B2", "m\u00B2", "km\u00B2"] },
+  length: { icon: "arrows", units: ["cm", "m", "km"] },
+  mass: { icon: "minecart-loaded", units: ["kg", "g"] },
+  speed: { icon: "spedometer", units: ["km/h", "m/s"] },
+  temperature: { icon: "thermometer", units: ["\u00B0C", "\u00B0F", "K"] },
+  time: { icon: "hourglass", units: ["h", "s"] },
+  volume: { icon: "beaker", units: ["m\u00B3", "l"] },
 };
 
 //const result = convert(1, "m", "cm");
@@ -145,13 +109,89 @@ css`
   }
 `.use();
 
-// Build frame
+const page = component.div(
+  `container.py-3`,
+  { parent: frame },
+  component.h1(
+    "mb-3",
+    { text: "Unit conversion made ", textAlign: "center" },
+    component.span({ text: "simple" }),
+  ),
+);
+
+const pg = component.div(`container.py-3`, { parent: frame });
+
+pg.innerrHTML = html`
+  <style>
+    [uid="${pg.uid}"] {
+      h1 > span {
+        color: var(--bs-success);
+      }
+    }
+  </style>
+  <h1 class="mb-3">Unit conversion made <span>simple</span></h1>
+`;
+
+const p = component.from(
+  html`
+    <style>
+      h1 > span {
+        color: var(--bs-success);
+      }
+    </style>
+    <div class="container py-3">
+      <h1 class="mb-3">Unit conversion made <span>simple</span></h1>
+    </div>
+  `,
+  { parent: frame },
+);
+
+// Style page
+const sheet = css`
+  [uid="${page.uid}"] {
+    h1 > span {
+      color: var(--bs-success);
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      row-gap: 1rem;
+
+      margin-left: auto;
+      margin-right: auto;
+
+      span[icon] {
+        display: flex;
+        justify-content: center;
+      }
+
+      select.unit {
+        max-width: 8rem;
+      }
+
+      .input-group {
+        min-width: 6rem;
+      }
+    }
+  }
+
+  #app[state-lg] [uid="${page.uid}"] {
+    form {
+      max-width: 768px;
+    }
+  }
+`.use();
+
 component.img({ src: "./favicon.svg", slot: "home", parent: frame });
+
 component.nav(
   "nav",
   { slot: "top", parent: frame },
   component.a("nav-link", { text: "Go premium" }),
 );
+
 component.nav(
   "nav",
   { slot: "side", parent: frame },
@@ -159,202 +199,108 @@ component.nav(
   component.a("nav-link", { text: "Units" }),
 );
 
-// Build page
-const page = component.div(`container.py-3`, { parent: frame });
-page.innerHTML = html`
-  <style>
-    [uid="${page.uid}"] {
-      h1 {
-        text-align: center;
-
-        span {
-          color: var(--bs-success);
-        }
-      }
-
-      form {
-        max-width: ${breakpoints.sm}px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        row-gap: 1rem;
-
-        margin-left: auto;
-        margin-right: auto;
-
-        [icon] {
-          width: 4rem;
-          display: flex;
-          justify-content: center;
-        }
-
-        select.unit {
-          max-width: 6rem;
-        }
-
-        label {
-          min-width: 6rem;
-        }
-
-        select > option[selected] {
-          color: var(--bs-primary-text-emphasis);
-        }
-      }
-    }
-
-    #app[state-lg] [uid="${page.uid}"] {
-      form {
-        max-width: ${breakpoints.sm}px;
-      }
-    }
-  </style>
-  <h1 class="mb-3">Unit conversion made <span>simple</span></h1>
-`;
-
 const form = component.from(
-  html` <!--foo-->
-    <form>
-      <div class="input-group">
-        <label class="input-group-text">Property</label>
-        <select
-          name="property"
-          class="form-select property"
-          title="Property"
-        ></select>
-        <output class="input-group-text" icon name="icon">icon</output>
-      </div>
+  html`<form>
+    <style>
+      form {
+        border: 1px solid pink;
+      }
+    </style>
 
-      <div class="input-group">
-        <label class="input-group-text">From</label>
-        <input
-          name="value1"
-          type="number"
-          class="form-control"
-          placeholder="Value to convert"
-          value="1"
-        />
-        <select name="unit1" class="form-select unit" title="Unit"></select>
-      </div>
+    <div class="input-group">
+      <span class="input-group-text">Property</span>
+      <select
+        name="property"
+        class="form-select property"
+        title="Property"
+      ></select>
+      <datalist class="input-group-text" icon name="icon">icon</datalist>
+    </div>
 
-      <div class="input-group">
-        <label class="input-group-text">To</label>
-        <input
-          name="value2"
-          type="number"
-          class="form-control"
-          placeholder="Converted value"
-        />
-        <select name="unit2" class="form-select unit" title="Unit"></select>
-      </div>
-    </form>`,
+    <div class="input-group">
+      <span class="input-group-text">From</span>
+      <input
+        name="value"
+        type="number"
+        class="form-control"
+        placeholder="Value to convert"
+        value="1"
+      />
+      <select name="from" class="form-select unit from" title="Unit"></select>
+    </div>
+
+    <div class="input-group">
+      <span class="input-group-text">To</span>
+      <input
+        name="out"
+        type="number"
+        class="form-control"
+        placeholder="Converted value"
+        inert
+      />
+      <select name="to" class="form-select unit to" title="Unit"></select>
+    </div>
+  </form> `,
   { parent: page },
 );
 
 // Get elements
+//console.dir(form); //
+//console.log(form.elements.property); ////
+console.log("icon", form.elements.icon); ////
+
 const elements = form.elements;
-
-/* */
-function select(target, value) {
-  const previous = target.find(`[selected]`);
-  if (previous) {
-    previous.attribute.selected = false;
-  }
-  const current = target.find(`[value="${value}"]`);
-  current.attribute.selected = true;
-  return target;
-}
-
-function convert(value1, unit1, unit2) {
-  console.log("New calculation..."); ////
- 
-  console.log("value:", value1); ////
-  console.log("from unit:", unit1); ////
-  console.log("to unit:", unit2); ////
-
-  const toBase = units[unit1][0];
-  console.log("toBase:", toBase); ////
-
-  const fromBase = units[unit2][1];
-  console.log("fromBase:", fromBase); ////
-
-  const baseValue = toBase(value1)
-
-  const result = fromBase(baseValue)
-
-  console.log("result:", result); ////
-}
 
 // Populate property select
 for (const value of Object.keys(properties)) {
   const option = component.option({
     text: capitalize(value),
     value,
-    parent: elements.property,
+    parent: form.elements.property,
   });
 }
+
+// Add effects
+(() => {
+  const icon = form.find(`[icon]`);
+  elements.property.effects.add(
+    (change, message) => {
+      //console.log("change:", change); ////
+      //console.log("message:", message); ////
+      const value = change._value;
+      console.log("Property is now:", value); ////
+
+      icon.innerHTML = icons[properties[value].icon];
+      elements.from.clear();
+      elements.to.clear();
+      const units = properties[value].units;
+      //console.log("units:", units); //
+      // Populate unit selects
+      for (const value of units) {
+        elements.from.append(
+          component.option({
+            text: value,
+            value,
+          }),
+        );
+        elements.to.append(
+          component.option({
+            text: value,
+            value,
+          }),
+        );
+      }
+    },
+    ["_value"],
+  );
+})();
 
 // Add event handlers
 elements.property.on.change(
   (event) => {
     //console.log("event:", event); ////
     const target = event.target;
-    const value = target.value;
-    // Unset/set selected option
-    select(target, value);
-    // Set icon
-    elements.icon.innerHTML = icons[properties[value].icon];
-    // Popuilate unit selects
-    elements.unit1.clear();
-    elements.unit2.clear();
-    const units = properties[value].units;
-    // Populate unit selects
-    for (const unit of units) {
-      elements.unit1.append(
-        component.option({
-          text: unit,
-          value: unit,
-          "[value]": unit,
-        }),
-      );
-      elements.unit2.append(
-        component.option({
-          text: unit,
-          value: unit,
-          "[value]": unit,
-        }),
-      );
-    }
-    // Set default select value
-    const base = properties[value].base;
-    select(elements.unit1, base);
-    select(elements.unit2, base);
-    convert(
-      elements.value1.value,
-      elements.unit1.value,
-      elements.unit2.value,
-    );
+    target.$({ _value: target.value });
   },
   { run: true },
 );
-
-(() => {
-  const onchange = (event) => {
-    select(event.target, event.target.value);
-    convert( 
-      elements.value1.value,
-      elements.unit1.value,
-      elements.unit2.value,
-    );
-  };
-  elements.unit1.on.change(onchange);
-  elements.unit2.on.change(onchange);
-})();
-
-elements.value1.on.change((event) => {
-  convert(
-  
-    elements.value1.value,
-    elements.unit1.value,
-    elements.unit2.value,
-  );
-});

@@ -86,40 +86,14 @@ const icons = {
   section.append(text);
 })();
 
-const units = {
-  cm: [(v) => v / 100, (v) => v * 100],
-  m: [(v) => v, (v) => v],
-  km: [(v) => v * 1_000, (v) => v / 1_000],
-  "cm\u00B2": [(v) => v / 100 ** 2, (v) => v * 100 ** 2],
-  "m\u00B2": [(v) => v, (v) => v],
-  "km\u00B2": [(v) => v * 1_000 ** 2, (v) => v / 1_000 ** 2],
-
-
-};
-
 const properties = {
-  area: {
-    base: "m\u00B2",
-    icon: "area",
-    units: ["cm\u00B2","m\u00B2","km\u00B2",
-    ],
-  },
-  length: {
-    base: "m",
-    icon: "arrows",
-    units: ["cm","m","km"],
-    
-   
-  },
-  mass: { base: "kg", icon: "minecart-loaded", units: [["kg"], ["g"]] },
-  speed: { base: "m/s", icon: "spedometer", units: [["km/h"], ["m/s"]] },
-  temperature: {
-    base: "\u00B0C",
-    icon: "thermometer",
-    units: [["\u00B0C"], ["\u00B0F"], ["K"]],
-  },
-  time: { base: "s", icon: "hourglass", units: [["h"], ["s"]] },
-  volume: { base: "m\u00B3", icon: "beaker", units: [["m\u00B3"], ["l"]] },
+  area: { icon: "area", units: ["cm\u00B2", "m\u00B2", "km\u00B2"] },
+  length: { icon: "arrows", units: ["cm", "m", "km"] },
+  mass: { icon: "minecart-loaded", units: ["kg", "g"] },
+  speed: { icon: "spedometer", units: ["km/h", "m/s"] },
+  temperature: { icon: "thermometer", units: ["\u00B0C", "\u00B0F", "K"] },
+  time: { icon: "hourglass", units: ["h", "s"] },
+  volume: { icon: "beaker", units: ["m\u00B3", "l"] },
 };
 
 //const result = convert(1, "m", "cm");
@@ -198,6 +172,7 @@ page.innerHTML = html`
 
         select > option[selected] {
           color: var(--bs-primary-text-emphasis);
+         
         }
       }
     }
@@ -227,62 +202,35 @@ const form = component.from(
       <div class="input-group">
         <label class="input-group-text">From</label>
         <input
-          name="value1"
+          name="value"
           type="number"
           class="form-control"
           placeholder="Value to convert"
           value="1"
         />
-        <select name="unit1" class="form-select unit" title="Unit"></select>
+        <select name="from" class="form-select unit from" title="Unit"></select>
       </div>
 
       <div class="input-group">
         <label class="input-group-text">To</label>
         <input
-          name="value2"
+          name="out"
           type="number"
           class="form-control"
           placeholder="Converted value"
+          inert
         />
-        <select name="unit2" class="form-select unit" title="Unit"></select>
+        <select name="to" class="form-select unit to" title="Unit"></select>
       </div>
     </form>`,
   { parent: page },
 );
 
 // Get elements
+//console.dir(form); //
+//console.log(form.elements.property); ////
+
 const elements = form.elements;
-
-/* */
-function select(target, value) {
-  const previous = target.find(`[selected]`);
-  if (previous) {
-    previous.attribute.selected = false;
-  }
-  const current = target.find(`[value="${value}"]`);
-  current.attribute.selected = true;
-  return target;
-}
-
-function convert(value1, unit1, unit2) {
-  console.log("New calculation..."); ////
- 
-  console.log("value:", value1); ////
-  console.log("from unit:", unit1); ////
-  console.log("to unit:", unit2); ////
-
-  const toBase = units[unit1][0];
-  console.log("toBase:", toBase); ////
-
-  const fromBase = units[unit2][1];
-  console.log("fromBase:", fromBase); ////
-
-  const baseValue = toBase(value1)
-
-  const result = fromBase(baseValue)
-
-  console.log("result:", result); ////
-}
 
 // Populate property select
 for (const value of Object.keys(properties)) {
@@ -293,68 +241,64 @@ for (const value of Object.keys(properties)) {
   });
 }
 
+// Add effects
+elements.property.effects.add(
+  (change, message) => {
+    //console.log("change:", change); ////
+    //console.log("message:", message); ////
+    const value = change._value;
+    //console.log("Property is now:", value); ////
+
+    elements.icon.innerHTML = icons[properties[value].icon];
+    elements.from.clear();
+    elements.to.clear();
+    const units = properties[value].units;
+    //console.log("units:", units); ////
+    // Populate unit selects
+    for (const value of units) {
+      elements.from.append(
+        component.option({
+          text: value,
+          value,
+          "[value]": value,
+        }),
+      );
+      elements.to.append(
+        component.option({
+          text: value,
+          value,
+          "[value]": value,
+        }),
+      );
+    }
+  },
+  ["_value"],
+);
+
 // Add event handlers
 elements.property.on.change(
   (event) => {
     //console.log("event:", event); ////
     const target = event.target;
-    const value = target.value;
-    // Unset/set selected option
-    select(target, value);
-    // Set icon
-    elements.icon.innerHTML = icons[properties[value].icon];
-    // Popuilate unit selects
-    elements.unit1.clear();
-    elements.unit2.clear();
-    const units = properties[value].units;
-    // Populate unit selects
-    for (const unit of units) {
-      elements.unit1.append(
-        component.option({
-          text: unit,
-          value: unit,
-          "[value]": unit,
-        }),
-      );
-      elements.unit2.append(
-        component.option({
-          text: unit,
-          value: unit,
-          "[value]": unit,
-        }),
-      );
+    console.log("value:", target.value); ////
+
+    const previous = target.find(`[selected]`)
+    if (previous) {
+      previous.attribute.selected = false
     }
-    // Set default select value
-    const base = properties[value].base;
-    select(elements.unit1, base);
-    select(elements.unit2, base);
-    convert(
-      elements.value1.value,
-      elements.unit1.value,
-      elements.unit2.value,
-    );
+    const current = target.find(`[value="${target.value}"]`)
+    current.attribute.selected = true
+
+
+
+
+    target.$({ _value: target.value });
   },
   { run: true },
 );
 
-(() => {
-  const onchange = (event) => {
-    select(event.target, event.target.value);
-    convert( 
-      elements.value1.value,
-      elements.unit1.value,
-      elements.unit2.value,
-    );
-  };
-  elements.unit1.on.change(onchange);
-  elements.unit2.on.change(onchange);
-})();
+const option = elements.from.find('[value="m\u00B2"]')
+console.log("option:", option); ////
+option.selected = true
 
-elements.value1.on.change((event) => {
-  convert(
-  
-    elements.value1.value,
-    elements.unit1.value,
-    elements.unit2.value,
-  );
-});
+
