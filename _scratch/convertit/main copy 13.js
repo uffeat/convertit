@@ -178,17 +178,37 @@ css`
   }
 `.use();
 
-// Set/update base
-if (document.head.getElementsByTagName('base')) {
- document.head.prepend(component.base({href: "https://convertit.anvil.app"}))
-  
-} 
-
-
-
-
 // Build frame
-component.img({ src: '/favicon.svg', slot: "home", parent: frame });
+//const base = "http://127.0.0.1:5500/_scratch/convertit/index.html";
+const base = "http://127.0.0.1:5500/_scratch/convertit";
+
+let constructed = location.href.split("/");
+constructed.pop();
+constructed = constructed.join("/");
+console.log("constructed:", constructed);
+
+console.dir(location); ////
+
+const foo = (() => {
+  let _pathname = location.pathname.split("/");
+  _pathname.pop();
+  _pathname = _pathname.join("/");
+  console.log("_pathname:", _pathname);
+
+  const theme = '_/theme'
+
+  const result = `${location.origin}/${theme}${_pathname}`
+
+  console.log("result:", result);
+
+  if (location.hostname === "127.0.0.1") {
+  }
+})();
+
+//const src = `${base}/favicon.svg`;
+const src = './favicon.svg'
+
+component.img({ src, slot: "home", parent: frame });
 
 component.nav(
   "nav",
