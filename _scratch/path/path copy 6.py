@@ -65,7 +65,7 @@ class Path(Base, AttributeMixin):
 
         if isinstance(specifier, str):
             specifier = specifier.split("/")
-
+        
         root = specifier.pop(0)
         name = specifier[-1]
         file = File(name)
@@ -78,16 +78,14 @@ class Path(Base, AttributeMixin):
                 constructed.append(part)
             else:
                 next_index = index + 1
-                if next_index + 1 == size:
-                    constructed.append(file.stem)
-                elif next_index < size:
-                    constructed.append(specifier[next_index])
+                if next_index < size:
+                    constructed.append(file.stem if next_index + 1 == size else specifier[next_index])
 
         path = "/" + "/".join(constructed)
         parts = tuple(constructed)
         if constructed:
             constructed.pop()
-
+     
         self._.update(
             detail={},
             file=file,
@@ -139,12 +137,10 @@ class Path(Base, AttributeMixin):
     def root(self) -> str:
         return self._["root"]
 
-
 specifier = "@/stuff/ding.py"
-specifier = "//ding.py"
-specifier = "//stuff//ding.py"
+##specifier = "//stuff//ding.py"
 ##specifier = "/stuff/ding.py"
-##specifier = "/"
+specifier = "/"
 
 ##specifier = ['/', 'stuff','ding.py']
 
