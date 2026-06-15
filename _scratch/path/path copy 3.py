@@ -10,7 +10,7 @@ class Base:
 
 
 class File(Base):
-    def __init__(self, name: str):
+    def __init__(self, name: str, parents: tuple = None):
         Base.__init__(self)
         if name and "." in name:
             # name and types
@@ -18,15 +18,10 @@ class File(Base):
             # type
             *_, type_ = types.rpartition(".")
             self._.update(stem=stem, type=type_, types=types)
-        self._.update(name=name)
+        self._.update(name=name, parents=parents)
 
-    def __call__(self, *args):
-        if len(args) == 1:
-            key = args[0]
-            return getattr(self, key, None)
-        if len(args) >= 2:
-            key, value, *_ = args
-            return setattr(self, key, value)
+    def __call__(self, key):
+        return getattr(self, key, None)
 
     def __str__(self) -> str:
         return self.name
@@ -36,6 +31,10 @@ class File(Base):
         return self._["name"]
 
     @property
+    def parents(self) -> tuple:
+        return self._["parents"]
+
+    @property
     def stem(self) -> str:
         return self._.get("stem", self.name)
 
@@ -43,49 +42,52 @@ class File(Base):
     def type(self) -> str:
         return self._.get("type", "")
 
-    @type.setter
-    def type(self, type: str):
-        return self._.update(type=type)
-
     @property
     def types(self) -> str:
-        return self._.get("types", self.type)
-
-    @types.setter
-    def types(self, types: str):
-        return self._.update(types=types)
+        return self._.get("types", "")
 
 
 class Path(Base):
     def __init__(self, specifier: str):
         Base.__init__(self)
 
-        parts = specifier.split("/")
-        root = parts.pop(0)
-        name = parts[-1]
-        file = File(name)
-        size = len(parts)
+        path = []
+        
+        ##
+        parts = specifier.split("/")[1:]
+        ##
 
-        constructed = []
+        ##print("parts:", parts)  ##
+        length = len(parts)
+        ##print("length:", length)  ##
+
         for index, part in enumerate(parts):
+            ##print("index:", index)  ##
+            ##print("part:", part)  ##
             if part:
-                constructed.append(part)
+                path.append(part)
             else:
-                constructed.append(file.stem if index + 2 == size else parts[index + 1])
+                next_index = index + 1
+                ##print("next_index:", next_index)  ##
+                next_part = parts[next_index]
+                if (next_index + 1) == length:
+                    next_part, *_ = next_part.partition(".")
+                path.append(next_part)
 
-        path = "/" + "/".join(constructed)
-        full = root + path
-        parts = tuple(constructed)
-        constructed.pop()
-        parents = tuple(constructed)
+        path = "/".join(path)
+
+        ##print("path:", path)  ##
+        parts = [p for p in path.split("/") if p]
+        name = parts[-1]
+
+        # XXX TODO Check if agrees with // short hand. If not, move root detection to shorthand parsing
+        root = "/" if path.startswith("/") else parts[0]
 
         self._.update(
-            file=file,
-            full=full,
-            parents=parents,
-            parts=parts,
+            file=File(name, parents=tuple(parts[:-1])),
+            parts=tuple(parts),
             path=path,
-            root=root or "/",
+            root=root,
         )
 
     def __call__(self, key):
@@ -105,23 +107,11 @@ class Path(Base):
         return self._["file"]
 
     @property
-    def full(self) -> str:
-        """Returns path witrh root."""
-        return self._["full"]
-
-    @property
-    def parents(self) -> tuple:
-        """Returns path parts without root and file."""
-        return self._["parents"]
-
-    @property
     def parts(self) -> tuple:
-        """Returns path parts without root."""
         return self._["parts"]
 
     @property
     def path(self) -> str:
-        """Returns path relative to root. Always starts with '/'."""
         return self._["path"]
 
     @property
@@ -129,27 +119,19 @@ class Path(Base):
         return self._["root"]
 
 
-specifier = "@//stuff//ding.py"
+specifier = "/stuff//ding.py"
 ##specifier = "/stuff"
 path = Path(specifier)
 print("specifier:", specifier)
-print("full:", path.full)
 print("path:", path.path)
-print("parents:", path.parents)
 print("parts:", path.parts)
 print("root:", path.root)
 
-##print("file:", path.file)
+print("file:", path.file)
 print("name:", path.file.name)
 print("stem:", path.file.stem)
 print("type:", path.file.type)
 print("types:", path.file.types)
-##print("parents:", path.file.parents)
+print("parents:", path.file.parents)
 
 print("stem:", path("file")("stem"))
-
-
-path("file")("type", 'foo', 42)
-print("type:", path.file.type)
-
-

@@ -20,13 +20,8 @@ class File(Base):
             self._.update(stem=stem, type=type_, types=types)
         self._.update(name=name)
 
-    def __call__(self, *args):
-        if len(args) == 1:
-            key = args[0]
-            return getattr(self, key, None)
-        if len(args) >= 2:
-            key, value, *_ = args
-            return setattr(self, key, value)
+    def __call__(self, key):
+        return getattr(self, key, None)
 
     def __str__(self) -> str:
         return self.name
@@ -34,6 +29,8 @@ class File(Base):
     @property
     def name(self) -> str:
         return self._["name"]
+
+   
 
     @property
     def stem(self) -> str:
@@ -43,49 +40,64 @@ class File(Base):
     def type(self) -> str:
         return self._.get("type", "")
 
-    @type.setter
-    def type(self, type: str):
-        return self._.update(type=type)
-
     @property
     def types(self) -> str:
-        return self._.get("types", self.type)
-
-    @types.setter
-    def types(self, types: str):
-        return self._.update(types=types)
+        return self._.get("types", "")
 
 
 class Path(Base):
     def __init__(self, specifier: str):
         Base.__init__(self)
 
+       
+        
+       
         parts = specifier.split("/")
-        root = parts.pop(0)
+        root = parts[0] or "/"
         name = parts[-1]
-        file = File(name)
+        file=File(name)
+
         size = len(parts)
 
-        constructed = []
-        for index, part in enumerate(parts):
-            if part:
-                constructed.append(part)
-            else:
-                constructed.append(file.stem if index + 2 == size else parts[index + 1])
 
-        path = "/" + "/".join(constructed)
-        full = root + path
-        parts = tuple(constructed)
-        constructed.pop()
-        parents = tuple(constructed)
+
+        for index, part in enumerate(parts):
+            print("index:", index)  ##
+            print("part:", part)  ##
+
+
+
+
+
+
+        
+
+        
+
+
+
+
+
+
+       
+        ##path = "/" + "/".join(parts[1:])
+        full = "/".join(parts)
+
+        parts.pop(0)
+
+        path = "/" + "/".join(parts)
+
+       
+
+       
+        
 
         self._.update(
             file=file,
             full=full,
-            parents=parents,
-            parts=parts,
+            parts=tuple(parts),
             path=path,
-            root=root or "/",
+            root=root,
         )
 
     def __call__(self, key):
@@ -103,25 +115,17 @@ class Path(Base):
     @property
     def file(self) -> File:
         return self._["file"]
-
+    
     @property
     def full(self) -> str:
-        """Returns path witrh root."""
         return self._["full"]
 
     @property
-    def parents(self) -> tuple:
-        """Returns path parts without root and file."""
-        return self._["parents"]
-
-    @property
     def parts(self) -> tuple:
-        """Returns path parts without root."""
         return self._["parts"]
 
     @property
     def path(self) -> str:
-        """Returns path relative to root. Always starts with '/'."""
         return self._["path"]
 
     @property
@@ -129,13 +133,12 @@ class Path(Base):
         return self._["root"]
 
 
-specifier = "@//stuff//ding.py"
+specifier = "@/stuff/ding.py"
 ##specifier = "/stuff"
 path = Path(specifier)
 print("specifier:", specifier)
 print("full:", path.full)
 print("path:", path.path)
-print("parents:", path.parents)
 print("parts:", path.parts)
 print("root:", path.root)
 
@@ -146,10 +149,4 @@ print("type:", path.file.type)
 print("types:", path.file.types)
 ##print("parents:", path.file.parents)
 
-print("stem:", path("file")("stem"))
-
-
-path("file")("type", 'foo', 42)
-print("type:", path.file.type)
-
-
+##print("stem:", path("file")("stem"))
