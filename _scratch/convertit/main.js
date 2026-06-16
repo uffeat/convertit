@@ -188,7 +188,6 @@ if (location.protocol === "http:") {
   document.head.prepend(
     component.base({ href: "https://convertitdev.anvil.app" }),
   );
-  
 }
 
 // Build frame
