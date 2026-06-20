@@ -10,13 +10,14 @@ from anvil.server import (
 
 UTF_8 = "utf-8"
 
+
 def Bundle() -> BlobMedia:
     """."""
     name = "bundle.json"
     file = Path.cwd() / name
     content = file.read_text(encoding=UTF_8).strip()
     content = content.encode(UTF_8)
-    return BlobMedia('application/json', content, name=name)
+    return BlobMedia("application/json", content, name=name)
 
 
 class Server:
@@ -28,40 +29,31 @@ class Server:
     def __call__(self):
         """."""
         connect(
-        (json.loads((Path.cwd() / "secrets.json").read_text(encoding=UTF_8)))[
-            "development"
-        ]["server"]
-    )
-        
-
-      
+            (json.loads((Path.cwd() / "secrets.json").read_text(encoding=UTF_8)))[
+                "development"
+            ]["server"]
+        )
 
         @server_function
-        def _bundle():
+        def _bundle() -> BlobMedia:
             return self._["bundle"]
-        
 
         @server_function
-        def _log(*args):
+        def _log(*args) -> None:
             print(*args)
 
         print("Running local server.")
-        
 
         # HACK Sometimes fails at first run
         try:
             wait_forever()
         except:
             wait_forever()
-            
+
     @property
     def _(self) -> dict:
         return self.__
 
 
-
 if __name__ == "__main__":
     Server()()
-
-    
-        

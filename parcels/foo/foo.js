@@ -1,5 +1,5 @@
 export default async (use) => {
-  const { Base } = await use("/base/base.js");
+  const { Base } = await use("@@/base/base.js");
 
   class Foo extends Base {
     #_ = {};
