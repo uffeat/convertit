@@ -1,0 +1,9 @@
+{
+  "/foo/foo.js": "export default async (use) => {\n  const { Base } = await use(\"/base/base.js\");\n\n  class Foo extends Base {\n    #_ = {};\n    constructor() {\n      super();\n      this._.foo = \"JS foo\"\n    }\n\n    get foo() {\n      return this._.foo;\n    }\n  }\n\n  return { Foo };\n};",
+  "/foo/foo.css": "[foo] {\n  color: hotpink;\n}",
+  "/foo/foo.py": "def main(use):\n    Base = use(\"/base/base.py\").Base\n\n    class Foo(Base):\n        def __init__(self):\n            Base.__init__(self)\n            self._.update(foo=\"Py foo\")\n\n        @property\n        def foo(self):\n            return self._['foo']\n\n    return dict(Foo=Foo)",
+  "/path/path.js": "",
+  "/base/base.py": "def main(*args):\n\n    class Base:\n\n        def __init__(self):\n            self.__dict__.update(__={})\n\n        @property\n        def _(self) -> dict:\n            return self.__\n        \n    return dict(Base=Base)",
+  "/base/base.js": "export default async (use) => {\n  class Base {\n    #_ = {};\n    constructor() {}\n\n    get _() {\n      return this.#_;\n    }\n  }\n\n  return { Base };\n};",
+  "/foo/bar/bar.py": "def main(use):\n    Base = use(\"/base/base.py\").Base\n\n    class Bar(Base):\n        def __init__(self):\n            Base.__init__(self)\n            self._.update(foo=\"Py bar\")\n\n        @property\n        def bar(self):\n            return self._['bar']\n\n    return dict(Bar=Bar)"
+}

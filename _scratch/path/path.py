@@ -24,11 +24,10 @@ class File(Base, AttributeMixin):
     def __init__(self, name: str):
         Base.__init__(self)
         if name and "." in name:
-            # name and types
-            stem, _, types = name.partition(".")
-            # type
-            *_, type_ = types.rpartition(".")
-            self._.update(stem=stem, type=type_, types=types)
+            types = name.split('.')
+            stem = types.pop(0)
+            type_ = types[-1]
+            self._.update(stem=stem, type=type_, types=tuple(types))
         self._.update(name=name)
 
     def __str__(self) -> str:
@@ -44,18 +43,18 @@ class File(Base, AttributeMixin):
 
     @property
     def type(self) -> str:
-        return self._.get("type", "")
-
-    @type.setter
-    def type(self, type: str):
-        return self._.update(type=type)
+        return self._.get("type", self.types[-1] if self.types else '')
 
     @property
-    def types(self) -> str:
-        return self._.get("types", self.type)
+    def types(self) -> tuple:
+        return self._.get("types", tuple([""]))
 
     @types.setter
-    def types(self, types: str):
+    def types(self, types: tuple):
+        if isinstance(types, str):
+            types = types.split('.')
+        if isinstance(types, list):
+            types = tuple(types)
         return self._.update(types=types)
 
 
@@ -140,9 +139,9 @@ class Path(Base, AttributeMixin):
         return self._["root"]
 
 
-specifier = "@/stuff/ding.py"
-specifier = "//ding.py"
-specifier = "//stuff//ding.py"
+specifier = "@/stuff/ding.svg.js"
+##specifier = "//ding.py"
+##specifier = "//stuff//ding.py"
 ##specifier = "/stuff/ding.py"
 ##specifier = "/"
 
