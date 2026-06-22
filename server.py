@@ -50,7 +50,7 @@ class Server:
             print(*args)
 
         @server_function
-        def _code(path: str) -> str:
+        def _use(path: str) -> str:
             """Returns code text from local disc."""
             ##print("path:", path)  ##
             file = PARCELS / path[1:]

@@ -1,4 +1,4 @@
-def main(*args):
+def main(use):
 
     class Base:
 

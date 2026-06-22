@@ -1,5 +1,5 @@
 def main(use):
-    Base = use("/base/base.py").Base
+    Base = use("@@/base/base.py").Base
 
     class Bar(Base):
         def __init__(self):
