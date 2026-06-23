@@ -31,14 +31,11 @@ class upload:
         except Exception as error:
             print(f"Bundle NOT uploaded. Error: {str(error)}")
         else:
-            if response.get('ok'):
+            if response.get("ok"):
                 print("Bundle uploaded.")
             else:
                 message = f"Bundle upload failed. Message: {response.get('error')}"
                 raise ValueError(message)
-                
-
-        
 
 
 upload = upload()

@@ -45,10 +45,18 @@ class Server:
             return BlobMedia("application/json", content, name=name)
 
         @server_function
-        def _download_bundle() -> BlobMedia:
+        def _download_bundle() -> dict:
             """Returns bundle from db."""
-            row: Row = app_tables.meta.get(key="bundle")
-            return row["media"]
+            try:
+                result: BlobMedia = app_tables.use.get(key="files")["bundle"]
+                return dict(ok=True, result=result)
+            except:
+                return dict(ok=False, error=traceback.format_exc())
+
+
+
+
+            
 
         @server_function
         def _log(*args) -> None:
@@ -69,6 +77,16 @@ class Server:
             ##print("bundle", bundle)  ##
             try:
                 app_tables.use.get(key="files").update(bundle=bundle)
+                return dict(ok=True)
+            except:
+                return dict(ok=False, error=traceback.format_exc())
+            
+        @server_function
+        def _upload_sheet(sheet: BlobMedia) -> dict:
+            """Saves sheet to db."""
+            ##print("sheet", sheet)  ##
+            try:
+                app_tables.use.get(key="files").update(use=sheet)
                 return dict(ok=True)
             except:
                 return dict(ok=False, error=traceback.format_exc())
