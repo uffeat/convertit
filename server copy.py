@@ -1,6 +1,5 @@
 import json
 from pathlib import Path
-import traceback
 from anvil import BlobMedia
 from anvil.server import (
     callable as server_function,
@@ -8,7 +7,7 @@ from anvil.server import (
     disconnect,
     wait_forever,
 )
-from anvil.tables import app_tables, Row, Table
+from anvil.tables import app_tables
 
 PARCELS = Path.cwd() / "parcels"
 UTF_8 = "utf-8"
@@ -47,7 +46,7 @@ class Server:
         @server_function
         def _download_bundle() -> BlobMedia:
             """Returns bundle from db."""
-            row: Row = app_tables.meta.get(key="bundle")
+            row = app_tables.meta.get(key="bundle")
             return row["media"]
 
         @server_function
@@ -64,14 +63,14 @@ class Server:
             return result
 
         @server_function
-        def _upload_bundle(bundle: BlobMedia) -> dict:
+        def _upload_bundle(bundle: BlobMedia) -> None:
             """Saves bundle to db."""
-            ##print("bundle", bundle)  ##
-            try:
-                app_tables.use.get(key="files").update(bundle=bundle)
-                return dict(ok=True)
-            except:
-                return dict(ok=False, error=traceback.format_exc())
+            row = app_tables.meta.get(key="bundle")
+            ##print("row:", row)  ##
+            if row:
+                row.update(media=bundle)
+            else:
+                app_tables.meta.add_row(key="bundle", media=bundle)
 
         print("Running local server.")
 
@@ -80,6 +79,8 @@ class Server:
             wait_forever()
         except:
             wait_forever()
+
+    
 
 
 if __name__ == "__main__":

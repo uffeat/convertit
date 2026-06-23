@@ -1,4 +1,5 @@
-def main(use):
+def main(use: callable) -> dict:
+    """Returns Foo."""
     Base = use("@@/base/base.py").Base
 
     class Foo(Base):
@@ -8,6 +9,9 @@ def main(use):
 
         @property
         def foo(self):
-            return self._['foo']
+            return self._["foo"]
+        
+    def foo():
+        print('Foo')
 
-    return dict(Foo=Foo)
+    return dict(Foo=Foo, foo=foo)

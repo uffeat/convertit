@@ -1,4 +1,4 @@
-export default async (use) => {
+export default (use) => {
   class Base {
     #_ = {};
     constructor() {}

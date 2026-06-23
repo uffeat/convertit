@@ -1,9 +1,7 @@
 import json
 from pathlib import Path
 from bs4 import BeautifulSoup as bs
-import minify_html as minify
-from anvil import BlobMedia
-from anvil.server import call, connect, disconnect
+import minify_html as _minify
 
 SOURCE = Path.cwd() / "parcels"
 UTF_8 = "utf-8"
@@ -19,7 +17,7 @@ def minify_html(html: str) -> str:
         keep_html_and_head_opening_tags=True,
         keep_comments=False,
     )
-    return minify.minify(html, **config)
+    return _minify.minify(html, **config)
 
 
 def minify_css(css: str) -> str:
@@ -30,56 +28,52 @@ def minify_css(css: str) -> str:
     return style.string
 
 
-class Bundle:
+class bundle:
     def __init__(self):
         self.__dict__.update(__={})
-        self._.update(bundle={}, name="bundle.json")
-
-    def __call__(self) -> "Bundle":
-        """Creates bundle."""
-        for file in SOURCE.rglob("**/*.*"):
-            if "test" in file.parts:
-                continue
-            path = f"/{file.relative_to(SOURCE).as_posix()}"
-            text = file.read_text(encoding=UTF_8).strip()
-            if file.suffix == ".css":
-                text = minify_css(text)
-            elif file.suffix == ".html":
-                text = minify_html(text)
-
-            self._["bundle"][path] = text
-        self._.update(text=json.dumps(self._["bundle"]))
-        print(f'Bundled {len(self._["bundle"])} files.')
-        return self
 
     @property
     def _(self) -> dict:
         return self.__
 
-    def save(self) -> "Bundle":
+    def __call__(self) -> dict:
+        """Creates bundle."""
+
+        bundle = {}
+
+        for file in SOURCE.rglob("**/*.*"):
+            if " " in file.name:
+                continue
+            if "history" in file.parts:
+                continue
+            if "test" in file.parts:
+                continue
+            path = f"/{file.relative_to(SOURCE).as_posix()}"
+            text = file.read_text(encoding=UTF_8).strip()
+            if not text:
+                continue
+            if file.suffix == ".css":
+                text = minify_css(text)
+            elif file.suffix == ".html":
+                text = minify_html(text)
+            bundle[path] = text
+        print(f"Bundled {len(bundle)} files.")
+        self._.update(bundle=bundle)
+        return bundle
+
+    def save(self) -> "bundle":
         """Writes bundle to local disc."""
-        file = Path.cwd() / self._["name"]
+        name = f"{self.__class__.__name__}.json"
+        file: Path = Path.cwd() / name
         file.parent.mkdir(parents=True, exist_ok=True)
-        file.write_text(self._["text"], encoding=UTF_8)
-        print(f"Bundle saved to local disc as:", self._["name"])
+        file.write_text(json.dumps(self._["bundle"]), encoding=UTF_8)
+        print("Bundle saved to local disc as:", name)
         return self
 
-    def upload(self) -> "Bundle":
-        """Uploads bundle to db."""
-        content = self._["text"].encode(UTF_8)
-        bundle = BlobMedia("application/json", content, name=self._["name"])
-        connect(
-            (json.loads((Path.cwd() / "secrets.json").read_text(encoding=UTF_8)))[
-                "development"
-            ]["client"]
-        )
-        try:
-            call("_upload_bundle", bundle)
-            print(f"Bundle uploaded.")
-        except:
-            print(f"Bundle NOT uploaded.")
-        return self
+
+bundle = bundle()
 
 
 if __name__ == "__main__":
-    Bundle()().save().upload()
+    bundle()
+    bundle.save()

@@ -3,4 +3,4 @@ def main(use):
 
     foo = Foo()
 
-    print("foo:", foo)
+    print("foo.foo:", foo.foo)

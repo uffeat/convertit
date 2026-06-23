@@ -1,11 +1,15 @@
 export default async (use) => {
-  const { Base } = await use("@@/base/base.js");
+  const { component } = await use("@/rollo/");
+  const { Base } = use("@@/base/base.js");
+  foo = use("@@/foo/foo.py").foo;
+
+  foo();
 
   class Foo extends Base {
     #_ = {};
     constructor() {
       super();
-      this._.foo = "JS foo"
+      this._.foo = "JS foo";
     }
 
     get foo() {
