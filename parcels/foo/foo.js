@@ -1,7 +1,7 @@
 export default async (use) => {
   const { component } = await use("@/rollo/");
   const { Base } = use("@@/base/base.js");
-  foo = use("@@/foo/foo.py").foo;
+  const foo = use("@@/foo/foo.py").foo;
 
   foo();
 

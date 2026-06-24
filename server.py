@@ -1,4 +1,5 @@
 import json
+from mimetypes import guess_type
 from pathlib import Path
 import traceback
 from anvil import BlobMedia
@@ -36,27 +37,21 @@ class Server:
             return True
 
         @server_function
-        def _bundle() -> BlobMedia:
-            """Returns bundle from local disc."""
-            name = "bundle.json"
-            file = Path.cwd() / name
-            content = file.read_text(encoding=UTF_8).strip()
-            content = content.encode(UTF_8)
-            return BlobMedia("application/json", content, name=name)
-
+        def _get_file(path: str) -> BlobMedia:
+            """Returns file from local disc."""
+            file = Path.cwd() / path[1:]
+            content_type, encoding = guess_type(file.name)
+            content = file.read_text(encoding=UTF_8).strip().encode(UTF_8)
+            return BlobMedia(content_type, content, name=path)
+        
         @server_function
-        def _download_bundle() -> dict:
-            """Returns bundle from db."""
-            try:
-                result: BlobMedia = app_tables.use.get(key="files")["bundle"]
-                return dict(ok=True, result=result)
-            except:
-                return dict(ok=False, error=traceback.format_exc())
-
-
-
-
-            
+        def _save_file(blob: BlobMedia) -> None:
+            """Saves file to local disc."""
+            path = blob.name
+            text: str = blob.get_bytes().decode(UTF_8)
+            file: Path = Path.cwd() / path[1:]
+            file.parent.mkdir(parents=True, exist_ok=True)
+            file.write_text(text, encoding=UTF_8)
 
         @server_function
         def _log(*args) -> None:
@@ -74,17 +69,15 @@ class Server:
         @server_function
         def _upload_bundle(bundle: BlobMedia) -> dict:
             """Saves bundle to db."""
-            ##print("bundle", bundle)  ##
             try:
                 app_tables.use.get(key="files").update(bundle=bundle)
                 return dict(ok=True)
             except:
                 return dict(ok=False, error=traceback.format_exc())
-            
+
         @server_function
         def _upload_sheet(sheet: BlobMedia) -> dict:
             """Saves sheet to db."""
-            ##print("sheet", sheet)  ##
             try:
                 app_tables.use.get(key="files").update(use=sheet)
                 return dict(ok=True)

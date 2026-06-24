@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import traceback
 from anvil import BlobMedia
 from anvil.server import (
     callable as server_function,
@@ -7,7 +8,7 @@ from anvil.server import (
     disconnect,
     wait_forever,
 )
-from anvil.tables import app_tables
+from anvil.tables import app_tables, Row, Table
 
 PARCELS = Path.cwd() / "parcels"
 UTF_8 = "utf-8"
@@ -34,6 +35,8 @@ class Server:
         def _access() -> bool:
             return True
 
+        ##
+        ##
         @server_function
         def _bundle() -> BlobMedia:
             """Returns bundle from local disc."""
@@ -43,11 +46,21 @@ class Server:
             content = content.encode(UTF_8)
             return BlobMedia("application/json", content, name=name)
 
+        ##
+        ##
+
+        ##
+        ##
         @server_function
-        def _download_bundle() -> BlobMedia:
+        def _download_bundle() -> dict:
             """Returns bundle from db."""
-            row = app_tables.meta.get(key="bundle")
-            return row["media"]
+            try:
+                result: BlobMedia = app_tables.use.get(key="files")["bundle"]
+                return dict(ok=True, result=result)
+            except:
+                return dict(ok=False, error=traceback.format_exc())
+        ##
+        ##
 
         @server_function
         def _log(*args) -> None:
@@ -63,14 +76,22 @@ class Server:
             return result
 
         @server_function
-        def _upload_bundle(bundle: BlobMedia) -> None:
+        def _upload_bundle(bundle: BlobMedia) -> dict:
             """Saves bundle to db."""
-            row = app_tables.meta.get(key="bundle")
-            ##print("row:", row)  ##
-            if row:
-                row.update(media=bundle)
-            else:
-                app_tables.meta.add_row(key="bundle", media=bundle)
+            try:
+                app_tables.use.get(key="files").update(bundle=bundle)
+                return dict(ok=True)
+            except:
+                return dict(ok=False, error=traceback.format_exc())
+
+        @server_function
+        def _upload_sheet(sheet: BlobMedia) -> dict:
+            """Saves sheet to db."""
+            try:
+                app_tables.use.get(key="files").update(use=sheet)
+                return dict(ok=True)
+            except:
+                return dict(ok=False, error=traceback.format_exc())
 
         print("Running local server.")
 
@@ -79,8 +100,6 @@ class Server:
             wait_forever()
         except:
             wait_forever()
-
-    
 
 
 if __name__ == "__main__":

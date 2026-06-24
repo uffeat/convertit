@@ -46,6 +46,8 @@ class bundle:
                 continue
             if "history" in file.parts:
                 continue
+            if "scratch" in file.parts:
+                continue
             if "test" in file.parts:
                 continue
             path = f"/{file.relative_to(SOURCE).as_posix()}"
