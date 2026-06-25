@@ -1,5 +1,8 @@
 import json
 from pathlib import Path
+import traceback
+from anvil import BlobMedia
+from anvil.server import call, connect
 from bs4 import BeautifulSoup as bs
 import minify_html as _minify
 
@@ -36,8 +39,8 @@ class bundle:
     def _(self) -> dict:
         return self.__
 
-    def __call__(self) -> dict:
-        """Creates bundle."""
+    def __call__(self) -> BlobMedia:
+        """Creates and returns bundle."""
 
         bundle = {}
 
@@ -59,18 +62,53 @@ class bundle:
             elif file.suffix == ".html":
                 text = minify_html(text)
             bundle[path] = text
-        print(f"Bundled {len(bundle)} files.")
-        self._.update(bundle=bundle)
-        return bundle
 
-    def save(self) -> "bundle":
-        """Writes bundle to local disc."""
-        name = f"{self.__class__.__name__}.json"
-        file: Path = Path.cwd() / name
+        print(f"Bundled {len(bundle)} files.")
+        # Write bundle to disc
+        text = json.dumps(bundle)
+        file: Path = Path.cwd() / self.name
         file.parent.mkdir(parents=True, exist_ok=True)
-        file.write_text(json.dumps(self._["bundle"]), encoding=UTF_8)
-        print("Bundle saved to local disc as:", name)
-        return self
+        file.write_text(text, encoding=UTF_8)
+        print("Bundle saved to local disc as:", self.name)
+        bundle = self.create_blob(text)
+        self.upload(bundle)
+        return bundle
+    
+    @property
+    def name(self):
+        return "bundle.json"
+    
+    def create_blob(self, text: str) -> BlobMedia:
+        return BlobMedia("application/json", text.encode(UTF_8), name=self.name)
+    
+    
+    def upload(self, bundle: BlobMedia=None):
+        # NOTE Allows upload without bundle recreation
+        if not bundle:
+            # Create bundle from disk
+            text = (Path.cwd() / self.name).read_text(UTF_8)
+            bundle = self.create_blob(text)
+
+        try:
+            connect(
+                (json.loads((Path.cwd() / "secrets.json").read_text(encoding=UTF_8)))[
+                    "development"
+                ]["client"]
+            )
+        except Exception as error:
+            print(f"Could not connect. Error: {str(error)}")
+        else:
+            try:
+                response: dict = call("_upload_bundle", bundle)
+            except Exception as error:
+                # Uncontrolled error related to the server function
+                print(f"Bundle not uploaded. Error: {str(error)}")
+            else:
+                if response.get("ok"):
+                    print("Bundle uploaded.")
+                else:
+                    # Controlled error
+                    print(f"Bundle upload failed. Error: {response.get('error')}")
 
 
 bundle = bundle()
@@ -78,4 +116,3 @@ bundle = bundle()
 
 if __name__ == "__main__":
     bundle()
-    bundle.save()

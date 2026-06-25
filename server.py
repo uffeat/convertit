@@ -9,13 +9,13 @@ from anvil.server import (
     disconnect,
     wait_forever,
 )
-from anvil.tables import app_tables, Row, Table
+from anvil.tables import app_tables
 
 PARCELS = Path.cwd() / "parcels"
 UTF_8 = "utf-8"
 
 
-class Server:
+class server:
     def __init__(self):
         """."""
         self.__dict__.update(__={})
@@ -39,7 +39,7 @@ class Server:
         @server_function
         def _get_file(path: str) -> BlobMedia:
             """Returns file from local disc."""
-            file = Path.cwd() / path[1:]
+            file = Path.cwd() / path
             content_type, encoding = guess_type(file.name)
             content = file.read_text(encoding=UTF_8).strip().encode(UTF_8)
             return BlobMedia(content_type, content, name=path)
@@ -49,7 +49,7 @@ class Server:
             """Saves file to local disc."""
             path = blob.name
             text: str = blob.get_bytes().decode(UTF_8)
-            file: Path = Path.cwd() / path[1:]
+            file: Path = Path.cwd() / path
             file.parent.mkdir(parents=True, exist_ok=True)
             file.write_text(text, encoding=UTF_8)
 
@@ -92,6 +92,8 @@ class Server:
         except:
             wait_forever()
 
+server = server()
+
 
 if __name__ == "__main__":
-    Server()()
+    server()
