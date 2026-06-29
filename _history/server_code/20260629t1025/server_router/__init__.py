@@ -1,0 +1,113 @@
+import json
+from anvil import BlobMedia
+from anvil.server import FormResponse, call
+from ..server_tools import (
+    Path,
+    Response,
+    api,
+    b64,
+    get_asset,
+    get_asset_text,
+    log,
+    meta,
+    types,
+)
+
+UTF_8 = "utf-8"
+
+config: dict = json.loads(get_asset_text("/config.json"))
+pages: dict = config["pages"]
+
+
+@api("/")
+def router(
+    path: Path,
+    **query,
+):
+
+    # XXX TODO raw and test
+
+    if path.file.type:
+        # Serve non-page
+
+        content = query.get("content")
+        encoding = query.get("encoding")
+        role = query.get("as") or query.get("role")
+        raw = query.get("raw")
+        test = query.get("test")
+
+        class options:
+            def __getattr__(self, key):
+                return query.get(key)
+
+            def __getitem__(self, key):
+                return query.get(key)
+
+        options = options()
+
+        if raw or role == "txt":
+            # Serve text-based asset as text suitable for the fetch()-text() pattern.
+            return Response(
+                body=get_asset_text(path.path, test=test), content_type="txt", cors=True
+            )
+
+        # Enable live compilation of main.css
+        if meta.DEV and path.path == "/main.css":
+            ##log("Getting main.css")  ##
+            try:
+                sheet = call("_sheet")
+                ##log("sheet:", sheet)  ##
+                return sheet
+            except:
+                pass
+
+        if path.file.type == "css":
+            # Enable link-based sheet import without underlying css file
+            if content:
+                ##log("content:", content)  ##
+                if encoding == "base64":
+                    content = b64.decode(content)
+                ##content = content[1:-1]
+                return BlobMedia("text/css", content.encode(UTF_8), name=path.file.name)
+            return get_asset(path.path)
+
+        # XXX Consider purging
+        if role == "js":
+            # Serve text-based asset as JS module with a single default item (Vite-style)
+            text = get_asset_text(path.path, test=test)
+            if encoding == "base64":
+                text = b64.encode(text)
+            body = f"export default `{text}`;"
+            return Response(body=body, content_type="js", cors=True)
+
+         # XXX Consider purging
+        if path.file.type == "html" and len(path.file.types) > 1:
+            # Serve text-based asset wrapped as html
+            # HACK Enables exploitation of Anvil's fast html import in client-code.
+            content_type = types.get(path.file.types[0], "text/plain")
+            ##log("content_type:", content_type)  ##
+            text = get_asset_text(path.path)
+            return BlobMedia(content_type, text.encode(UTF_8), name=path.file.name)
+
+        if path.file.type == "js":
+            return Response(
+                body=get_asset_text(path.path, test=test), content_type="js", cors=True
+            )
+
+        return get_asset(path.path)
+
+    # Extract page
+    page: str = path.parts[0] if path.parts else "main"
+
+    if page in pages:
+        # Get spec
+        spec: dict = pages[page]
+        redirect = spec.get("redirect")
+        if redirect:
+            # Serve html page
+            return get_asset(redirect)
+        # Serve form page
+        return FormResponse(page, path=path.path, **query)
+    else:
+        ...
+        # XXX TODO Serve error page

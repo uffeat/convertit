@@ -1,0 +1,1 @@
+# python -m anvil.run_app_via_uplink YourAppPackageName

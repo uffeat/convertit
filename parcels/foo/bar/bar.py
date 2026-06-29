@@ -1,4 +1,4 @@
-def main(use):
+def main(use, **kwargs):
     Base = use("@@/base/base.py").Base
 
     class Bar(Base):

@@ -1,4 +1,4 @@
-def main(use):
+def main(use, **kwargs):
 
     class Base:
 

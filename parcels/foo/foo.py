@@ -1,4 +1,4 @@
-def main(use: callable) -> dict:
+def main(use: callable, **kwargs) -> dict:
     """Returns Foo."""
     Base = use("@@/base/base.py").Base
 

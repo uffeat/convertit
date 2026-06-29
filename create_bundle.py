@@ -1,10 +1,10 @@
 import json
 from pathlib import Path
-import traceback
 from anvil import BlobMedia
-from anvil.server import call, connect
+from anvil.server import call
 from bs4 import BeautifulSoup as bs
 import minify_html as _minify
+from tools import connect
 
 SOURCE = Path.cwd() / "parcels"
 UTF_8 = "utf-8"
@@ -90,11 +90,8 @@ class bundle:
             bundle = self.create_blob(text)
 
         try:
-            connect(
-                (json.loads((Path.cwd() / "secrets.json").read_text(encoding=UTF_8)))[
-                    "development"
-                ]["client"]
-            )
+            connect(server=False)
+            
         except Exception as error:
             print(f"Could not connect. Error: {str(error)}")
         else:

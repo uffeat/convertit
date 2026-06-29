@@ -1,0 +1,1 @@
+column, *_ = "main.css".partition('.')
