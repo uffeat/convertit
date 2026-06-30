@@ -2,33 +2,12 @@ import json
 from pathlib import Path
 from anvil import BlobMedia
 from anvil.server import call
-from bs4 import BeautifulSoup as bs
-import minify_html as _minify
-from tools import connect
+from tools import connect, minify
 
 SOURCE = Path.cwd() / "parcels"
 UTF_8 = "utf-8"
 
 
-def minify_html(html: str) -> str:
-    """Returns minified html."""
-    config = dict(
-        minify_css=True,
-        minify_js=False,
-        remove_processing_instructions=True,
-        keep_closing_tags=True,
-        keep_html_and_head_opening_tags=True,
-        keep_comments=False,
-    )
-    return _minify.minify(html, **config)
-
-
-def minify_css(css: str) -> str:
-    """Returns minified css."""
-    html = minify_html(f"<style>\n{css}</style>")
-    soup = bs(html, "html.parser")
-    style = soup.select_one("style")
-    return style.string
 
 
 class bundle:
@@ -58,9 +37,9 @@ class bundle:
             if not text:
                 continue
             if file.suffix == ".css":
-                text = minify_css(text)
+                text = minify.css(text)
             elif file.suffix == ".html":
-                text = minify_html(text)
+                text = minify.html(text)
             bundle[path] = text
 
         print(f"Bundled {len(bundle)} files.")
@@ -90,8 +69,7 @@ class bundle:
             bundle = self.create_blob(text)
 
         try:
-            connect(server=False)
-            
+            connect("Connecting to upload bundle.", server=False)
         except Exception as error:
             print(f"Could not connect. Error: {str(error)}")
         else:
