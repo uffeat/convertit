@@ -45,6 +45,25 @@ def main(use, console=None, document=None, js=None, **kwargs):
         "mile": lambda v: v * 1_609.344,
     }
 
+    def converter(unit):
+        def register(converter):
+            units[unit] = converter
+        return register
+    
+    @converter('kg')
+    def convert(value):
+        return value
+    
+    @converter('g')
+    def convert(value):
+        return value / 1_000
+    
+    @converter('pound')
+    def convert(value):
+        return value / 0.45359237
+
+
+
     def get_converter(unit):
         """."""
         converter = units.get(unit)
@@ -55,13 +74,11 @@ def main(use, console=None, document=None, js=None, **kwargs):
 
     def to_normal(value, unit):
         """."""
-        normal = get_converter(unit)(value)
-        return normal
+        return get_converter(unit)(value)
 
     def from_normal(value, unit):
         """."""
-        scale = get_converter(unit)(1)
-        return value/scale
+        return value/get_converter(unit)(1)
 
 
 
@@ -69,9 +86,9 @@ def main(use, console=None, document=None, js=None, **kwargs):
 
     def convert(from_value: str, from_unit, to_unit):
         """."""
-        from_value = float(from_value)
-        normal = to_normal(from_value, from_unit)
-        return from_normal(normal, to_unit)
+       
+      
+        return from_normal(to_normal(float(from_value), from_unit), to_unit)
 
 
         

@@ -1,0 +1,40 @@
+{
+  "area": {
+    "base": "m\u00B2",
+    "icon": "aspect_ratio",
+    "units": [
+      "cm\u00B2",
+      "m\u00B2",
+      "km\u00B2",
+      "inch\u00B2",
+      "ft\u00B2",
+      "mile\u00B2"
+    ]
+  },
+  "length": {
+    "base": "m",
+    "icon": "arrows",
+    "units": ["cm", "m", "km", "inch", "ft", "mile"]
+  },
+  "mass": {
+    "base": "kg",
+    "icon": "minecart_loaded",
+    "units": ["kg", "g", "pound"]
+  },
+  "speed": {
+    "base": "m/s",
+    "icon": "speedometer",
+    "units": ["km/h", "m/s", "mile/h"]
+  },
+  "temperature": {
+    "base": "\u00B0C",
+    "icon": "thermometer",
+    "units": ["\u00B0C", "\u00B0F", "K"]
+  },
+  "time": { "base": "s", "icon": "hourglass", "units": ["h", "s"] },
+  "volume": {
+    "base": "m\u00B3",
+    "icon": "beaker",
+    "units": ["m\u00B3", "l", "inch\u00B3", "ft\u00B3"]
+  }
+}

@@ -15,7 +15,9 @@ export default async (use) => {
   const { Form, Input } = await use("@/form/");
   await use(`@/bootstrap/`);
 
-  const { convert, properties } = await use("@@/convert/convert.py");
+  //const { convert, properties } = await use("@@/convert/convert.py");
+  const { convert } = await use("@@/convert/convert.py");
+  const properties = await use("@@/convert/properties.json");
   console.log("properties:", properties); //
 
   // Build local icons
