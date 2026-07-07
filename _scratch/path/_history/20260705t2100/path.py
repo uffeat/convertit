@@ -24,19 +24,21 @@ class File(Base, AttributeMixin):
     def __init__(self, name: str):
         Base.__init__(self)
         if name and "." in name:
-            # name and types
-            stem, _, types = name.partition(".")
-            # type
-            *_, type_ = types.rpartition(".")
-            self._.update(stem=stem, type=type_, types=types)
+            types = name.split(".")
+            stem = types.pop(0)
+            t = types[-1]
+            self._.update(stem=stem, type=t, types=tuple(types))
         self._.update(name=name)
+
+    def __contains__(self, t: str) -> bool:
+        return t in self.types
 
     def __str__(self) -> str:
         return self.name
 
     @property
     def name(self) -> str:
-        return self._["name"]
+        return self._["name"] or ""
 
     @property
     def stem(self) -> str:
@@ -44,18 +46,18 @@ class File(Base, AttributeMixin):
 
     @property
     def type(self) -> str:
-        return self._.get("type", "")
-
-    @type.setter
-    def type(self, type: str):
-        return self._.update(type=type)
+        return self._.get("type", self.types[-1] if self.types else "")
 
     @property
-    def types(self) -> str:
-        return self._.get("types", self.type)
+    def types(self) -> tuple:
+        return self._.get("types", tuple([""]))
 
     @types.setter
-    def types(self, types: str):
+    def types(self, types: tuple):
+        if isinstance(types, str):
+            types = types.split(".")
+        if isinstance(types, list):
+            types = tuple(types)
         return self._.update(types=types)
 
 
@@ -65,13 +67,13 @@ class Path(Base, AttributeMixin):
 
         if isinstance(specifier, str):
             specifier = specifier.split("/")
-        
-        root = specifier.pop(0)
+
+        source = specifier.pop(0)
         name = specifier[-1]
         file = File(name)
         size = len(specifier)
 
-        # Enable '//' for injection of next part
+        # Enable '//' syntax for injection of next part
         constructed = []
         for index, part in enumerate(specifier):
             if part:
@@ -79,25 +81,34 @@ class Path(Base, AttributeMixin):
             else:
                 next_index = index + 1
                 if next_index < size:
-                    constructed.append(file.stem if next_index + 1 == size else specifier[next_index])
+                    constructed.append(
+                        file.stem if next_index + 1 == size else specifier[next_index]
+                    )
 
         path = "/" + "/".join(constructed)
         parts = tuple(constructed)
         if constructed:
             constructed.pop()
-     
+
         self._.update(
             detail={},
             file=file,
-            full=root + path,
+            full=source + path,
             parents=tuple(constructed),
             parts=parts,
             path=path,
-            root=root or "/",
+            source=source or "/",
         )
 
     def __contains__(self, part: str) -> bool:
         return part in self.parts
+
+    def __getitem__(self, key):
+        if isinstance(key, slice):
+            return self.parts[key]
+        else:
+            if -len(self) <= key < len(self):
+                return self.parts[key]
 
     def __len__(self) -> int:
         return len(self.parts)
@@ -115,34 +126,36 @@ class Path(Base, AttributeMixin):
 
     @property
     def full(self) -> str:
-        """Returns path witrh root."""
+        """Returns path with source."""
         return self._["full"]
 
     @property
     def parents(self) -> tuple:
-        """Returns path parts without root and file."""
+        """Returns path parts without source and file."""
         return self._["parents"]
 
     @property
     def parts(self) -> tuple:
-        """Returns path parts without root."""
+        """Returns path parts without source."""
         return self._["parts"]
 
     @property
     def path(self) -> str:
-        """Returns path relative to root. Always starts with '/'."""
+        """Returns path relative to source. Always starts with '/'."""
         return self._["path"]
 
     @property
-    def root(self) -> str:
-        return self._["root"]
+    def source(self) -> str:
+        return self._["source"]
 
-specifier = "@/stuff/ding.py"
+
+specifier = "@/stuff//ding.svg.js"
+##specifier = "//ding.py"
 ##specifier = "//stuff//ding.py"
 ##specifier = "/stuff/ding.py"
-specifier = "/"
-
+##specifier = "/"
 ##specifier = ['/', 'stuff','ding.py']
+##specifier = "/"
 
 
 path = Path(specifier)
@@ -151,17 +164,23 @@ print("full:", path.full)
 print("path:", path.path)
 print("parents:", path.parents)
 print("parts:", path.parts)
-print("root:", path.root)
+print("source:", path.source)
 
 ##print("file:", path.file)
 print("name:", path.file.name)
 print("stem:", path.file.stem)
 print("type:", path.file.type)
 print("types:", path.file.types)
+
+print("first part:", path[0])
+print("part:", path[2])
+print("part:", path[-2])
+
+print("part:", path[-3])
 ##print("parents:", path.file.parents)
 
+print("slice:", path[-5:5])
+
 print("stem:", path("file")("stem"))
-
-
-path("file")("type", "foo", 42)
+path("file")("types", "ding.dong")
 print("type:", path.file.type)

@@ -10,7 +10,6 @@ class test:
     
 
     def __call__(self):
-        """."""
         with connect("Running local server for serving tests."):
 
             @server_function

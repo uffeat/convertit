@@ -12,6 +12,6 @@ def main(use: callable, **kwargs) -> dict:
             return self._["foo"]
         
     def foo():
-        print('Foo')
+        print('foo')
 
     return dict(Foo=Foo, foo=foo)

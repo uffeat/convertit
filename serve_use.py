@@ -9,7 +9,6 @@ UTF_8 = "utf-8"
 class use:
 
     def __call__(self):
-        """."""
         with connect(
             "Running local server for serving uncommitted raw parcels."
         ):
@@ -17,7 +16,7 @@ class use:
             @server_function
             def _use(path: str) -> str:
                 """Returns code text from local disc."""
-                ##print("path:", path)  ##
+                print("path:", path)  ##
                 file = SOURCE / path[1:]
                 result = file.read_text(encoding=UTF_8).strip()
                 ##print("result:", result)  ##

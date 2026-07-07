@@ -1,4 +1,14 @@
-def main(use: callable, **kwargs) -> dict:
+def main(use: callable,anvil=None,window=None, **kwargs) -> dict:
+
+    
+    Promise = window.Promise
+    await_promise = anvil.js.await_promise
+   
+
+
+   
+
+
     class Future:
 
         def __init__(self):
@@ -14,5 +24,6 @@ def main(use: callable, **kwargs) -> dict:
             """Awaits promise and returns resolved value."""
             value = await_promise(self._["promise"])
             return value
+
 
     return dict(Future=Future)

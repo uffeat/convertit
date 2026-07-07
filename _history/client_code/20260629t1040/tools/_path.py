@@ -44,7 +44,8 @@ class File:
 
 
 class Path:
-    def __init__(self, specifier: str):
+    def __init__(self, specifier):
+
         self.__dict__.update(__={})
 
         self._.update(
@@ -52,36 +53,39 @@ class Path:
             specifier=specifier,
         )
 
-        specifier: list = specifier.split("/")
-        source = specifier.pop(0)
-        name = specifier[-1]
+        parts: list = specifier.split("/")
+        source = parts.pop(0)
+        name = parts[-1]
         file = File(name)
-        size = len(specifier)
+        size = len(parts)
 
         # Enable '//' syntax for injection of next part
         constructed = []
-        for index, part in enumerate(specifier):
+        for index, part in enumerate(parts):
             if part:
                 constructed.append(part)
             else:
                 next_index = index + 1
                 if next_index < size:
                     constructed.append(
-                        file.stem if next_index + 1 == size else specifier[next_index]
+                        file.stem if next_index + 1 == size else parts[next_index]
                     )
 
         path = "/" + "/".join(constructed)
-        parts = tuple(constructed)
-        if constructed:
-            constructed.pop()
 
         self._.update(
             file=file,
             full=source + path,
-            parents=tuple(constructed),
-            parts=parts,
+            parts=tuple(constructed),
             path=path,
             source=source or "/",
+        )
+
+        if constructed:
+            constructed.pop()
+
+        self._.update(
+            parents=tuple(constructed),
         )
 
     def __contains__(self, part: str) -> bool:
@@ -139,38 +143,3 @@ class Path:
     @property
     def specifier(self) -> str:
         return self._["specifier"]
-
-
-
-specifier = "@/stuff//ding.svg.js"
-##specifier = "//ding.py"
-##specifier = "//stuff//ding.py"
-##specifier = "/stuff/ding.py"
-##specifier = "/"
-##specifier = ['/', 'stuff','ding.py']
-##specifier = "/"
-
-
-path = Path(specifier)
-print("specifier:", specifier)
-print("full:", path.full)
-print("path:", path.path)
-print("parents:", path.parents)
-print("parts:", path.parts)
-print("source:", path.source)
-
-##print("file:", path.file)
-print("name:", path.file.name)
-print("stem:", path.file.stem)
-print("type:", path.file.type)
-print("types:", path.file.types)
-
-print("first part:", path[0])
-print("part:", path[2])
-print("part:", path[-2])
-
-print("part:", path[-3])
-##print("parents:", path.file.parents)
-
-print("slice:", path[-5:5])
-

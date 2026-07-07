@@ -7,30 +7,37 @@ SOURCE = Path.cwd() / "parcels"
 UTF_8 = "utf-8"
 
 
-
-
-def create_sheet():
-    css = []
-    for file in SOURCE.rglob("**/*.css"):
-        if file.parent.name != file.stem:
-            continue
-        text = file.read_text(encoding=UTF_8).strip()
-        text = minify.css(text)
-        css.append(text)
+def compile() -> str:
+    """Returns aggregate css from same-name parcel sheets."""
+    css = [
+        f.read_text(encoding=UTF_8)
+        for f in SOURCE.rglob("**/*.css")
+        if f.parent.name == f.stem
+    ]
 
     css = "\n".join(css)
-    sheet = BlobMedia("text/css", css.encode(UTF_8), name="main.css")
+    return css
+
+
+def Sheet(text: str, name: str = "") -> BlobMedia:
+    text = minify.css(text)
+    sheet = BlobMedia("text/css", text.encode(UTF_8), name=name)
     return sheet
 
 
 def sheet():
     """."""
-    with connect("Running local server for serving uncommitted main stylesheet."):
+    with connect("Running local server for serving uncommitted stylesheets."):
 
         @server_function
-        def _sheet() -> BlobMedia:
-            print("Returning sheet")  ##
-            return create_sheet()
+        def _sheet(path: str) -> BlobMedia:
+            print("path:", path)  ##
+            if path == "/main.css":
+                text = compile()
+                return Sheet(text, name=path[1:])
+            file = SOURCE / path[1:]
+            text = file.read_text(encoding=UTF_8).strip()
+            return Sheet(text, name=file.name)
 
 
 if __name__ == "__main__":
