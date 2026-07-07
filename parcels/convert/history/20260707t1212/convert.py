@@ -1,7 +1,33 @@
 def main(use, console=None, document=None, js=None, **kwargs):
     ##print("kwargs:", kwargs)  ##
 
-    # NOTE Keys should match "units" in properties.json
+    properties = dict(
+        area=dict(
+            base="m\u00b2",
+            icon="aspect_ratio",
+            units=[
+                "cm\u00b2",
+                "m\u00b2",
+                "km\u00b2",
+                "inch\u00b2",
+                "ft\u00b2",
+                "mile\u00b2",
+            ],
+        ),
+        length=dict(
+            base="m",
+            icon="arrows",
+            units=[
+                "cm",
+                "m",
+                "km",
+                "inch",
+                "ft",
+                "mile",
+            ],
+        ),
+    )
+
     units = {
         # Area
         "cm\u00b2": lambda v: v / (100**2),
@@ -22,82 +48,21 @@ def main(use, console=None, document=None, js=None, **kwargs):
     def converter(unit):
         def register(converter):
             units[unit] = converter
-
         return register
-
-    # Mass
-
-    @converter("kg")
+    
+    @converter('kg')
     def convert(value):
         return value
-
-    @converter("g")
+    
+    @converter('g')
     def convert(value):
         return value / 1_000
-
-    @converter("pound")
+    
+    @converter('pound')
     def convert(value):
         return value / 0.45359237
 
-    # Speed
 
-    @converter("m/s")
-    def convert(value):
-        return value
-
-    @converter("km/h")
-    def convert(value):
-        return value / 3.6
-
-    @converter("mile/h")
-    def convert(value):
-        return value * 0.44704
-
-    # Temperature
-
-    @converter("\u00b0C")
-    def convert(value):
-        return value
-
-    @converter("\u00b0F")
-    def convert(value):
-        return (5 / 9) * (value - 32)
-
-    @converter("K")
-    def convert(value):
-        return value + 273.15
-
-    # Time
-
-    @converter("s")
-    def convert(value):
-        return value
-
-    @converter("h")
-    def convert(value):
-        return (5 / 9) * (value - 32)
-
-    @converter("K")
-    def convert(value):
-        return value * 3600
-
-    # Volume
-
-    @converter("m\u00b3")
-    def convert(value):
-        return value
-
-    @converter("l")
-    def convert(value):
-        return value * 1000
-
-    @converter("inch\u00b3")
-    def convert(value):
-        return value * (0.0254**3)
-
-    @converter("ft\u00b3")
-    def convert(value):
-        return value * (0.3048**3)
 
     def get_converter(unit):
         """."""
@@ -106,17 +71,26 @@ def main(use, console=None, document=None, js=None, **kwargs):
             raise KeyError(f"No converter for: {unit}")
         return converter
 
+
     def to_normal(value, unit):
         """."""
         return get_converter(unit)(value)
 
     def from_normal(value, unit):
         """."""
-        return value / get_converter(unit)(1)
+        return value/get_converter(unit)(1)
+
+
+
+
 
     def convert(from_value: str, from_unit, to_unit):
         """."""
-
+       
+      
         return from_normal(to_normal(float(from_value), from_unit), to_unit)
 
-    return dict(convert=convert)
+
+        
+
+    return dict(convert=convert, properties=properties)
