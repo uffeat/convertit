@@ -3,7 +3,7 @@
 """
 
 
-def main(use, app=None, component=None, console=None, document=None, **kwargs):
+def main(use, app=None, component=None, console=None, document=None, js=None, **kwargs):
     ##print("kwargs:", kwargs)  ##
 
     button = component.button(
@@ -27,3 +27,15 @@ def main(use, app=None, component=None, console=None, document=None, **kwargs):
     _page = component(page, button, **{".foo": True, "[foo]": True})
 
     print("page has button:", button in _page)
+
+    for child in _page:
+        console.log("child:", child)
+
+    console.log("HTMLElement:", js.HTMLElement)
+
+    print('page is an HTMLElement:', js.isinstance(page, js.HTMLElement))
+
+    console.log("button:", _page('button'))
+
+    
+
