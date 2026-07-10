@@ -1,10 +1,11 @@
 """
-/parcels/convert/test/index.py
+/parcels/component/test/test.py
 """
 
 
-def main(use, app=None, component=None, console=None, document=None, js=None, **kwargs):
-    ##print("kwargs:", kwargs)  ##
+def main(use, console=None, document=None, js=None, **kwargs):
+    """."""
+    component = use("@@/component/component.py")
 
     button = component.button(
         "btn.btn-primary",

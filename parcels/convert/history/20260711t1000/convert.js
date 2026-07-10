@@ -19,7 +19,7 @@ export default async (use, {path}) => {
   const { Form, Input } = await use("@/form/");
   await use(`@/bootstrap/`);
 
-  const convert = await use("@@/convert/convert.py");
+  const { convert } = await use("@@/convert/convert.py");
   const properties = await use("@@/convert/properties.json");
   const { icons } = await use("@@/convert/icons.js");
 
@@ -27,7 +27,7 @@ export default async (use, {path}) => {
   const page = component.div(`container.py-3`, { parent: app });
   page.attribute.path = path
 
-
+  
 
 
 
@@ -190,5 +190,5 @@ export default async (use, {path}) => {
     b.value.on.change(onchange);
   })();
 
-  return page;
+  return { page };
 };

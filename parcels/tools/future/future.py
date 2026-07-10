@@ -1,13 +1,8 @@
-def main(use: callable,anvil=None,window=None, **kwargs) -> dict:
+def main(use, anvil=None, window=None, **kwargs) -> type:
+    """."""
 
-    
     Promise = window.Promise
     await_promise = anvil.js.await_promise
-   
-
-
-   
-
 
     class Future:
 
@@ -25,5 +20,4 @@ def main(use: callable,anvil=None,window=None, **kwargs) -> dict:
             value = await_promise(self._["promise"])
             return value
 
-
-    return dict(Future=Future)
+    return Future

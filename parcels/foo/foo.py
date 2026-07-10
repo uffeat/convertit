@@ -1,6 +1,6 @@
 def main(use: callable, **kwargs) -> dict:
     """Returns Foo."""
-    Base = use("@@/base/base.py").Base
+    Base = use("@@/tools/base.py")
 
     class Foo(Base):
         def __init__(self):
