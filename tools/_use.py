@@ -7,24 +7,7 @@ SOURCE = Path.cwd() / "parcels"
 UTF_8 = "utf-8"
 
 
-class meta:
-    def __init__(self):
-        self.__dict__.update(_=dict(BUILD=True, env="build"))
-
-    def __call__(self, key):
-        return self._.get(key)
-            
-
-    def __getattr__(self, key):
-        return self._.get(key)
-    
-    def __getitem__(self, key):
-        return self._.get(key)
-    
-meta = meta()
-
-
-class use:
+class Use:
     def __init__(self):
         """."""
         self.__dict__.update(__={})
@@ -39,30 +22,40 @@ class use:
         cache = self._["cache"]
         if path in cache:
             return cache[path]
-        file = SOURCE / path[1:]
-        key = f"/{file.relative_to(SOURCE).as_posix()}"
-        print("key:", key)  ##
+        
+        path =  path[3:]
+        
+
+
+        file = SOURCE / path
+        key = f"@@/{file.relative_to(SOURCE).as_posix()}"
+        ##print("key:", key)  ##
         text = file.read_text(encoding=UTF_8).strip()
         ##print("text:", text)  ##
         locals = {}
         exec(text, {}, locals)
         main = locals["main"]
-        exports: dict = main(self, meta=meta)
+        result = main(self)
 
-        class parcel:
-            def __call__(self, key):
-                return exports.get(key)
-            
-            def __getattr__(self, key):
-                return exports.get(key)
+        if isinstance(result, dict):
+            exports: dict = result
 
-            def __geitem__(self, key):
-                return exports.get(key)
+            class parcel:
+                def __call__(self, key):
+                    return exports.get(key)
+                
+                def __getattr__(self, key):
+                    return exports.get(key)
 
-        result = parcel()
+                def __geitem__(self, key):
+                    return exports.get(key)
+
+            result = parcel()
+        
+        
         cache[key] = result
 
         return result
 
 
-use = use()
+use = Use()

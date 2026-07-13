@@ -1,5 +1,7 @@
-export default async (use, { path }) => {
-  console.log("path:", path);
+export default async (use, {path}) => {
+
+  console.log('path:', path)
+
 
   const {
     Reactive,
@@ -23,9 +25,15 @@ export default async (use, { path }) => {
 
   // Build page
   const page = component.div(`container.py-3`, { parent: app });
-  page.attribute.path = path;
+  page.attribute.path = path
+
+
+
+
+
 
   page.innerHTML = html`
+   
     <h1 class="mb-3">Unit conversion made <span>simple</span></h1>
   `;
 
