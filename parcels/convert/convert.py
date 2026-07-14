@@ -117,7 +117,6 @@ def main(use, console=None, document=None, js=None, **kwargs) -> callable:
 
     def convert(from_value: str, from_unit, to_unit):
         """."""
-
         return from_normal(to_normal(float(from_value), from_unit), to_unit)
 
     return convert

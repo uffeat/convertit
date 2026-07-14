@@ -1,4 +1,4 @@
-def main(use, **kwargs):
+def main(use, **kwargs)-> type:
 
     class Base:
 
@@ -9,8 +9,7 @@ def main(use, **kwargs):
         def _(self) -> dict:
             return self.__
         
-    return dict(Base=Base)
+    return Base
         
 
 
-    

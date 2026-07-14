@@ -5,4 +5,4 @@ def main(use: callable, **kwargs) -> dict:
         foo()
         return "DING"
 
-    return dict(ding=ding)
+    return ding

@@ -1,7 +1,7 @@
 def main(use, js=None, **kwargs):
     """."""
 
-    Base = use("@@/tools/base.py")
+    Base = use("@@/base/base.py")
 
     class Component(Base):
         """Web component controller."""

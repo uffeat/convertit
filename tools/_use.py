@@ -8,6 +8,7 @@ UTF_8 = "utf-8"
 
 
 class Use:
+    """Local import engine."""
     def __init__(self):
         """."""
         self.__dict__.update(__={})
@@ -22,10 +23,8 @@ class Use:
         cache = self._["cache"]
         if path in cache:
             return cache[path]
-        
-        path =  path[3:]
-        
 
+        path = path[3:]
 
         file = SOURCE / path
         key = f"@@/{file.relative_to(SOURCE).as_posix()}"
@@ -43,7 +42,7 @@ class Use:
             class parcel:
                 def __call__(self, key):
                     return exports.get(key)
-                
+
                 def __getattr__(self, key):
                     return exports.get(key)
 
@@ -51,8 +50,7 @@ class Use:
                     return exports.get(key)
 
             result = parcel()
-        
-        
+
         cache[key] = result
 
         return result

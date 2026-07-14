@@ -1,4 +1,4 @@
-def main(use, anvil=None, window=None, **kwargs) -> type:
+def main(use, anvil=None, js=None, window=None, **kwargs) -> type:
     """."""
 
     Promise = window.Promise

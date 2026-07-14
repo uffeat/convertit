@@ -1,17 +1,16 @@
 def main(use, **kwargs) -> type:
     """."""
 
-    Base = use("@@/tools/base.py")
+    Base = use("@@/base/base.py")
 
-        
     class File(Base):
         def __init__(self, name: str):
             Base.__init__(self)
             if name and "." in name:
-                types = name.split(".")
-                stem = types.pop(0)
-                t = types[-1]
-                self._.update(stem=stem, type=t, types=tuple(types))
+                parts = name.split(".")
+                # Extract and remove stem
+                stem = parts.pop(0)
+                self._.update(stem=stem, type=parts[-1], types=tuple(parts))
             self._.update(name=name)
 
         def __contains__(self, t: str) -> bool:
@@ -44,7 +43,6 @@ def main(use, **kwargs) -> type:
                 types = tuple(types)
             return self._.update(types=types)
 
-
     class Path(Base):
         def __init__(self, specifier: str):
 
@@ -56,38 +54,29 @@ def main(use, **kwargs) -> type:
             )
 
             parts: list = specifier.split("/")
+            # Extract and remove source
             source = parts.pop(0)
+            # Extract file name
             name = parts[-1]
+            # Construct file
             file = File(name)
-            size = len(parts)
-
-            # Enable '//' syntax for injection of next part
-            constructed = []
-            for index, part in enumerate(parts):
-                if part:
-                    constructed.append(part)
-                else:
-                    next_index = index + 1
-                    if next_index < size:
-                        constructed.append(
-                            file.stem if next_index + 1 == size else parts[next_index]
-                        )
-
-            path = "/" + "/".join(constructed)
-
+            # Construct path
+            path = "/" + "/".join(parts)
+            
             self._.update(
                 file=file,
                 full=source + path,
-                parts=tuple(constructed),
+                parts=tuple(parts),
                 path=path,
+                # Ensure that no source is '/'
                 source=source or "/",
             )
 
-            if constructed:
-                constructed.pop()
+            # Remove file part so that parts represents parents
+            parts.pop()
 
             self._.update(
-                parents=tuple(constructed),
+                parents=tuple(parts),
             )
 
         def __contains__(self, part: str) -> bool:
@@ -141,11 +130,5 @@ def main(use, **kwargs) -> type:
         @property
         def specifier(self) -> str:
             return self._["specifier"]
-        
 
     return Path
-
-        
-
-
-    

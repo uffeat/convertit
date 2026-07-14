@@ -3,19 +3,16 @@
 """
 
 
-
-
-
-
 def main(use, **kwargs):
     """."""
     convert = use("@@/convert/convert.py")
     result = convert(1, "km", "m")
     print("result:", result)  ##
-    
 
-if __name__ == "__main__":
+
+
+try:
     from utils import use
-
-    ##print("use:", use)  ##
     main(use)
+except:
+    pass

@@ -1,5 +1,5 @@
 def main(use, **kwargs):
-    Base = use("@@/base/base.py").Base
+    Base = use("@@/base/base.py")
 
     class Bar(Base):
         def __init__(self):
@@ -10,4 +10,4 @@ def main(use, **kwargs):
         def bar(self):
             return self._['bar']
 
-    return dict(Bar=Bar)
+    return Bar
