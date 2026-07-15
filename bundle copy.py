@@ -74,8 +74,7 @@ class bundle:
             print(f"Could not connect. Error: {str(error)}")
         else:
             try:
-                response: dict = call("_upload_file", bundle)
-                
+                response: dict = call("_upload_bundle", bundle)
             except Exception as error:
                 # Uncontrolled error related to the server function
                 print(f"Bundle not uploaded. Error: {str(error)}")
