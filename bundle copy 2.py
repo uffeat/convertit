@@ -1,9 +1,7 @@
 import json
 from pathlib import Path
-import traceback
 from anvil import BlobMedia
-from anvil.server import call, callable as server_function
-from anvil.tables import app_tables
+from anvil.server import call
 from tools import connect, minify
 
 SOURCE = Path.cwd() / "parcels"
@@ -52,7 +50,7 @@ class bundle:
         file.write_text(text, encoding=UTF_8)
         print("Bundle saved to local disc as:", self.name)
         bundle = self.create_blob(text)
-        self.serve(bundle)
+        self.upload(bundle)
         return bundle
     
     @property
@@ -61,64 +59,6 @@ class bundle:
     
     def create_blob(self, text: str) -> BlobMedia:
         return BlobMedia("application/json", text.encode(UTF_8), name=self.name)
-    
-    def serve(self, bundle: BlobMedia=None):
-        """."""
-        with connect(
-            "Running local server for building parcels."
-        ):
-            # NOTE Allows skipping bundle recreation
-            if not bundle:
-                # Create bundle from disk
-                text = (Path.cwd() / self.name).read_text(UTF_8)
-                bundle = self.create_blob(text)
-
-            @server_function
-            def _upload_file(file: BlobMedia, path: str=None) -> dict:
-                """Saves file to db."""
-                try:
-                    if not path:
-                        path = file.name
-                    row = app_tables.use.get(path=path)
-                    if not row:
-                        row = app_tables.use.add_row(path=path)
-                    row.update(file=file)
-                    return dict(ok=True)
-                except:
-                    return dict(ok=False, error=traceback.format_exc())
-                
-
-            @server_function
-            def _get_file(path: str) -> dict:
-                """Returns file from db."""
-                try:
-                    row = app_tables.use.get(path=path)
-                    if not row:
-                        return dict(ok=False, message=f"Row '{path}' not found.")
-                    file = row.get('file')
-                    if not file:
-                        return dict(ok=False, message=f"File '{path}' not found.")
-                    return dict(ok=True, result=file)
-                except:
-                    return dict(ok=False, error=traceback.format_exc())
-                
-            
-            @server_function
-            def _build() -> str:
-                """."""
-                file = Path.cwd() / "build.py"
-                result = file.read_text(encoding=UTF_8).strip()
-                return result
-                
-
-            response: dict = call("_upload_file", bundle)
-            if response.get("ok"):
-                print("Bundle uploaded.")
-            else:
-                # Controlled error
-                print(f"Bundle upload failed. Error: {response.get('error')}")
-
-            
     
     
     def upload(self, bundle: BlobMedia=None):
