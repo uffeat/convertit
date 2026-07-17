@@ -15,10 +15,10 @@ class test:
             @server_function
             def _test(path: str) -> str:
                 """Returns code text from local disc."""
-                ##print("path:", path)  ##
+                print("path:", path)  ##
                 file = SOURCE / path[1:]
                 result = file.read_text(encoding=UTF_8).strip()
-                ##print("result:", result)  ##
+                print("result:", result)  ##
                 return result
 
 
