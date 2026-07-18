@@ -1,6 +1,4 @@
-
-
-def main(Path=None):
+def main(use, Path=None, **kwargs):
     """."""
     from base64 import b64encode
     import json
@@ -9,9 +7,7 @@ def main(Path=None):
 
     UTF_8 = "utf-8"
 
-
-
-    def create_sheet(rules: list, name: str) ->BlobMedia:
+    def create_sheet(rules: list, name: str) -> BlobMedia:
         """."""
         text = "\n".join(rules)
         sheet = BlobMedia("text/css", text.encode(UTF_8), name=name)
@@ -58,9 +54,8 @@ def main(Path=None):
 
     bundle = get_bundle()
     use_rules, main_rules = parse_bundle(bundle)
-    use_sheet, main_sheet = create_sheet(
-        use_rules, "use.css"
-    ), create_sheet(main_rules, "main.css")
+    use_sheet, main_sheet = create_sheet(use_rules, "use.css"), create_sheet(
+        main_rules, "main.css"
+    )
     upload_sheet(use_sheet)
     upload_sheet(main_sheet)
-    
