@@ -2,8 +2,9 @@ import json
 from pathlib import Path
 import traceback
 from anvil import BlobMedia
+from anvil.server import call, callable as server_function
 from anvil.tables import app_tables
-from tools import minify, server, use
+from tools import connect, minify, use
 
 Base = use("@@/base/base.py")
 
@@ -16,7 +17,7 @@ class Bundle(Base):
     def __init__(self):
         super().__init__()
 
-    def __call__(self) -> 'Bundle':
+    def __call__(self) -> BlobMedia:
         """Creates and returns bundle."""
 
         bundle = {}
@@ -49,46 +50,33 @@ class Bundle(Base):
         print("Bundle saved to local disc as:", self.name)
         blob = BlobMedia("application/json", text.encode(UTF_8), name=self.name)
         self._.update(blob=blob)
-        return self
+        return blob
 
-    @property
-    def blob(self):
-        return self._.get('blob')
-    
     @property
     def name(self):
         return "bundle.json"
-    
-    def save(self):
-        """."""
-        
-        with server("Running local server for building."):
-            if self.blob:
-                table = getattr(app_tables, "use")
-                row: dict = table.get(path=bundle.name)
-                if not row:
-                    row: dict = table.add_row(path=self.name)
-                row.update(file=self.blob)
-                print(f"{self.name} saved to db.")
-
-            
-
-            @server.function
-            def _build(path: str) -> str:
-                """Returns code text from local disc."""
-                print("path:", path)  ##
-                file = Path.cwd() / "build" / path[1:]
-                result = file.read_text(encoding=UTF_8).strip()
-                return result
-
-
-            
 
 
 bundle = Bundle()
 
 
 if __name__ == "__main__":
-    bundle().save()
+    blob = bundle()
 
-    
+    with connect("Running local server for building."):
+        table = getattr(app_tables, "use")
+        row: dict = table.get(path=bundle.name)
+        if not row:
+            row: dict = table.add_row(path=bundle.name)
+        row.update(file=blob)
+        print(f"{bundle.name} saved to db.")
+
+        SOURCE = Path.cwd() / "build"
+
+        @server_function
+        def _build(path: str) -> str:
+            """Returns code text from local disc."""
+            print("path:", path)  ##
+            file = SOURCE / path[1:]
+            result = file.read_text(encoding=UTF_8).strip()
+            return result

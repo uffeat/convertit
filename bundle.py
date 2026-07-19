@@ -2,24 +2,21 @@ import json
 from pathlib import Path
 import traceback
 from anvil import BlobMedia
-from anvil.server import call, callable as server_function
 from anvil.tables import app_tables
-from tools import connect, minify
+from tools import minify, server, use
+
+Base = use("@@/base/base.py")
 
 
 SOURCE = Path.cwd() / "parcels"
 UTF_8 = "utf-8"
 
 
-class Bundle:
+class Bundle(Base):
     def __init__(self):
-        self.__dict__.update(__={})
+        super().__init__()
 
-    @property
-    def _(self) -> dict:
-        return self.__
-
-    def __call__(self) -> BlobMedia:
+    def __call__(self) -> 'Bundle':
         """Creates and returns bundle."""
 
         bundle = {}
@@ -50,46 +47,48 @@ class Bundle:
         file.parent.mkdir(parents=True, exist_ok=True)
         file.write_text(text, encoding=UTF_8)
         print("Bundle saved to local disc as:", self.name)
-        bundle = self.create_blob(text)
-        return bundle
+        blob = BlobMedia("application/json", text.encode(UTF_8), name=self.name)
+        self._.update(blob=blob)
+        return self
 
+    @property
+    def blob(self):
+        return self._.get('blob')
+    
     @property
     def name(self):
         return "bundle.json"
-
-    def create_blob(self, text: str) -> BlobMedia:
-        return BlobMedia("application/json", text.encode(UTF_8), name=self.name)
-
     
+    def save(self):
+        """."""
+        
+        with server("Running local server for building."):
+            if self.blob:
+                table = getattr(app_tables, "use")
+                row: dict = table.get(path=bundle.name)
+                if not row:
+                    row: dict = table.add_row(path=self.name)
+                row.update(file=self.blob)
+                print(f"{self.name} saved to db.")
+
             
 
-    def upload(self, bundle: BlobMedia = None):
-        # NOTE Allows upload without bundle recreation
-        if not bundle:
-            # Create bundle from disk
-            text = (Path.cwd() / self.name).read_text(UTF_8)
-            bundle = self.create_blob(text)
+            @server.function
+            def _build(path: str) -> str:
+                """Returns code text from local disc."""
+                print("path:", path)  ##
+                file = Path.cwd() / "build" / path[1:]
+                result = file.read_text(encoding=UTF_8).strip()
+                return result
 
-        try:
-            connect("Connecting to upload bundle.", server=False)
-        except Exception as error:
-            print(f"Could not connect. Error: {str(error)}")
-        else:
-            try:
-                response: dict = call("_upload_file", bundle)
-            except Exception as error:
-                # Uncontrolled error related to the server function
-                print(f"Bundle not uploaded. Error: {str(error)}")
-            else:
-                if response.get("ok"):
-                    print("Bundle uploaded.")
-                else:
-                    # Controlled error
-                    print(f"Bundle upload failed. Error: {response.get('error')}")
+
+            
 
 
 bundle = Bundle()
 
 
 if __name__ == "__main__":
-    bundle()
+    bundle().save()
+
+    
