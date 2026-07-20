@@ -1,26 +1,19 @@
-from pathlib import Path
-from anvil.server import callable as server_function
-from tools import connect
+from tools import file, server
 
-SOURCE = Path.cwd() / "parcels"
-UTF_8 = "utf-8"
 
 
 class use:
 
     def __call__(self):
-        with connect(
+        with server(
             "Running local server for serving uncommitted raw parcels."
         ):
 
-            @server_function
+            @server.function
             def _use(path: str) -> str:
                 """Returns code text from local disc."""
-                print("path:", path)  ##
-                file = SOURCE / path[1:]
-                result = file.read_text(encoding=UTF_8).strip()
-                ##print("result:", result)  ##
-                return result
+                return file(f"parcels{path}")
+                
 
 
 use = use()

@@ -1,6 +1,5 @@
 from ._blob import Blob
 from ._connect import connect
-from ._file import file
 from ._minify import minify
 from ._render import render
 from ._server import server

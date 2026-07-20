@@ -17,7 +17,7 @@ class Bundle(Base):
         super().__init__()
 
     def __call__(self) -> 'Bundle':
-        """Creates and returns bundle."""
+        """Creates bundle."""
 
         bundle = {}
 

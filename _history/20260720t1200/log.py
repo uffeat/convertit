@@ -1,4 +1,5 @@
-from tools import server
+from anvil.server import callable as server_function
+from tools import connect
 
 
 class log:
@@ -6,9 +7,9 @@ class log:
         """."""
 
     def __call__(self):
-        with server("Running local server for logging."):
+        with connect("Running local server for logging."):
 
-            @server.function
+            @server_function
             def _log(*args) -> None:
                 print(*args)
 
