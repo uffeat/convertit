@@ -1,3 +1,5 @@
+
+from ._base import Base
 from ._blob import Blob
 from ._connect import connect
 from ._file import file
