@@ -1,20 +1,21 @@
 from tools import server
 
 
-class log:
-    def __init__(self):
-        """."""
-
-    def __call__(self):
-        with server("Running local server for logging."):
-
-            @server.function
-            def _log(*args) -> None:
-                print(*args)
+def log(*args) -> None:
+    try:
+        print(*args)
+    except:
+        pass
 
 
-log = log()
+
 
 
 if __name__ == "__main__":
-    log()
+    with server("Running local server for logging."):
+
+        @server.function
+        def _log(*args) -> str:
+            log(*args)
+            result = ' '.join([str(a) for a in args])
+            return result

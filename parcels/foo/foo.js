@@ -17,5 +17,5 @@ export default async (use) => {
     }
   }
 
-  return { Foo };
+  return Foo;
 };

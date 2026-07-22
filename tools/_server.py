@@ -35,7 +35,7 @@ class Server(Base):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.keep()
+        self.wait()
 
     @staticmethod
     def function(*args) -> callable:
@@ -55,7 +55,7 @@ class Server(Base):
         return register
     
     @staticmethod
-    def keep():
+    def wait():
         try:
             wait_forever()
         except:

@@ -8,5 +8,5 @@ export default (use) => {
     }
   }
 
-  return { Base };
+  return Base;
 };

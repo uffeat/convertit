@@ -14,25 +14,30 @@ class Bundle(Base):
         super().__init__()
 
     def __call__(self) -> "Bundle":
-        """."""
-
+        """Creates bundle as local file and blob."""
+        # Create bundle
         bundle = self.create()
         print(f"Bundled {len(bundle)} files.")
-
+        # Cast to text to enable file anf blob creation
         text = json.dumps(bundle)
-
         # Write bundle to disc
         file(self.name, text)
         print(f"{self.name} saved to local disc")
-
+        # Create blob
         self._.update(
             blob=BlobMedia("application/json", text.encode(UTF_8), name=self.name)
         )
         return self
 
     @property
-    def blob(self):
-        return self._.get("blob")
+    def blob(self) -> BlobMedia:
+        blob = self._.get("blob")
+        if not blob:
+            print(f"Creating blob from {self.name}.")
+            text = file(self.name)
+            blob=BlobMedia("application/json", text.encode(UTF_8), name=self.name)
+            self._.update(blob=blob)
+        return blob
 
     @property
     def name(self):
@@ -52,56 +57,61 @@ class Bundle(Base):
                 continue
             if "test" in file.parts:
                 continue
+            
             path = f"/{file.relative_to(SOURCE).as_posix()}"
             text = file.read_text(encoding=UTF_8).strip()
+            
             if not text:
                 continue
+            
+            # Change text
             if file.suffix == ".css":
                 text = minify.css(text)
             elif file.suffix == ".html":
                 text = minify.html(text)
+            
+            # Add to bundle
             bundle[path] = text
 
         return bundle
-
-    def connect(self):
-        """."""
-
-        with server("Running local server for building."):
-            table = getattr(app_tables, "use")
-
-            if self.blob:
-                row: dict = table.get(path=bundle.name)
-                if not row:
-                    row: dict = table.add_row(path=self.name)
-                row.update(file=self.blob)
-                print(f"{self.name} saved to db.")
-
-            @server.function
-            def _build(path: str) -> str:
-                """Returns code text from local disc."""
-                ##print("path:", path)  ##
-                return file(f"build{path}")
-
-            @server.function
-            def _save_file(file: BlobMedia, path: str = None) -> dict:
-                """Saves file to db."""
-                try:
-                    if not path:
-                        path = file.name
-                    ##print("path:", path)  ##
-                    row = table.get(path=path)
-                    if not row:
-                        row = table.add_row(path=path)
-                    row.update(file=file)
-                    print(f"{path} saved to db.")
-                    return dict(ok=True)
-                except:
-                    return dict(ok=False, error=traceback.format_exc())
 
 
 bundle = Bundle()
 
 
 if __name__ == "__main__":
-    bundle().connect()
+
+    # Create bundle
+    bundle()
+
+    with server("Running local server for building."):
+        table = getattr(app_tables, "use")
+
+        # Save bundle to db
+        row: dict = table.get(path=bundle.name)
+        if not row:
+            row: dict = table.add_row(path=bundle.name)
+        row.update(file=bundle.blob)
+        print(f"{bundle.name} saved to db.")
+
+        @server.function
+        def _build(path: str) -> str:
+            """Returns code for in-browser building."""
+            ##print("path:", path)  ##
+            return file(f"build{path}")
+
+        @server.function
+        def _save_file(file: BlobMedia, path: str = None) -> dict:
+            """Saves file to db."""
+            try:
+                if not path:
+                    path = file.name
+                ##print("path:", path)  ##
+                row = table.get(path=path)
+                if not row:
+                    row = table.add_row(path=path)
+                row.update(file=file)
+                ##print(f"{path} saved to db.")  ##
+                return dict(ok=True)
+            except:
+                return dict(ok=False, error=traceback.format_exc())

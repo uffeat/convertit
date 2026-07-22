@@ -1,5 +1,5 @@
 """
-/parcels/foo/test/basics.py
+/parcels/foo/test/test.py
 """
 
 
@@ -11,13 +11,11 @@ def main(use, console=None, document=None, **kwargs):
     link = use("@@/foo/bar.css", link=True)
     console.log("link", link)
 
-    print("Base:", use("@@/base/base.py").Base)
-    print("Foo:", use("@@/foo/foo.py").Foo)
+   
+    print("Foo:", use("@@/foo/foo.py"))
+    console.log("Foo:", use("@@/foo/foo.js"))
 
-    console.log("Base:", use("@@/base/base.js").Base)
-    console.log("Foo:", use("@@/foo/foo.js").Foo)
-
-    Foo = use("@@/foo/foo.py").Foo
+    Foo = use("@@/foo/foo.py")
 
     foo = Foo()
 
