@@ -3,7 +3,7 @@ from pathlib import Path
 import traceback
 from anvil import BlobMedia
 from anvil.tables import app_tables
-from tools import Base, file, minify, server
+from tools import Base, Blob, file, minify, server
 
 SOURCE = Path.cwd() / "parcels"
 UTF_8 = "utf-8"
@@ -17,16 +17,18 @@ class Bundle(Base):
         """Creates bundle as local file and blob."""
         # Create bundle
         bundle = self.create()
+
+        ##print("bundle:", bundle)  ##
+
+
         print(f"Bundled {len(bundle)} files.")
-        # Cast to text to enable file anf blob creation
+        # Cast to text to enable file and blob creation
         text = json.dumps(bundle)
         # Write bundle to disc
-        file(self.name, text)
+        file(self.name, text=text)
         print(f"{self.name} saved to local disc")
         # Create blob
-        self._.update(
-            blob=BlobMedia("application/json", text.encode(UTF_8), name=self.name)
-        )
+        self._.update(blob=Blob(self.name, text))
         return self
 
     @property
@@ -35,8 +37,7 @@ class Bundle(Base):
         if not blob:
             print(f"Creating blob from {self.name}.")
             text = file(self.name)
-            blob=BlobMedia("application/json", text.encode(UTF_8), name=self.name)
-            self._.update(blob=blob)
+            self._.update(blob=Blob(self.name, text))
         return blob
 
     @property
@@ -48,28 +49,32 @@ class Bundle(Base):
 
         bundle = {}
 
-        for file in SOURCE.rglob("**/*.*"):
-            if " " in file.name:
+        for f in SOURCE.rglob("**/*.*"):
+            if " " in f.name:
                 continue
-            if "history" in file.parts:
+            if "history" in f.parts:
                 continue
-            if "scratch" in file.parts:
+            if "scratch" in f.parts:
                 continue
-            if "test" in file.parts:
+            if "test" in f.parts:
                 continue
-            
-            path = f"/{file.relative_to(SOURCE).as_posix()}"
-            text = file.read_text(encoding=UTF_8).strip()
-            
+
+            ##print("stem:", f.stem)  ##
+
+            path = f"/{f.relative_to(SOURCE).as_posix()}"
+            text = f.read_text(encoding=UTF_8).strip()
+
+            ##print("path:", path)  ##
+
             if not text:
                 continue
-            
+
             # Change text
-            if file.suffix == ".css":
+            if f.suffix == ".css":
                 text = minify.css(text)
-            elif file.suffix == ".html":
+            elif f.suffix == ".html":
                 text = minify.html(text)
-            
+
             # Add to bundle
             bundle[path] = text
 

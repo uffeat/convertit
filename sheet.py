@@ -1,6 +1,6 @@
 from pathlib import Path
 from anvil import BlobMedia
-from tools import minify, server
+from tools import Blob, minify, server
 
 SOURCE = Path.cwd() / "parcels"
 UTF_8 = "utf-8"
@@ -10,6 +10,7 @@ UTF_8 = "utf-8"
 
 def Sheet(name: str, text: str) -> BlobMedia:
     text = minify.css(text)
+    return Blob(name, text)
     return BlobMedia("text/css", text.encode(UTF_8), name=name)
 
 
