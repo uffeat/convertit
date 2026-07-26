@@ -1,7 +1,9 @@
-def main(use, **kwargs) -> type:
+def main(use, **kwargs):
     """."""
 
-    Base = use("@@/base/base.py")
+    Base = use("/base/base.py")
+
+    
 
     class File(Base):
         def __init__(self, name: str):
@@ -46,6 +48,7 @@ def main(use, **kwargs) -> type:
     class Path(Base):
         def __init__(self, specifier: str):
 
+            
             Base.__init__(self)
 
             self._.update(

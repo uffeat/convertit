@@ -1,8 +1,7 @@
-def main(use, anvil=None, js=None, window=None, **kwargs) -> type:
+def main(use, **kwargs) -> type:
     """."""
-
-    Promise = window.Promise
-    await_promise = anvil.js.await_promise
+    from anvil.js import await_promise
+    from anvil.js.window import Promise
 
     class Future:
 

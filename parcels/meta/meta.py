@@ -1,19 +1,18 @@
-def main(use, anvil=None, **kwargs) -> type:
+def main(use, **kwargs):
     """."""
+    from anvil import app
+    from anvil.server import get_app_origin
 
-    Base = use("@@/base/base.py")
-    env = anvil.anvil.app.environment.name
-    get_app_origin = anvil.server.get_app_origin
+    Base = use("/base/base.py")
 
     class Meta(Base):
         def __init__(self):
             Base.__init__(self)
-
+            env = app.environment.name
             self._.update(
                 DEV=(env == "development"),
                 PROD=(env == "production"),
                 env=env,
-                origin=get_app_origin(),
             )
 
         @property
@@ -29,8 +28,16 @@ def main(use, anvil=None, **kwargs) -> type:
             return self._["env"]
 
         @property
+        def name(self) -> str:
+            return app.package_name
+
+        @property
         def origin(self) -> str:
-            return self._["origin"]
+            origin = self._.get("origin")
+            if not origin:
+                origin = get_app_origin()
+                self._["origin"] = origin
+            return origin
 
     meta = Meta()
 
