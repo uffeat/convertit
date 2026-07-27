@@ -15,7 +15,7 @@ def main(_use: callable, **kwargs) -> callable:
     Path = _use("/path/path.py")
 
     meta = _use("/meta/meta.py")
-    js = _use("/js/js.py")
+    
 
     registries = dict(source={}, transpile={}, process={})
 
