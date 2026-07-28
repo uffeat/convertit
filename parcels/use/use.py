@@ -11,9 +11,7 @@ def main(_use: callable, Base=None, Path=None, meta=None, **kwargs) -> callable:
     )
     from anvil.server import call as call_server
 
-    
     Hook = _use("/use/hook.py")
-   
 
     registries = dict(source={}, transpile={}, process={})
 
@@ -75,27 +73,20 @@ def main(_use: callable, Base=None, Path=None, meta=None, **kwargs) -> callable:
             """Returns parcel text."""
             if path.path in self.cache:
                 return self.cache[path.path]
-            
+
             if meta.DEV:
                 try:
-                    result = call_server('_use', path.path)
+                    result = call_server("_use", path.path)
                 except:
                     result = self.get(path)
             else:
                 result = self.get(path)
 
-            
-
-
-
-           
             self.cache[path.path] = result
             return result
-        
 
         def get(self, path) -> str:
-            """Returns parcel text."""
-            
+            """Returns uncached parcel text from sheet."""
             node = document.createElement("div")
             node.setAttribute("__path__", path.path)
             document.head.append(node)
@@ -104,10 +95,7 @@ def main(_use: callable, Base=None, Path=None, meta=None, **kwargs) -> callable:
                 raise ValueError(f"Invalid {path}.")
             node.remove()
             result = atob(value[1:-1])
-            
             return result
-        
-
 
     @use.hook("py")
     class cls(Hook):
@@ -132,7 +120,7 @@ def main(_use: callable, Base=None, Path=None, meta=None, **kwargs) -> callable:
                 result = Object.freeze(result)
             self.cache[path.path] = result
             return result
-        
+
     @use.hook("js")
     class cls(Hook):
         hook = "transpile"
@@ -146,11 +134,8 @@ def main(_use: callable, Base=None, Path=None, meta=None, **kwargs) -> callable:
                 return
             if path.path in self.cache:
                 return self.cache[path.path]
-            
-            js = self.owner("/js/js.py")
-            
-            
 
+            result = 42
 
             self.cache[path.path] = result
             return result
