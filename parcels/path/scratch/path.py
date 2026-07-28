@@ -1,41 +1,36 @@
 class Path:
     def __init__(self, specifier: str):
         self.__dict__.update(__={})
-
         self(specifier)
 
-    def __call__(self, specifier: str):
-        self._.update(
-            detail={},
-            specifier=specifier,
-        )
+    def __call__(self, specifier: str = None):
+        if isinstance(specifier, Path):
+            self._.update(specifier._)
+        else:
 
-        source, sep, _path = specifier.partition("/")
-        _parents, sep, name = specifier.rpartition("/")
-        parents = _parents.split("/")[1:]
-        stem, sep, _types = name.partition(".")
-        types = _types.split(".")
-        path = f"/{_path}"
+            self._.update(
+                detail={},
+                specifier=specifier,
+            )
 
-        
+            source, dash, _path = specifier.partition("/")
+            path = f"{dash}{_path}"
+            _parents, _, name = specifier.rpartition(dash)
+            parents = _parents.split(dash)[1:]
+            stem, dot, types = name.partition(".")
+            shapes, _, type = types.rpartition(dot)
 
-        
-       
-
-        
-
-        self._.update(
-            full=source + path,
-            parents=tuple(parents),
-            parts=tuple([*parents, stem]),
-            path=path,
-            # Ensure that no source is '/'
-            source=source or "/",
-            type=types[-1],
-            types=tuple(types),
-        )
-
-        print("self._:", self._)  ##
+            self._.update(
+                full=source + path,
+                parents=tuple(parents),
+                parts=tuple([*parents, stem]),
+                path=path,
+                shapes=shapes,
+                # Ensure that no source is '/'
+                source=source or dash,
+                type=type,
+                types=types,
+            )
 
         return self
 
@@ -46,12 +41,28 @@ class Path:
     def __contains__(self, part: str) -> bool:
         return part in self.parts
 
-    def __getitem__(self, key):
-        if isinstance(key, slice):
-            return self.parts[key]
-        else:
-            if -len(self) <= key < len(self):
-                return self.parts[key]
+    def __getitem__(self, a):
+        """."""
+        if isinstance(a, slice):
+
+            start, stop = a.start, a.stop
+            if (
+                isinstance(start, int)
+                and not isinstance(start, bool)
+                and isinstance(stop, int)
+                and not isinstance(stop, bool)
+            ):
+                return self.parts[a]
+
+           
+            print(f"Do some creative stuff with {start} and {stop}")
+            return
+
+        elif isinstance(a, int) and not isinstance(a, bool):
+            if -len(self) <= a < len(self):
+                return self.parts[a]
+
+        print("Do some creative stuff with:", a)
 
     def __len__(self) -> int:
         return len(self.parts)
@@ -88,6 +99,10 @@ class Path:
         return self._["path"]
 
     @property
+    def shapes(self) -> str:
+        return self._["shapes"]
+
+    @property
     def source(self) -> str:
         return self._["source"]
 
@@ -107,6 +122,21 @@ class Path:
     def types(self) -> tuple:
         return self._["types"]
 
+    def print(self):
+        """."""
+        print(self._)
+        return self
 
-path = Path("@/foo/foo.py.html")
-path = Path("/foo.py.html")
+
+path = Path("@/bar/ding/foo.py.html")
+index = -4
+##print(f'path[{index}]:', path[index])
+##path.print()
+
+##path[str]
+##print(path[1:4])
+path[42:str]
+path['stuff']
+
+
+##path = Path("/foo.py").print()

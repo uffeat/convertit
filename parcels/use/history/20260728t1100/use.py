@@ -1,4 +1,4 @@
-def main(_use: callable, Base=None, Path=None, meta=None, **kwargs) -> callable:
+def main(_use: callable, **kwargs) -> callable:
     """."""
     from anvil.js.window import (
         Blob,
@@ -9,11 +9,13 @@ def main(_use: callable, Base=None, Path=None, meta=None, **kwargs) -> callable:
         document,
         getComputedStyle,
     )
-    from anvil.server import call as call_server
 
-    
+    Base = _use("/base/base.py")
     Hook = _use("/use/hook.py")
-   
+    Path = _use("/path/path.py")
+
+    meta = _use("/meta/meta.py")
+    
 
     registries = dict(source={}, transpile={}, process={})
 
@@ -36,7 +38,7 @@ def main(_use: callable, Base=None, Path=None, meta=None, **kwargs) -> callable:
             # Transpilation
             transpile = options.pop("transpile", True)
             if transpile:
-                hook = registries.get(path.types)
+                hook = registries.get(path.file.type)
                 if hook:
                     transpiled = hook(path, result, *args, options=options)
                     if transpiled:
@@ -45,7 +47,7 @@ def main(_use: callable, Base=None, Path=None, meta=None, **kwargs) -> callable:
             # Processing
             process = options.pop("process", True)
             if process:
-                hook = registries.get(path.types)
+                hook = registries.get(path.file.type)
                 if hook:
                     processed = hook(path, result, *args, options=options)
                     if processed:
@@ -75,27 +77,6 @@ def main(_use: callable, Base=None, Path=None, meta=None, **kwargs) -> callable:
             """Returns parcel text."""
             if path.path in self.cache:
                 return self.cache[path.path]
-            
-            if meta.DEV:
-                try:
-                    result = call_server('_use', path.path)
-                except:
-                    result = self.get(path)
-            else:
-                result = self.get(path)
-
-            
-
-
-
-           
-            self.cache[path.path] = result
-            return result
-        
-
-        def get(self, path) -> str:
-            """Returns parcel text."""
-            
             node = document.createElement("div")
             node.setAttribute("__path__", path.path)
             document.head.append(node)
@@ -104,10 +85,8 @@ def main(_use: callable, Base=None, Path=None, meta=None, **kwargs) -> callable:
                 raise ValueError(f"Invalid {path}.")
             node.remove()
             result = atob(value[1:-1])
-            
+            self.cache[path.path] = result
             return result
-        
-
 
     @use.hook("py")
     class cls(Hook):
