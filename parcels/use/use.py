@@ -1,5 +1,6 @@
 def main(_use: callable, Base=None, Path=None, meta=None, **kwargs) -> callable:
     """."""
+    from anvil.js import import_from, new
     from anvil.js.window import (
         Blob,
         Object,
@@ -22,6 +23,9 @@ def main(_use: callable, Base=None, Path=None, meta=None, **kwargs) -> callable:
 
         def __call__(self, specifier: str, *args, **options):
             """."""
+            print('specifier:', specifier)##
+
+
             raw = options.pop("raw", False)
             path = Path(specifier)
             hook = registries.get(path.source)
@@ -135,7 +139,17 @@ def main(_use: callable, Base=None, Path=None, meta=None, **kwargs) -> callable:
             if path.path in self.cache:
                 return self.cache[path.path]
 
-            result = 42
+            text = f"{text}\n//# sourceURL={path.path}"
+            url = URL.createObjectURL(new(Blob, [text], {"type": "text/javascript"}))
+            module = import_from(url)
+            URL.revokeObjectURL(url)
+            # XXX  TODO checks
+            main = module.default
+            result = main(self.owner, dict(path=path.path, text=text))
+            type_name = Object.prototype.toString.call(result)[8:-1]
+            if type_name == "Array" or type_name == "Object":
+                result = Object.freeze(result)
+           
 
             self.cache[path.path] = result
             return result

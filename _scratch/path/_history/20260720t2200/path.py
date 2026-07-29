@@ -2,21 +2,21 @@ class File:
     def __init__(self, name: str):
         self.__dict__.update(__={})
         if name and "." in name:
-            parts = name.split(".")
-            # Extract and remove stem
-            stem = parts.pop(0)
-            self._.update(stem=stem, type=parts[-1], types=tuple(parts))
+            types = name.split(".")
+            stem = types.pop(0)
+            t = types[-1]
+            self._.update(stem=stem, type=t, types=tuple(types))
         self._.update(name=name)
-
-    @property
-    def _(self) -> dict:
-        return self.__
 
     def __contains__(self, t: str) -> bool:
         return t in self.types
 
     def __str__(self) -> str:
         return self.name
+
+    @property
+    def _(self) -> dict:
+        return self.__
 
     @property
     def name(self) -> str:
@@ -42,111 +42,47 @@ class File:
             types = tuple(types)
         return self._.update(types=types)
 
+
 class Path:
     def __init__(self, specifier: str):
         self.__dict__.update(__={})
 
-        self(specifier)
-
-        
-    def __call__(self, specifier: str):
         self._.update(
             detail={},
             specifier=specifier,
         )
 
-        source, sep, path = specifier.partition('/')
-        if not source:
-            source = '/'
-        print('source:', source)##
-       
-        
-
-        parts: list = path.split("/")
-
-        print('parts:', parts)##
-
-        path = f"/{path}"
-        print('path:', path)##
-
-        return
-        
-
-       
-        
-
-        
-
-        name: str = parts.pop()
-        print('name:', name)##
-
-       
-
-        stem, sep, types = name.partition('.')
-        print('stem:', stem)##
-        types = types.split(".")
-        print('types:', types)##
-
-        file_type = types[-1]
-        print('type:', file_type)##
-        suffix = f".{file_type}"
-
-
-        print('parts:', parts)##
-
-        ##path = '/' + '/'.join(parts)
-
-        return
-        self._.update(
-            file=file,
-            full=source + path,
-            parts=tuple(parts),
-            path=path,
-            # Ensure that no source is '/'
-            source=source,
-        )
-
-
-
-
-
-
-       
-
-
-        return
-
-
-        # Extract and remove source
-        source = parts.pop(0)
-        # Extract file name
-        name = parts[-1]
-        # Construct file
+        specifier: list = specifier.split("/")
+        source = specifier.pop(0)
+        name = specifier[-1]
         file = File(name)
-        # Construct path
-        path = "/" + "/".join(parts)
-        
+        size = len(specifier)
+
+        # Enable '//' syntax for injection of next part
+        constructed = []
+        for index, part in enumerate(specifier):
+            if part:
+                constructed.append(part)
+            else:
+                next_index = index + 1
+                if next_index < size:
+                    constructed.append(
+                        file.stem if next_index + 1 == size else specifier[next_index]
+                    )
+
+        path = "/" + "/".join(constructed)
+        parts = tuple(constructed)
+        if constructed:
+            constructed.pop()
+
         self._.update(
             file=file,
             full=source + path,
-            parts=tuple(parts),
+            parents=tuple(constructed),
+            parts=parts,
             path=path,
-            # Ensure that no source is '/'
             source=source or "/",
         )
-
-        # Remove file part so that parts represents parents
-        parts.pop()
-
-        self._.update(
-            parents=tuple(parts),
-        )
-
-        return self
-
-    @property
-    def _(self) -> dict:
-        return self.__
 
     def __contains__(self, part: str) -> bool:
         return part in self.parts
@@ -163,6 +99,10 @@ class Path:
 
     def __str__(self) -> str:
         return self.path
+
+    @property
+    def _(self) -> dict:
+        return self.__
 
     @property
     def detail(self) -> dict:
@@ -199,6 +139,38 @@ class Path:
     @property
     def specifier(self) -> str:
         return self._["specifier"]
-    
 
-path = Path('/foo/foo.py.html')
+
+
+specifier = "@/stuff//ding.svg.js"
+##specifier = "//ding.py"
+##specifier = "//stuff//ding.py"
+##specifier = "/stuff/ding.py"
+##specifier = "/"
+##specifier = ['/', 'stuff','ding.py']
+##specifier = "/"
+
+
+path = Path(specifier)
+print("specifier:", specifier)
+print("full:", path.full)
+print("path:", path.path)
+print("parents:", path.parents)
+print("parts:", path.parts)
+print("source:", path.source)
+
+##print("file:", path.file)
+print("name:", path.file.name)
+print("stem:", path.file.stem)
+print("type:", path.file.type)
+print("types:", path.file.types)
+
+print("first part:", path[0])
+print("part:", path[2])
+print("part:", path[-2])
+
+print("part:", path[-3])
+##print("parents:", path.file.parents)
+
+print("slice:", path[-5:5])
+

@@ -1,116 +1,103 @@
-class File:
-    def __init__(self, name: str):
-        self.__dict__.update(__={})
-        if name and "." in name:
-            types = name.split(".")
-            stem = types.pop(0)
-            t = types[-1]
-            self._.update(stem=stem, type=t, types=tuple(types))
-        self._.update(name=name)
-
-    def __contains__(self, t: str) -> bool:
-        return t in self.types
-
-    def __str__(self) -> str:
-        return self.name
-
-    @property
-    def _(self) -> dict:
-        return self.__
-
-    @property
-    def name(self) -> str:
-        return self._["name"] or ""
-
-    @property
-    def stem(self) -> str:
-        return self._.get("stem", self.name)
-
-    @property
-    def type(self) -> str:
-        return self._.get("type", self.types[-1] if self.types else "")
-
-    @property
-    def types(self) -> tuple:
-        return self._.get("types", tuple([""]))
-
-    @types.setter
-    def types(self, types: tuple):
-        if isinstance(types, str):
-            types = types.split(".")
-        if isinstance(types, list):
-            types = tuple(types)
-        return self._.update(types=types)
+DASH = "/"
+DOT = "."
 
 
 class Path:
     def __init__(self, specifier: str):
         self.__dict__.update(__={})
+        self(specifier)
 
-        self._.update(
-            detail={},
-            specifier=specifier,
-        )
-
-        specifier: list = specifier.split("/")
-        source = specifier.pop(0)
-        name = specifier[-1]
-        file = File(name)
-        size = len(specifier)
-
-        # Enable '//' syntax for injection of next part
-        constructed = []
-        for index, part in enumerate(specifier):
-            if part:
-                constructed.append(part)
-            else:
-                next_index = index + 1
-                if next_index < size:
-                    constructed.append(
-                        file.stem if next_index + 1 == size else specifier[next_index]
-                    )
-
-        path = "/" + "/".join(constructed)
-        parts = tuple(constructed)
-        if constructed:
-            constructed.pop()
-
-        self._.update(
-            file=file,
-            full=source + path,
-            parents=tuple(constructed),
-            parts=parts,
-            path=path,
-            source=source or "/",
-        )
-
-    def __contains__(self, part: str) -> bool:
-        return part in self.parts
-
-    def __getitem__(self, key):
-        if isinstance(key, slice):
-            return self.parts[key]
+    def __call__(self, specifier: str = None) -> "Path":
+        """Parses specifier."""
+        if isinstance(specifier, Path):
+            self._.update(specifier._)
         else:
-            if -len(self) <= key < len(self):
-                return self.parts[key]
+            self._.update(
+                detail={},
+                specifier=specifier,
+            )
+            source, _, _path = specifier.partition(DASH)
+            path = f"{DASH}{_path}"
+            _parents, _, name = specifier.rpartition(DASH)
+            parents = _parents.split(DASH)
+            parents.pop(0)
+            if DOT in name:
+                # Handle file
+                stem, _, types = name.partition(DOT)
+                shapes, _, type_ = types.rpartition(DOT)
+                self._.update(
+                    file=True,
+                    shapes=shapes,
+                    type=type_,
+                    types=types,
+                )
+            else:
+                stem = name
+            self._.update(
+                full=source + path,
+                name=name,
+                parents=tuple(parents),
+                parts=tuple([*parents, stem]),
+                path=path,
+                # Ensure that no source is interpreted as '/'
+                source=source or DASH,
+                stem=stem,
+            )
 
-    def __len__(self) -> int:
-        return len(self.parts)
+            # NOTE Currently, 'full' is identical to 'specifier'. However, keep explicit
+            # construction of 'full', since later versions may introduce special specifier features.
 
-    def __str__(self) -> str:
-        return self.path
+        return self
 
     @property
     def _(self) -> dict:
         return self.__
+
+    def __contains__(self, part: str) -> bool:
+        """Tests membership with respect to parts."""
+        return part in self.parts
+
+    def __getitem__(self, a):
+        """Returns parts part of slice."""
+        if isinstance(a, slice):
+            start, stop = a.start, a.stop
+            if (
+                isinstance(start, int)
+                and not isinstance(start, bool)
+                and isinstance(stop, int)
+                and not isinstance(stop, bool)
+            ):
+                # Standard slicing
+                return self.parts[a]
+
+            print(f"Not implemented: {start}:{stop}")  ##
+            return
+
+        elif isinstance(a, int) and not isinstance(a, bool):
+            # Standard item by index, but without index errors; out-of-index returns None
+            if -len(self) <= a < len(self):
+                return self.parts[a]
+
+        print(f"Not implemented: [{a}]")  ##
+
+    def __len__(self) -> int:
+        """Returns number of parts."""
+        return len(self.parts)
+
+    def __repr__(self) -> str:
+        return str(self._)
+
+    def __str__(self) -> str:
+        return self.path
 
     @property
     def detail(self) -> dict:
         return self._["detail"]
 
     @property
-    def file(self) -> File:
-        return self._["file"]
+    def file(self) -> bool:
+        """Returns is-file flag."""
+        return self._.get("file", False)
 
     @property
     def full(self) -> str:
@@ -118,13 +105,18 @@ class Path:
         return self._["full"]
 
     @property
+    def name(self) -> str:
+        """Returns name of file of leaf dir."""
+        return self._["name"]
+
+    @property
     def parents(self) -> tuple:
-        """Returns path parts without source and file."""
+        """Returns parents of file or leaf dir. Does not include source."""
         return self._["parents"]
 
     @property
     def parts(self) -> tuple:
-        """Returns path parts without source."""
+        """Returns path parts without source, but with file or leaf dir stem."""
         return self._["parts"]
 
     @property
@@ -133,44 +125,31 @@ class Path:
         return self._["path"]
 
     @property
+    def shapes(self) -> str:
+        """Returns file suffixes without file type."""
+        return self._.get("shapes", "")
+
+    @property
     def source(self) -> str:
+        """Returns source ('/' if no explicit source)."""
         return self._["source"]
 
     @property
     def specifier(self) -> str:
+        """Returns specifier."""
         return self._["specifier"]
 
+    @property
+    def stem(self) -> str:
+        """Returns stem of file or leaf dir."""
+        return self._["stem"]
 
+    @property
+    def type(self) -> str:
+        """Returns file type."""
+        return self._.get("type", "")
 
-specifier = "@/stuff//ding.svg.js"
-##specifier = "//ding.py"
-##specifier = "//stuff//ding.py"
-##specifier = "/stuff/ding.py"
-##specifier = "/"
-##specifier = ['/', 'stuff','ding.py']
-##specifier = "/"
-
-
-path = Path(specifier)
-print("specifier:", specifier)
-print("full:", path.full)
-print("path:", path.path)
-print("parents:", path.parents)
-print("parts:", path.parts)
-print("source:", path.source)
-
-##print("file:", path.file)
-print("name:", path.file.name)
-print("stem:", path.file.stem)
-print("type:", path.file.type)
-print("types:", path.file.types)
-
-print("first part:", path[0])
-print("part:", path[2])
-print("part:", path[-2])
-
-print("part:", path[-3])
-##print("parents:", path.file.parents)
-
-print("slice:", path[-5:5])
-
+    @property
+    def types(self) -> str:
+        """Returns all file suffixes."""
+        return self._.get("types", "")

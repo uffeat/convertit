@@ -3,97 +3,90 @@ def main(use, **kwargs):
 
     Base = use("/base/base.py")
 
-    
+    DASH = "/"
+    DOT = "."
 
-    class File(Base):
-        def __init__(self, name: str):
-            Base.__init__(self)
-            if name and "." in name:
-                parts = name.split(".")
-                # Extract and remove stem
-                stem = parts.pop(0)
-                self._.update(stem=stem, type=parts[-1], types=tuple(parts))
-            self._.update(name=name)
-
-        def __contains__(self, t: str) -> bool:
-            return t in self.types
-
-        def __str__(self) -> str:
-            return self.name
-
-        @property
-        def name(self) -> str:
-            return self._["name"] or ""
-
-        @property
-        def stem(self) -> str:
-            return self._.get("stem", self.name)
-
-        @property
-        def type(self) -> str:
-            return self._.get("type", self.types[-1] if self.types else "")
-
-        @property
-        def types(self) -> tuple:
-            return self._.get("types", tuple([""]))
-
-        @types.setter
-        def types(self, types: tuple):
-            if isinstance(types, str):
-                types = types.split(".")
-            if isinstance(types, list):
-                types = tuple(types)
-            return self._.update(types=types)
 
     class Path(Base):
         def __init__(self, specifier: str):
-
-            
             Base.__init__(self)
+            self(specifier)
 
-            self._.update(
-                detail={},
-                specifier=specifier,
-            )
+        def __call__(self, specifier: str = None) -> "Path":
+            """Parses specifier."""
+            if isinstance(specifier, Path):
+                self._.update(specifier._)
+            else:
+                self._.update(
+                    detail={},
+                    specifier=specifier,
+                )
+                source, _, _path = specifier.partition(DASH)
+                path = f"{DASH}{_path}"
+                _parents, _, name = specifier.rpartition(DASH)
+                parents = _parents.split(DASH)
+                parents.pop(0)
+                if DOT in name:
+                    # Handle file
+                    stem, _, types = name.partition(DOT)
+                    shapes, _, type_ = types.rpartition(DOT)
+                    self._.update(
+                        file=True,
+                        shapes=shapes,
+                        type=type_,
+                        types=types,
+                    )
+                else:
+                    stem = name
+                self._.update(
+                    full=source + path,
+                    name=name,
+                    parents=tuple(parents),
+                    parts=tuple([*parents, stem]),
+                    path=path,
+                    # Ensure that no source is interpreted as '/'
+                    source=source or DASH,
+                    stem=stem,
+                )
 
-            parts: list = specifier.split("/")
-            # Extract and remove source
-            source = parts.pop(0)
-            # Extract file name
-            name = parts[-1]
-            # Construct file
-            file = File(name)
-            # Construct path
-            path = "/" + "/".join(parts)
-            
-            self._.update(
-                file=file,
-                full=source + path,
-                parts=tuple(parts),
-                path=path,
-                # Ensure that no source is '/'
-                source=source or "/",
-            )
+                # NOTE Currently, 'full' is identical to 'specifier'. However, keep explicit
+                # construction of 'full', since later versions may introduce special specifier features.
 
-            # Remove file part so that parts represents parents
-            parts.pop()
-
-            self._.update(
-                parents=tuple(parts),
-            )
+            return self
 
         def __contains__(self, part: str) -> bool:
+            """Tests membership with respect to parts."""
             return part in self.parts
 
-        def __getitem__(self, key):
-            if isinstance(key, slice):
-                return self.parts[key]
-            else:
-                if -len(self) <= key < len(self):
-                    return self.parts[key]
+        def __getitem__(self, a):
+            """Returns parts part of slice."""
+            if isinstance(a, slice):
+                start, stop = a.start, a.stop
+                if (
+                    isinstance(start, int)
+                    and not isinstance(start, bool)
+                    and isinstance(stop, int)
+                    and not isinstance(stop, bool)
+                ):
+                    # Standard slicing
+                    return self.parts[a]
+
+                print(f"Not implemented: {start}:{stop}")  ##
+                return
+
+            elif isinstance(a, int) and not isinstance(a, bool):
+                # Standard item by index, but without index errors; out-of-index returns None
+                if -len(self) <= a < len(self):
+                    return self.parts[a]
+
+            print(f"Not implemented: [{a}]")  ##
 
         def __len__(self) -> int:
+            """Returns number of parts."""
             return len(self.parts)
+
+        def __repr__(self) -> str:
+            return str(self._)
 
         def __str__(self) -> str:
             return self.path
@@ -103,8 +96,9 @@ def main(use, **kwargs):
             return self._["detail"]
 
         @property
-        def file(self) -> File:
-            return self._["file"]
+        def file(self) -> bool:
+            """Returns is-file flag."""
+            return self._.get("file", False)
 
         @property
         def full(self) -> str:
@@ -112,13 +106,18 @@ def main(use, **kwargs):
             return self._["full"]
 
         @property
+        def name(self) -> str:
+            """Returns name of file of leaf dir."""
+            return self._["name"]
+
+        @property
         def parents(self) -> tuple:
-            """Returns path parts without source and file."""
+            """Returns parents of file or leaf dir. Does not include source."""
             return self._["parents"]
 
         @property
         def parts(self) -> tuple:
-            """Returns path parts without source."""
+            """Returns path parts without source, but with file or leaf dir stem."""
             return self._["parts"]
 
         @property
@@ -127,11 +126,38 @@ def main(use, **kwargs):
             return self._["path"]
 
         @property
+        def shapes(self) -> str:
+            """Returns file suffixes without file type."""
+            return self._.get("shapes", "")
+
+        @property
         def source(self) -> str:
+            """Returns source ('/' if no explicit source)."""
             return self._["source"]
 
         @property
         def specifier(self) -> str:
+            """Returns specifier."""
             return self._["specifier"]
+
+        @property
+        def stem(self) -> str:
+            """Returns stem of file or leaf dir."""
+            return self._["stem"]
+
+        @property
+        def type(self) -> str:
+            """Returns file type."""
+            return self._.get("type", "")
+
+        @property
+        def types(self) -> str:
+            """Returns all file suffixes."""
+            return self._.get("types", "")
+
+
+    
+
+    
 
     return Path
