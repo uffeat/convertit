@@ -1,7 +1,7 @@
 def main(use, **kwargs):
     """."""
-    from anvil.js import import_from, new
-    from anvil.js.window import Blob, Object, Reflect, URL, window
+    from anvil.js import new
+    from anvil.js.window import globalThis as _js
 
     _ = {}
 
@@ -11,21 +11,53 @@ def main(use, **kwargs):
             return self[key]
 
         def __getitem__(self, key: str):
-            item = getattr(window, key, None)
+            item = getattr(_js, key, None)
+            if callable(item):
+
+                def create(*args, **kwargs):
+                    if kwargs:
+                        args = [*args, kwargs]
+                    try:
+                        return new(item, *args)
+                    except:
+                        return item(*args)
+
+                return create
+
             return item
 
         def freeze(self, target):
             """Freezes target (shallowly)."""
-            return Object.freeze(target)
+            return _js.Object.freeze(target)
+
+        def use(self, url: str):
+            """."""
+            use = _.get("use")
+            if not use:
+                use = _js.Function("url", "return import(url)")
+                _["use"] = use
+            return use(url)
+
+        def isinstance(self, value, *refs) -> bool:
+            """Wrapper for the JS instanceof operator."""
+            instanceof = _.get("instanceof")
+            if not instanceof:
+                instanceof = _js.Function("value, ref", "return value instanceof ref")
+                _["instanceof"] = instanceof
+            for ref in refs:
+                if instanceof(value, ref):
+                    return True
+            return False
 
         def module(self, text: str, path: str = None):
             """Returns constructed JS module (no caching)."""
             if path:
                 text = f"{text}\n//# sourceURL={path}"
-            blob = new(Blob, [text], dict(type="text/javascript"))
-            url = URL.createObjectURL(blob)
-            result = import_from(url)
-            URL.revokeObjectURL(url)
+
+            blob = new(_js.Blob, [text], dict(type="text/javascript"))
+            url = _js.URL.createObjectURL(blob)
+            result = self.use(url)
+            _js.URL.revokeObjectURL(url)
             return result
 
         def new(self, target):
@@ -38,7 +70,7 @@ def main(use, **kwargs):
 
         def object(self, **kwargs):
             """Returns JS vanilla object."""
-            result = Object.create({})
+            result = _js.Object.create({})
             for key, value in kwargs.items():
                 result[key] = value
             return result
@@ -48,7 +80,7 @@ def main(use, **kwargs):
             # HACK Circumvents Anvil-Python's lack of support for JS 'delete'.
             if key in target:
                 value = target[key]
-                Reflect.deleteProperty(target, key)
+                _js.Reflect.deleteProperty(target, key)
                 return value
             else:
                 return default
@@ -72,7 +104,7 @@ def main(use, **kwargs):
         def type(self, value, *refs):
             """Returns type name as JS sees it - or checks against refs."""
             try:
-                type_name = Object.prototype.toString.call(value)[8:-1]
+                type_name = _js.Object.prototype.toString.call(value)[8:-1]
             except:
                 type_name = ""
             if refs:
@@ -82,10 +114,6 @@ def main(use, **kwargs):
                 return False
 
             return type_name
-
-        def use(self, *args):
-            """."""
-            return import_from(*args)
 
     js = js()
 

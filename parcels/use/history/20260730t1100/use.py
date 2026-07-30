@@ -1,26 +1,31 @@
-def main(use: callable, Path: callable = None, meta=None, **kwargs) -> callable:
+def main(_use: callable, Base=None, Path=None, meta=None, **kwargs) -> callable:
     """."""
+    from anvil.js import import_from, new
+    from anvil.js.window import (
+        Blob,
+        Object,
+        URL,
+        atob,
+        console,
+        document,
+        getComputedStyle,
+    )
     from anvil.server import call as call_server
 
-    document = use("/document/document.py")
-    js = use("/js/js.py")
-    Hook = use("/use/hook.py")
-    
+    Hook = _use("/use/hook.py")
 
     registries = dict(source={}, transpile={}, process={})
 
-    class Use:
+    class Use(Base):
         def __init__(self):
-            self.__dict__.update(__={})
+            Base.__init__(self)
             self._.update(cache={})
-
-        @property
-        def _(self) -> dict:
-            return self.__
 
         def __call__(self, specifier: str, *args, **options):
             """."""
-            ##print("specifier:", specifier)  ##
+            print('specifier:', specifier)##
+
+
             raw = options.pop("raw", False)
             path = Path(specifier)
             registry = registries["source"]
@@ -30,7 +35,8 @@ def main(use: callable, Path: callable = None, meta=None, **kwargs) -> callable:
             result = hook(path, options=options)
             if raw:
                 return result
-            # Transpile
+
+            # Transpilation
             transpile = options.pop("transpile", True)
             if transpile:
                 registry = registries["transpile"]
@@ -39,7 +45,8 @@ def main(use: callable, Path: callable = None, meta=None, **kwargs) -> callable:
                     transpiled = hook(path, result, *args, options=options)
                     if transpiled:
                         result = transpiled
-            # Process
+
+            # Processing
             process = options.pop("process", True)
             if process:
                 registry = registries["process"]
@@ -48,6 +55,7 @@ def main(use: callable, Path: callable = None, meta=None, **kwargs) -> callable:
                     processed = hook(path, result, *args, options=options)
                     if processed:
                         result = processed
+
             return result
 
         def hook(self, *keys):
@@ -61,10 +69,6 @@ def main(use: callable, Path: callable = None, meta=None, **kwargs) -> callable:
 
     use = Use()
 
-    
-
-
-
     @use.hook("/")
     class cls(Hook):
         hook = "source"
@@ -76,6 +80,7 @@ def main(use: callable, Path: callable = None, meta=None, **kwargs) -> callable:
             """Returns parcel text."""
             if path.path in self.cache:
                 return self.cache[path.path]
+
             if meta.DEV:
                 try:
                     result = call_server("_use", path.path)
@@ -92,11 +97,11 @@ def main(use: callable, Path: callable = None, meta=None, **kwargs) -> callable:
             node = document.createElement("div")
             node.setAttribute("__path__", path.path)
             document.head.append(node)
-            value = js.getComputedStyle(node).getPropertyValue("--__use__").strip()
+            value = getComputedStyle(node).getPropertyValue("--__use__").strip()
             if not value:
                 raise ValueError(f"Invalid {path}.")
             node.remove()
-            result = js.atob(value[1:-1])
+            result = atob(value[1:-1])
             return result
 
     @use.hook("py")
@@ -119,7 +124,7 @@ def main(use: callable, Path: callable = None, meta=None, **kwargs) -> callable:
             main = locals["main"]
             result = main(self.owner, meta=meta, path=path, text=text)
             if isinstance(result, (dict, list)):
-                result = js.freeze(result)
+                result = Object.freeze(result)
             self.cache[path.path] = result
             return result
 
@@ -138,16 +143,16 @@ def main(use: callable, Path: callable = None, meta=None, **kwargs) -> callable:
                 return self.cache[path.path]
 
             text = f"{text}\n//# sourceURL={path.path}"
-            blob = js.new(js.Blob)([text], type="text/javascript")
-            url = js.URL.createObjectURL(blob)
-            module = js.use(url)
-            js.URL.revokeObjectURL(url)
+            url = URL.createObjectURL(new(Blob, [text], {"type": "text/javascript"}))
+            module = import_from(url)
+            URL.revokeObjectURL(url)
             # XXX  TODO checks
             main = module.default
             result = main(self.owner, dict(path=path.path, text=text))
-            type_name = js.type(result)
+            type_name = Object.prototype.toString.call(result)[8:-1]
             if type_name == "Array" or type_name == "Object":
-                result = js.freeze(result)
+                result = Object.freeze(result)
+           
 
             self.cache[path.path] = result
             return result

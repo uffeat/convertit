@@ -6,7 +6,6 @@ def main(use, **kwargs):
     DASH = "/"
     DOT = "."
 
-
     class Path(Base):
         def __init__(self, specifier: str):
             Base.__init__(self)
@@ -154,10 +153,5 @@ def main(use, **kwargs):
         def types(self) -> str:
             """Returns all file suffixes."""
             return self._.get("types", "")
-
-
-    
-
-    
 
     return Path

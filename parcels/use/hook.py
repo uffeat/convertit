@@ -1,12 +1,16 @@
 def main(use: callable, **kwargs) -> type:
     """."""
-    Base = use("/base/base.py")
+   
     
-    class Hook(Base):
+    class Hook:
 
         def __init__(self, owner=None):
-            Base.__init__(self)
+            self.__dict__.update(__={})
             self._.update(cache={}, owner=owner)
+
+        @property
+        def _(self) -> dict:
+            return self.__
 
         @property
         def cache(self):
