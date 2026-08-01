@@ -1,7 +1,11 @@
-def main(use: callable, Path: callable = None, anvil=None, document=None, js=None, meta=None, window=None, **kwargs) -> callable:
+def main(use: callable, Path: callable = None, meta=None, **kwargs) -> callable:
     """."""
+    from anvil.server import call as call_server
+
+    document = use("/document/document.py")
+    js = use("/js/js.py")
     Hook = use("/use/hook.py")
-   
+
     registries = dict(source={}, transpile={}, process={})
 
     class Use:
@@ -56,8 +60,6 @@ def main(use: callable, Path: callable = None, anvil=None, document=None, js=Non
 
     use = Use()
 
-
-
     @use.hook("/")
     class cls(Hook):
         hook = "source"
@@ -71,7 +73,7 @@ def main(use: callable, Path: callable = None, anvil=None, document=None, js=Non
                 return self.cache[path.path]
             if meta.DEV:
                 try:
-                    result = anvil.server.call("_use", path.path)
+                    result = call_server("_use", path.path)
                 except:
                     result = self.get(path)
             else:
@@ -129,6 +131,7 @@ def main(use: callable, Path: callable = None, anvil=None, document=None, js=Non
                 return
             if path.path in self.cache:
                 return self.cache[path.path]
+
             text = f"{text}\n//# sourceURL={path.path}"
             blob = js.new(js.Blob)([text], type="text/javascript")
             url = js.URL.createObjectURL(blob)
@@ -140,6 +143,7 @@ def main(use: callable, Path: callable = None, anvil=None, document=None, js=Non
             type_name = js.type(result)
             if type_name == "Array" or type_name == "Object":
                 result = js.freeze(result)
+
             self.cache[path.path] = result
             return result
 
