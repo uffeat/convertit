@@ -25,7 +25,7 @@ def main(
         def _(self) -> dict:
             return self.__
 
-        def __call__(self, path, *args, **options):
+        def __call__(self, path: type, *args, **options):
             """."""
             registry: dict = self.__['registry']
             key: str = path.source
@@ -37,14 +37,29 @@ def main(
             registry: dict = self.__['registry']
             registry[key] = hook
 
+
             
 
-
-       
-
-
-
     pipe_item = PipeItem()
+
+
+    class Source:
+        def __init__(self):
+            self.__dict__.update(__={})
+            self._.update(registry={})
+
+        @property
+        def _(self) -> dict:
+            return self.__
+
+        def __call__(self, result=None):
+            """."""
+            if result is None:
+                return 42
+
+
+
+
 
 
 
