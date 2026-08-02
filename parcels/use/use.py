@@ -140,7 +140,8 @@ def main(
             if meta.DEV:
                 try:
                     result = anvil.server.call("_use", path.path)
-                except:
+                except anvil.server.UplinkDisconnectedError as error:
+                    log("Local server not running.")
                     result = self.get(path)
             else:
                 result = self.get(path)
@@ -200,7 +201,6 @@ def main(
                     meta=meta,
                     log=log,
                     path=path,
-                    test=True,
                     window=window,
                 )
                 if isinstance(result, (dict, list)):
@@ -219,8 +219,11 @@ def main(
 
     
 
-    ping = use("/ping.py")
-    print("ping:", ping())
+    ##ping = use("/ping.py")
+    ##print("ping:", ping())
+
+    raw = use("/ping.py", raw=True)
+    print("raw:", raw)
 
     raw = use("/ping.py", raw=True)
     print("raw:", raw)
