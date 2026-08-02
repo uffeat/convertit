@@ -1,154 +1,142 @@
 def main(
     use: callable,
+    Base: type = None,
     Path: callable = None,
     anvil=None,
+    console=None,
     document=None,
     js=None,
+    log=None,
     meta=None,
     window=None,
     **kwargs,
 ) -> callable:
     """."""
-    Hook = use("/use/hook.py")
 
-    registries = dict(source={}, transpile={}, process={})
-
-
-    pipe = []
-
-    class PipeItem:
-        def __init__(self):
+    class Text:
+        def __init__(self, owner=None):
             self.__dict__.update(__={})
-            self._.update(registry={})
+            self._.update(_registry={})
+            if owner:
+                self._.update(owner=owner)
 
         @property
         def _(self) -> dict:
             return self.__
 
-        def __call__(self, path: type, *args, **options):
+        def __call__(self, path):
             """."""
-            registry: dict = self.__['registry']
-            key: str = path.source
-            hook = registry.get(key)
-            return hook
+            registry: dict = self._["_registry"]
+            handler = registry.get(path.source)
+            if not handler:
+                raise ValueError(f"Invalid source: {path.source}")
+            result = handler(path)
+            return result
 
-        def hook(self, key, hook):
-            """."""
-            registry: dict = self.__['registry']
-            registry[key] = hook
+        @property
+        def owner(self) -> 'Use':
+            return self._.get("owner")
 
+        def use(self, *keys):
+            def register(handler):
+                if isinstance(handler, type):
+                    expects = getattr(
+                        handler.__dict__.get("__init__"), "__annotations__", {}
+                    ).keys()
+                    if "owner" in expects:
+                        handler = handler(owner=self.owner)
+                    else:
+                        handler = handler()
+                for key in keys:
+                    self._["_registry"][key] = handler
+                return handler
 
-            
+            return register
 
-    pipe_item = PipeItem()
-
-
-    class Source:
-        def __init__(self):
+    class Transpile:
+        def __init__(self, owner=None):
             self.__dict__.update(__={})
-            self._.update(registry={})
+            self._.update(_registry={})
+            if owner:
+                self._.update(owner=owner)
 
         @property
         def _(self) -> dict:
             return self.__
 
-        def __call__(self, result=None):
+        def __call__(self, path):
             """."""
-            if result is None:
-                return 42
+            registry: dict = self._["_registry"]
+            handler = registry.get(path.type)
+            if not handler:
+                raise ValueError(f"No transpiler for: {path.type}")
+            result = handler(path)
+            return result
 
+        @property
+        def owner(self) -> 'Use':
+            return self._.get("owner")
 
+        def use(self, *keys):
+            def register(handler):
+                if isinstance(handler, type):
+                    expects = getattr(
+                        handler.__dict__.get("__init__"), "__annotations__", {}
+                    ).keys()
+                    if "owner" in expects:
+                        handler = handler(owner=self.owner)
+                    else:
+                        handler = handler()
+                for key in keys:
+                    self._["_registry"][key] = handler
+                return handler
 
-
-
-
-
-
-
-
-
-
-    pipe.append(pipe_item)
+            return register
 
     class Use:
         def __init__(self):
             self.__dict__.update(__={})
-            self._.update(cache={})
+            self._.update(text=Text(owner=self), transpile=Transpile(owner=self))
 
         @property
         def _(self) -> dict:
             return self.__
 
-        def __call__(self, specifier: str, *args, **options):
+        def __call__(self, specifier: str, *args, **kwargs):
             """."""
-            ##print("specifier:", specifier)  ##
-            raw = options.pop("raw", False)
             path = Path(specifier)
-
-
-
-            for item in pipe:
-                stuff = item(path)
-
-
-
-
-
-
-
-
-
-
-
-            registry = registries["source"]
-            hook = registry.get(path.source)
-            if not hook:
-                raise ValueError(f"Invalid source: {path.source}")
-            result = hook(path, options=options)
+            raw = kwargs.pop("raw", False)
             if raw:
-                return result
-            # Transpile
-            transpile = options.pop("transpile", True)
-            if transpile:
-                registry = registries["transpile"]
-                hook = registry.get(path.types)
-                if hook:
-                    transpiled = hook(path, result, *args, options=options)
-                    if transpiled:
-                        result = transpiled
-            # Process
-            process = options.pop("process", True)
-            if process:
-                registry = registries["process"]
-                hook = registries.get(path.types)
-                if hook:
-                    processed = hook(path, result, *args, options=options)
-                    if processed:
-                        result = processed
-            return result
+                return self.text(path)
+            return self.transpile(path)
 
-        def hook(self, *keys):
-            def register(cls):
-                registry = registries.get(getattr(cls, "hook", None))
-                hook = cls(owner=self)
-                for key in keys:
-                    registry[key] = hook
+        @property
+        def text(self) -> Text:
+            return self._["text"]
 
-            return register
+        @property
+        def transpile(self) -> Transpile:
+            return self._["transpile"]
 
     use = Use()
 
-    @use.hook("/")
-    class cls(Hook):
-        hook = "source"
+    @use.text.use("/")
+    class cls:
+        def __init__(self, owner: type = None):
+            self.__dict__.update(__={})
+            self._.update(_cache={})
+            if owner:
+                self._.update(owner=owner)
 
-        def __init__(self, owner=None):
-            Hook.__init__(self, owner=owner)
+        @property
+        def _(self) -> dict:
+            return self.__
 
-        def __call__(self, path, *args, **kwargs) -> str:
+        def __call__(self, path) -> str:
             """Returns parcel text."""
-            if path.path in self.cache:
-                return self.cache[path.path]
+            cache: dict = self._["_cache"]
+            if path.path in cache:
+                return cache[path.path]
             if meta.DEV:
                 try:
                     result = anvil.server.call("_use", path.path)
@@ -157,8 +145,12 @@ def main(
             else:
                 result = self.get(path)
 
-            self.cache[path.path] = result
+            cache[path.path] = result
             return result
+
+        @property
+        def owner(self) -> Use:
+            return self._.get("owner")
 
         def get(self, path) -> str:
             """Returns uncached parcel text from sheet."""
@@ -172,58 +164,67 @@ def main(
             result = js.atob(value[1:-1])
             return result
 
-    @use.hook("py")
-    class cls(Hook):
-        hook = "transpile"
+    @use.transpile.use("py")
+    class cls:
+        def __init__(self, owner: type = None):
+            self.__dict__.update(__={})
+            self._.update(_cache={})
+            if owner:
+                self._.update(owner=owner)
 
-        def __init__(self, owner=None):
-            Hook.__init__(self, owner=owner)
+        @property
+        def _(self) -> dict:
+            return self.__
 
-        def __call__(self, path, text: str, *args, **kwargs) -> str:
+        def __call__(self, path) -> str:
             """Returns parcel text."""
-            # Type guard
-            if not isinstance(text, str):
-                return
-            if path.path in self.cache:
-                return self.cache[path.path]
+            cache: dict = self._["_cache"]
+            if path.path in cache:
+                return cache[path.path]
+
+            raw = self.owner.text(path)
+
             locals = {}
-            exec(text, {}, locals)
+            exec(raw, {}, locals)
             if "main" in locals:
+
                 main = locals["main"]
-                result = main(self.owner, meta=meta, path=path, text=text)
+                result = main(
+                    self.owner,
+                    Base=Base,
+                    Path=Path,
+                    anvil=anvil,
+                    console=console,
+                    document=document,
+                    js=js,
+                    meta=meta,
+                    log=log,
+                    path=path,
+                    test=True,
+                    window=window,
+                )
                 if isinstance(result, (dict, list)):
                     result = js.freeze(result)
             else:
                 result = js.freeze(locals)
 
-            self.cache[path.path] = result
+            
+
+            cache[path.path] = result
             return result
 
-    @use.hook("js")
-    class cls(Hook):
-        hook = "transpile"
+        @property
+        def owner(self) -> Use:
+            return self._.get("owner")
 
-        def __init__(self, owner=None):
-            Hook.__init__(self, owner=owner)
+    
 
-        def __call__(self, path, text: str, *args, **kwargs) -> str:
-            """Returns parcel text."""
-            if not isinstance(text, str):
-                return
-            if path.path in self.cache:
-                return self.cache[path.path]
-            text = f"{text}\n//# sourceURL={path.path}"
-            blob = js.new(js.Blob)([text], type="text/javascript")
-            url = js.URL.createObjectURL(blob)
-            module = js.use(url)
-            js.URL.revokeObjectURL(url)
-            # XXX TODO checks
-            main = module.default
-            result = main(self.owner, dict(path=path.path, text=text))
-            type_name = js.type(result)
-            if type_name == "Array" or type_name == "Object":
-                result = js.freeze(result)
-            self.cache[path.path] = result
-            return result
+    ping = use("/ping.py")
+    print("ping:", ping())
+
+    raw = use("/ping.py", raw=True)
+    print("raw:", raw)
+
+    
 
     return use
