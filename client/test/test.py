@@ -1,4 +1,5 @@
 def main(
+    use,
     Base=None,
     Path=None,
     anvil=None,
@@ -11,56 +12,11 @@ def main(
     **kwargs,
 ):
     """."""
-
-    print("client/test/test.py")
-
-    class Use:
-        def __init__(self):
-            """."""
-            self.__dict__.update(__={})
-            self._.update(cache={})
-
-        @property
-        def _(self) -> dict:
-            return self.__
-
-        def __call__(self, specifier: str):
-            """."""
-            path = Path(specifier)
-            cache = self._["cache"]
-            if path.path in cache:
-                return cache[path.path]
-
-            text = anvil.server.call("_use", path.path)
-
-            locals = {}
-            exec(text, {}, locals)
-            main = locals["main"]
-            result = main(
-                self,
-                Base=Base,
-                Path=Path,
-                anvil=anvil,
-                console=console,
-                document=document,
-                js=js,
-                log=log,
-                meta=meta,
-                path=path.path,
-                window=window,
-            )
-
-            if isinstance(result, (dict, list)):
-                result = js.freeze(result)
-
-            cache[path.path] = result
-
-            return result
-
-    use = Use()
-
-
     use = use('/use/use.py')
+
+    stuff = use('/foo/stuff.py').stuff
+    print('stuff:', stuff)
+    stuff()
 
     Hook = use("/use/hook.py")
 

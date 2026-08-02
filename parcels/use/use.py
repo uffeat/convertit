@@ -1,8 +1,59 @@
-def main(use: callable, Path: callable = None, anvil=None, document=None, js=None, meta=None, window=None, **kwargs) -> callable:
+def main(
+    use: callable,
+    Path: callable = None,
+    anvil=None,
+    document=None,
+    js=None,
+    meta=None,
+    window=None,
+    **kwargs,
+) -> callable:
     """."""
     Hook = use("/use/hook.py")
-   
+
     registries = dict(source={}, transpile={}, process={})
+
+
+    pipe = []
+
+    class PipeItem:
+        def __init__(self):
+            self.__dict__.update(__={})
+            self._.update(registry={})
+
+        @property
+        def _(self) -> dict:
+            return self.__
+
+        def __call__(self, path, *args, **options):
+            """."""
+            registry: dict = self.__['registry']
+            key: str = path.source
+            hook = registry.get(key)
+            return hook
+
+        def hook(self, key, hook):
+            """."""
+            registry: dict = self.__['registry']
+            registry[key] = hook
+
+            
+
+
+       
+
+
+
+    pipe_item = PipeItem()
+
+
+
+
+
+
+
+
+    pipe.append(pipe_item)
 
     class Use:
         def __init__(self):
@@ -18,6 +69,22 @@ def main(use: callable, Path: callable = None, anvil=None, document=None, js=Non
             ##print("specifier:", specifier)  ##
             raw = options.pop("raw", False)
             path = Path(specifier)
+
+
+
+            for item in pipe:
+                stuff = item(path)
+
+
+
+
+
+
+
+
+
+
+
             registry = registries["source"]
             hook = registry.get(path.source)
             if not hook:
@@ -55,8 +122,6 @@ def main(use: callable, Path: callable = None, anvil=None, document=None, js=Non
             return register
 
     use = Use()
-
-
 
     @use.hook("/")
     class cls(Hook):
@@ -101,18 +166,21 @@ def main(use: callable, Path: callable = None, anvil=None, document=None, js=Non
 
         def __call__(self, path, text: str, *args, **kwargs) -> str:
             """Returns parcel text."""
+            # Type guard
             if not isinstance(text, str):
                 return
             if path.path in self.cache:
                 return self.cache[path.path]
             locals = {}
             exec(text, {}, locals)
-            if "main" not in locals:
-                raise ValueError(f"No 'main' in {path}.")
-            main = locals["main"]
-            result = main(self.owner, meta=meta, path=path, text=text)
-            if isinstance(result, (dict, list)):
-                result = js.freeze(result)
+            if "main" in locals:
+                main = locals["main"]
+                result = main(self.owner, meta=meta, path=path, text=text)
+                if isinstance(result, (dict, list)):
+                    result = js.freeze(result)
+            else:
+                result = js.freeze(locals)
+
             self.cache[path.path] = result
             return result
 
@@ -134,7 +202,7 @@ def main(use: callable, Path: callable = None, anvil=None, document=None, js=Non
             url = js.URL.createObjectURL(blob)
             module = js.use(url)
             js.URL.revokeObjectURL(url)
-            # XXX  TODO checks
+            # XXX TODO checks
             main = module.default
             result = main(self.owner, dict(path=path.path, text=text))
             type_name = js.type(result)

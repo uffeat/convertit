@@ -5,17 +5,17 @@
 
 def main(use, console=None, document=None, **kwargs):
 
-    sheet = use("@@/foo/bar.css")
+    sheet = use("/foo/bar.css")
     console.log("sheet", sheet)
 
-    link = use("@@/foo/bar.css", link=True)
+    link = use("/foo/bar.css", link=True)
     console.log("link", link)
 
    
-    print("Foo:", use("@@/foo/foo.py"))
-    console.log("Foo:", use("@@/foo/foo.js"))
+    print("Foo:", use("/foo/foo.py"))
+    console.log("Foo:", use("/foo/foo.js"))
 
-    Foo = use("@@/foo/foo.py")
+    Foo = use("/foo/foo.py")
 
     foo = Foo()
 

@@ -5,21 +5,21 @@
 
 def main(use, **kwargs):
     """."""
-    Path = use("@@/path/path.py")
+    Path = use("/path/path.py")
    
     ##print("Path:", Path)  ##
 
-    specifier = "@@/base/base.py"
+    specifier = "/foo/bar.py"
     path = Path(specifier)
 
     print("path.source:", path.source)  ##
     print("path.path:", path.path)  ##
     print("path.parts:", path.parts)  ##
     print("path.parents:", path.parents)  ##
-    print("path.file.name:", path.file.name)  ##
-    print("path.file.stem:", path.file.stem)  ##
-    print("path.file.type:", path.file.type)  ##
-    print("path.file.types:", path.file.types)  ##
+    print("path.name:", path.name)  ##
+    print("path.stem:", path.stem)  ##
+    print("path.type:", path.type)  ##
+    print("path.types:", path.types)  ##
 
 
 

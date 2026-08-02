@@ -1,5 +1,5 @@
 def main(use, **kwargs):
-    Base = use("@@/base/base.py")
+    Base = use("/base/base.py")
 
     class Bar(Base):
         def __init__(self):
