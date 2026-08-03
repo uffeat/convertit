@@ -178,15 +178,13 @@ def main(
         def _(self) -> dict:
             return self.__
 
-        def __call__(self, path: Path) -> str:
-            """Returns text via registered source-dependent handlers."""
+        def __call__(self, path: Path):
+            """."""
             registry: dict = self._["_registry"]
             handler = registry.get(path.source)
             if not handler:
                 raise ValueError(f"Invalid source: {path.source}")
-            result = handler(path.path)
-            if not isinstance(result, str):
-                raise TypeError(f"{path.path}: {result} is not text.")
+            result = handler(path)
             return result
 
         @property
@@ -217,7 +215,7 @@ def main(
             handler = registry.get(path.type)
             if not handler:
                 raise ValueError(f"No transpiler for: {path.type}")
-            result = handler(path.path)
+            result = handler(path)
             return result
 
         @property
@@ -248,12 +246,8 @@ def main(
             path = Path(specifier)
             raw = kwargs.pop("raw", False)
             if raw:
-                result = self.text(path)
-                log(f"Raw {path.path} requested: {result}.", trace="Use")  ##
-                return result
-            result = self.transpile(path)
-            log(f"Non-raw {path.path} requested: {result}.", trace="Use")  ##
-            return result
+                return self.text(path)
+            return self.transpile(path)
 
         @property
         def text(self):
@@ -266,9 +260,9 @@ def main(
     use = Use()
 
     class Cache:
-        def __init__(self, create: callable = None, owner=None):
+        def __init__(self, create: callable=None):
             self.__dict__.update(__={})
-            self._.update(_cache={}, _create=create, owner=owner)
+            self._.update(_cache={}, _create=create)
 
         @property
         def _(self) -> dict:
@@ -276,151 +270,123 @@ def main(
 
         def __call__(self, key, value=None):
             """."""
+            cache: dict = self._['_cache']
             if value is None:
-                return self.get(key)
-            return self.set(key, value)
-
-        def __contains__(self, key) -> bool:
-            """."""
-            return key in self._["_cache"]
-
-        def __getitem__(self, key):
-            return self.get(key)
-
-        def __len__(self) -> int:
-            """."""
-            return len(self._["_cache"])
-
-        def __setitem__(self, key, value):
-            return self.set(key, value)
-
-        def __str__(self):
-            return str(self._["_cache"])
-
-        @property
-        def owner(self):
-            return self._["owner"]
-
-        def get(self, key):
-            """."""
-            cache: dict = self._["_cache"]
-            if key in cache:
-                value = cache[key]
-                log(f"Got {key} from cache: {value}", trace="Cache")  ##
-                return value
-            create: callable = self._.get("_create")
-            if create:
-                return self.set(key, create)
-
-        def set(self, key, value):
-            """."""
-            cache: dict = self._["_cache"]
-            if callable(value):
-                value = value(key)
-                log(f"Created {key} from function: {value}", trace="Cache.set")  ##
-            if value is None:
-                value = cache.pop(key, None)
-                log(f"Removed {key} from cache.", trace="Cache.set")  ##
+                if key in cache:
+                    return cache[key]
+               
+                create: callable = self._.get('_create')
+                if create:
+                    value = create(key)
+                    cache[key] = value
+                    return value
+                
+                    
             else:
-                log(f"Created {key} to cache: {value}", trace="Cache.set")  ##
                 cache[key] = value
-            return value
+                return value
+
+            
+
+       
+        
 
     @use.text.use("/")
     class cls:
-        def __init__(self, owner: Use = None):
+        def __init__(self, owner: Use=None):
             self.__dict__.update(__={})
-
-            def get(path: str) -> str:
-                """Returns uncached parcel text from sheet."""
-                node = document.createElement("div")
-                node.setAttribute("__path__", path)
-                document.head.append(node)
-                value = js.getComputedStyle(node).getPropertyValue("--__use__").strip()
-                if not value:
-                    raise ValueError(f"Invalid {path}.")
-                node.remove()
-                result = js.atob(value[1:-1])
-                return result
-
-            def create(path: str) -> str:
-                """Returns uncached parcel text from local server or sheet."""
-                if meta.DEV:
-                    try:
-                        result = anvil.server.call("_use", path)
-                        test = True
-                        log(f"Got {path} from local server.", trace="create")  ##
-                    except anvil.server.UplinkDisconnectedError as error:
-                        result = get(path)
-                        test = False
-                        log(f"Got {path} from sheet.", trace="create")  ##
-                else:
-                    result = get(path)
-                return result
-
-            self._.update(cache=Cache(create=create), owner=owner)
+            self._.update(_cache={}, owner=owner)
 
         @property
         def _(self) -> dict:
             return self.__
 
-        def __call__(self, path: str) -> str:
+        def __call__(self, path: Path) -> str:
             """Returns parcel text."""
-            result = self.cache(path)
+            cache: dict = self._["_cache"]
+            if path.path in cache:
+                result = cache[path.path]
+                log(f"Getting {path.path} from cache:", result)##
+                return result
+            if meta.DEV:
+                try:
+                    result = anvil.server.call("_use", path.path)
+                    test = True
+                    log(f"Got {path.path} from local server:", result)##
+                except anvil.server.UplinkDisconnectedError as error:
+                    result = self.get(path)
+                    test = False
+                    log(f"Got {path.path} from sheet:", result)##
+                result = result, test
+            else:
+                result = self.get(path)
+            cache[path.path] = result
             return result
-
-        @property
-        def cache(self) -> Cache:
-            return self._["cache"]
 
         @property
         def owner(self) -> Use:
             return self._["owner"]
 
+        def get(self, path: Path) -> str:
+            """Returns uncached parcel text from sheet."""
+            node = document.createElement("div")
+            node.setAttribute("__path__", path.path)
+            document.head.append(node)
+            value = js.getComputedStyle(node).getPropertyValue("--__use__").strip()
+            if not value:
+                raise ValueError(f"Invalid {path}.")
+            node.remove()
+            result = js.atob(value[1:-1])
+            return result
+
     @use.transpile.use("py")
     class cls:
-        def __init__(self, owner: Use = None):
+        def __init__(self, owner: Use=None):
             self.__dict__.update(__={})
-
-            def create(path: str):
-                raw = owner(path, raw=True)
-                locals = {}
-                exec(raw, {}, locals)
-                if "main" in locals:
-                    main = locals["main"]
-                    result = main(
-                        self.owner,
-                        Base=Base,
-                        Path=Path,
-                        anvil=anvil,
-                        console=console,
-                        document=document,
-                        js=js,
-                        log=log,
-                        meta=meta,
-                        path=path,
-                        window=window,
-                    )
-                    if isinstance(result, (dict, list)):
-                        result = js.freeze(result)
-                else:
-                    result = js.freeze(locals)
-                return result
-
-            self._.update(cache=Cache(create=create), owner=owner)
+            self._.update(_cache={}, owner=owner)
 
         @property
         def _(self) -> dict:
             return self.__
 
-        def __call__(self, path: str):
-            """Returns transpiled parcel."""
-            result = self.cache(path)
-            return result
+        def __call__(self, path) -> str:
+            """Returns parcel text."""
+            cache: dict = self._["_cache"]
+            if path.path in cache:
+                return cache[path.path]
 
-        @property
-        def cache(self) -> Cache:
-            return self._["cache"]
+            messages = {}
+            raw = self.owner.text(path)
+            if isinstance(raw, tuple):
+                raw, test = raw
+                messages.update(test=test)
+
+            locals = {}
+            exec(raw, {}, locals)
+            if "main" in locals:
+
+                main = locals["main"]
+                result = main(
+                    self.owner,
+                    Base=Base,
+                    Path=Path,
+                    anvil=anvil,
+                    console=console,
+                    document=document,
+                    js=js,
+                    meta=meta,
+                    log=log,
+                    path=path,
+                    window=window,
+                    **messages,
+                )
+                if isinstance(result, (dict, list)):
+                    result = js.freeze(result)
+            else:
+                result = js.freeze(locals)
+
+            cache[path.path] = result
+            return result
 
         @property
         def owner(self) -> Use:
@@ -434,9 +400,9 @@ def main(
 
     raw = use("/ping.py", raw=True)
     ##raw = use.text(Path("/ping.py"))
-    log("raw:", raw)
+    print("raw:", raw)
 
-    ##raw = use("/ping.py", raw=True)
-    ##log("raw:", raw)
+    raw = use("/ping.py", raw=True)
+    print("raw:", raw)
 
     return use
