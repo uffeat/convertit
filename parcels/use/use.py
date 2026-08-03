@@ -326,8 +326,24 @@ def main(
                 cache[key] = value
             return value
 
+        def create(self, owner=None) -> callable:
+            """Decorated create callable"""
+            if owner:
+                self._.update(owner=owner)
+
+            def register(create: callable) -> callable:
+                self._.update(_create=create)
+                return create
+            return register
+
+
+
+
     @use.text.use("/")
     class cls:
+
+        name = 'use'
+
         def __init__(self, owner: Use = None):
             self.__dict__.update(__={})
 
@@ -358,7 +374,7 @@ def main(
                     result = get(path)
                 return result
 
-            self._.update(cache=Cache(create=create), owner=owner)
+            self._.update(cache=Cache(create=create, owner=self), owner=owner)
 
         @property
         def _(self) -> dict:
@@ -379,6 +395,9 @@ def main(
 
     @use.transpile.use("py")
     class cls:
+
+        name = "py"
+
         def __init__(self, owner: Use = None):
             self.__dict__.update(__={})
 
@@ -407,7 +426,7 @@ def main(
                     result = js.freeze(locals)
                 return result
 
-            self._.update(cache=Cache(create=create), owner=owner)
+            self._.update(cache=Cache(create=create, owner=self), owner=owner)
 
         @property
         def _(self) -> dict:
