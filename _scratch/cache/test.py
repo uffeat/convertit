@@ -13,7 +13,13 @@ foo = Cache(create=create)
 
 foo(yellow='YELLOW')
 foo('orange', 'ORANGE')
-print(foo('orange'))
+foo['purple'] = 'PURPLE'
+
+print('orange:', foo('orange'))
+
+print('red:', foo('red'))
+
+print('green:', foo['green'])
 
 
 print(foo)

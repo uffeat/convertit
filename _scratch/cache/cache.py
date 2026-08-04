@@ -1,7 +1,12 @@
 class Cache:
-    def __init__(self, cache: dict = None, create: callable = None, owner=None):
+    def __init__(self, *args, create: callable = None, owner=None):
         self.__dict__.update(__={})
-        self._.update(_cache=cache or {}, _create=create, owner=owner)
+
+        # XXX TODO flex args should incl create; do not use iter
+
+        _cache=next(iter(args), {})
+
+        self._.update(_cache=_cache, _create=create, owner=owner)
 
     @property
     def _(self) -> dict:
@@ -50,7 +55,7 @@ class Cache:
         return len(self._["_cache"])
 
     def __setitem__(self, key, value):
-        return self.set(key, value)
+        self(key, value)
 
     def __str__(self):
         return str(self._["_cache"])
