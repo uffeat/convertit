@@ -266,9 +266,9 @@ def main(
     use = Use()
 
     class Cache:
-        def __init__(self, create: callable = None, owner=None):
+        def __init__(self, cache: dict = None, create: callable = None, owner=None):
             self.__dict__.update(__={})
-            self._.update(_cache={}, _create=create, owner=owner)
+            self._.update(_cache=cache or {}, _create=create, owner=owner)
 
         @property
         def _(self) -> dict:
@@ -334,15 +334,13 @@ def main(
             def register(create: callable) -> callable:
                 self._.update(_create=create)
                 return create
+
             return register
-
-
-
 
     @use.text.use("/")
     class cls:
 
-        name = 'use'
+        name = "use"
 
         def __init__(self, owner: Use = None):
             self.__dict__.update(__={})
@@ -445,8 +443,8 @@ def main(
         def owner(self) -> Use:
             return self._["owner"]
 
-    ping = use("/ping.py")
-    print("ping:", ping())
+    ##ping = use("/ping.py")
+    ##print("ping:", ping())
 
     ##ping = use("/ping.py")
     ##print("ping:", ping())
@@ -455,7 +453,7 @@ def main(
     ##raw = use.text(Path("/ping.py"))
     log("raw:", raw)
 
-    ##raw = use("/ping.py", raw=True)
+    raw = use("/ping.py", raw=True)
     ##log("raw:", raw)
 
     return use
