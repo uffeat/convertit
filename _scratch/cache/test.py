@@ -2,6 +2,21 @@ from cache import Cache
 
 colors = dict(red="RED", green="GREEN", blue="BLUE")
 
+class Owner:
+    """."""
+    def create(self):
+        """."""
+
+    @staticmethod
+    def stat(self):
+            """."""
+
+
+owner = Owner()
+
+print('type_name:', type(owner.create).__name__)
+print('type_name:', type(owner.stat).__name__)
+
 
 def create(key):
     color = colors.get(key)
@@ -9,7 +24,10 @@ def create(key):
         return color.lower()
 
 
-foo = Cache(create=create)
+print('type_name:', type(create).__name__)
+
+
+foo = Cache(create)
 
 foo(yellow='YELLOW')
 foo('orange', 'ORANGE')

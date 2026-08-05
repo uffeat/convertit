@@ -456,4 +456,41 @@ def main(
     raw = use("/ping.py", raw=True)
     ##log("raw:", raw)
 
+    ##
+    from types import MethodType, FunctionType
+
+
+    def foo():
+        """."""
+
+
+    print('type_name:', type(foo).__name__)
+    print('Is function:', isinstance(foo, FunctionType))
+
+
+    class Owner:
+        """."""
+        def create(self):
+            """."""
+
+        @staticmethod
+        def stat(self):
+                """."""
+
+
+    owner = Owner()
+
+    print('Is method:', isinstance(owner.create, MethodType))
+
+    print('Is static:', isinstance(owner.stat, staticmethod))
+
+    print('type_name:', type(owner.create).__name__)
+    print('type_name:', type(owner.stat).__name__)
+
+
+    
+
+
+    ##
+
     return use

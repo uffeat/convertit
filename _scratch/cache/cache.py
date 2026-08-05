@@ -1,12 +1,15 @@
 class Cache:
-    def __init__(self, *args, create: callable = None, owner=None):
+    def __init__(self, *args, owner=None, **cache):
         self.__dict__.update(__={})
 
-        # XXX TODO flex args should incl create; do not use iter
+        
+        ##create =  next(iter([a for a in args if callable(a)]), None)
+        create =  next(iter([a for a in args if callable(a)]), None)
 
-        _cache=next(iter(args), {})
 
-        self._.update(_cache=_cache, _create=create, owner=owner)
+        
+
+        self._.update(_cache=cache, _create=create, owner=owner)
 
     @property
     def _(self) -> dict:
