@@ -169,7 +169,53 @@ def main(
             """Returns all file suffixes."""
             return self._.get("types", "")
 
-    class Registry:
+    class Text:
+
+        def __init__(self):
+            self.__dict__.update(__={})
+
+            def get(path: str) -> str:
+                """Returns uncached parcel text from sheet."""
+                node = document.createElement("div")
+                node.setAttribute("__path__", path)
+                document.head.append(node)
+                value = js.getComputedStyle(node).getPropertyValue("--__use__").strip()
+                if not value:
+                    raise ValueError(f"Invalid {path}.")
+                node.remove()
+                text = js.atob(value[1:-1])
+                return dict(node=node, text=text)
+            self._.update(_get=get)
+
+        @property
+        def _(self) -> dict:
+            return self.__
+
+        def __call__(self, path: str) -> dict:
+            """."""
+            get: callable = self._["_get"]
+
+            result = dict()
+
+            if meta.DEV:
+                try:
+                    text = anvil.server.call("_use", path)
+                    result.update(test=True, text=text)
+                    log(f"Got {path} from local server.", trace="create")  ##
+                except anvil.server.UplinkDisconnectedError as error:
+                    result.update(get(path))
+                    log(f"Got {path} from sheet.", trace="create")  ##
+            else:
+                result.update(get(path))
+               
+            return result
+
+    Text = Text()
+
+
+    
+
+    class Transpilers:
         def __init__(self, owner=None):
             self.__dict__.update(__={})
             self._.update(_registry={})
@@ -178,8 +224,7 @@ def main(
         def _(self) -> dict:
             return self.__
 
-        def __call__(self, key):
-            """."""
+        def __call__(self, key: str) -> callable:
             registry: dict = self._["_registry"]
             return registry.get(key)
 
@@ -188,14 +233,10 @@ def main(
             registry[key] = handler
             return handler
 
-    class Registries:
-        """."""
-
-
     class Use:
         def __init__(self):
             self.__dict__.update(__={})
-            self._.update(_cache={}, _sources=Registry(), _transpilers=Registry())
+            self._.update(_cache={}, _transpilers=Transpilers())
 
         @property
         def _(self) -> dict:
@@ -204,25 +245,22 @@ def main(
         def __call__(self, specifier: str, *args, **kwargs):
             """."""
             cache: dict = self._["_cache"]
+            transpilers: dict = self._["_transpilers"]
 
             path = Path(specifier)
-            key = str(path)  # Full path
+            key = str(path)
 
             if key in cache:
                 cached = cache[key]
             else:
-                sources: Registry = self._["_sources"]
-                source = sources(path.source)
-                if not source:
-                    raise ValueError(f"No {path.source} source registered.")
-
-                transpilers: Registry = self._["_transpilers"]
+                transpilers: Transpilers = self._["_transpilers"]
                 transpile = transpilers(path.type)
-
                 if not transpile:
                     raise TypeError(f"No transpiler for {path.type}.")
-                result: dict = source(key)
-                transpiled = transpile(self, path=key, **result)
+                result: dict = Text(key)  
+                transpiled = transpile(
+                    self, path=key, **result
+                )
                 cached = dict(value=transpiled, **result)
                 cache[key] = cached
 
@@ -231,20 +269,11 @@ def main(
                 return cached["text"]
             return cached["value"]
 
-        def source(self, *keys):
-            def register(target):
-                handler = target()
-                sources: Registry = self._["_sources"]
-                for key in keys:
-                    sources.add(key, handler)
-                return target
-
-            return register
-
         def transpiler(self, *keys):
             def register(target):
                 handler = target()
-                transpilers: Registry = self._["_transpilers"]
+                transpilers: Transpilers = self._["_transpilers"]
+
                 for key in keys:
                     transpilers.add(key, handler)
                 return target
@@ -252,44 +281,6 @@ def main(
             return register
 
     use = Use()
-
-    @use.source("/")
-    class cls:
-
-        def __init__(self):
-            self.__dict__.update(__={})
-
-        @property
-        def _(self) -> dict:
-            return self.__
-
-        def __call__(self, path: str) -> tuple:
-            """."""
-            result = dict()
-            if meta.DEV:
-                try:
-                    text = anvil.server.call("_use", path)
-                    result.update(test=True, text=text)
-                    log(f"Got {path} from local server.", trace="create")  ##
-                except anvil.server.UplinkDisconnectedError as error:
-                    result.update(self._get(path))
-                    log(f"Got {path} from sheet.", trace="create")  ##
-            else:
-                result.update(self._get(path))
-            return result
-
-        @staticmethod
-        def _get(path: str) -> str:
-            """Returns uncached parcel text from sheet."""
-            node = document.createElement("div")
-            node.setAttribute("__path__", path)
-            document.head.append(node)
-            value = js.getComputedStyle(node).getPropertyValue("--__use__").strip()
-            if not value:
-                raise ValueError(f"Invalid {path}.")
-            node.remove()
-            text = js.atob(value[1:-1])
-            return dict(node=node, text=text)
 
     @use.transpiler("py")
     class cls:
@@ -329,10 +320,6 @@ def main(
             else:
                 result = js.freeze(locals)
             return result
-
-
-
-
 
     ping = use("/ping.py")
     print("ping:", ping())
