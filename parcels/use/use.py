@@ -184,7 +184,7 @@ def main(
                     raise ValueError(f"Invalid {path}.")
                 node.remove()
                 text = js.atob(value[1:-1])
-                return text, node
+                return dict(node=node, text=text)
 
             self._.update(_get=get)
 
@@ -196,20 +196,20 @@ def main(
             """."""
             get: callable = self._["_get"]
 
+            result = dict()
+
             if meta.DEV:
                 try:
                     text = anvil.server.call("_use", path)
-                    test = True
-                    node = None
+                    result.update(test=True, text=text)
                     log(f"Got {path} from local server.", trace="create")  ##
                 except anvil.server.UplinkDisconnectedError as error:
-                    text, node = get(path)
-                    test = False
+                    result.update(get(path))
                     log(f"Got {path} from sheet.", trace="create")  ##
             else:
-                text, node = get(path)
-                test = False
-            return text, node, test
+                result.update(get(path))
+               
+            return result
 
     Text = Text()
 
@@ -247,7 +247,6 @@ def main(
             transpilers: dict = self._["_transpilers"]
 
             path = Path(specifier)
-
             key = str(path)
 
             if key in cache:
@@ -256,17 +255,17 @@ def main(
                 transpilers: Transpilers = self._["_transpilers"]
                 transpile = transpilers(path.type)
                 if not transpile:
-                    raise TypeError(f"No transpiler for {path.type}")
-                text, node, test = Text(key)
+                    raise TypeError(f"No transpiler for {path.type}.")
+                result: dict = Text(key)  
                 transpiled = transpile(
-                    self, node=node, path=key, text=text, test=test
+                    self, path=key, **result
                 )
-                cached = dict(node=node, test=test, raw=text, value=transpiled)
+                cached = dict(value=transpiled, **result)
                 cache[key] = cached
 
             raw = kwargs.pop("raw", False)
             if raw:
-                return cached["raw"]
+                return cached["text"]
             return cached["value"]
 
         def transpiler(self, *keys):
@@ -324,8 +323,8 @@ def main(
     ping = use("/ping.py")
     print("ping:", ping())
 
-    ##ping = use("/ping.py")
-    ##print("ping:", ping())
+    ping = use("/ping.py")
+    print("ping:", ping())
 
     raw = use("/ping.py", raw=True)
     log("raw:", raw)
