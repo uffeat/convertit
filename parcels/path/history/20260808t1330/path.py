@@ -1,4 +1,4 @@
-def main(use, **_):
+def main(use, **kwargs):
     """."""
 
     Base = use("/base/base.py")
@@ -6,50 +6,53 @@ def main(use, **_):
     DASH = "/"
     DOT = "."
 
-    class PathType(Base):
+    class Path(Base):
         def __init__(self, specifier: str):
             Base.__init__(self)
-            self._.update(
-                detail={},
-                specifier=specifier,
-            )
-            source, _, _path = specifier.partition(DASH)
-            path = f"{DASH}{_path}"
-            _parents, _, name = specifier.rpartition(DASH)
-            parents = _parents.split(DASH)
-            parents.pop(0)
-            if DOT in name:
-                # Handle file
-                stem, _, types = name.partition(DOT)
-                shapes, _, type_ = types.rpartition(DOT)
-                self._.update(
-                    file=True,
-                    shapes=shapes,
-                    type=type_,
-                    types=types,
-                )
+            self(specifier)
+
+        def __call__(self, specifier: str = None) -> "Path":
+            """Parses specifier."""
+            if isinstance(specifier, Path):
+                self._.update(specifier._)
             else:
-                stem = name
-            self._.update(
-                full=source + path,
-                name=name,
-                parents=tuple(parents),
-                parts=tuple([*parents, stem]),
-                path=path,
-                # Ensure that no source is interpreted as '/'
-                source=source or DASH,
-                stem=stem,
-            )
+                self._.update(
+                    detail={},
+                    specifier=specifier,
+                )
+                source, _, _path = specifier.partition(DASH)
+                path = f"{DASH}{_path}"
+                _parents, _, name = specifier.rpartition(DASH)
+                parents = _parents.split(DASH)
+                parents.pop(0)
+                if DOT in name:
+                    # Handle file
+                    stem, _, types = name.partition(DOT)
+                    shapes, _, type_ = types.rpartition(DOT)
+                    self._.update(
+                        file=True,
+                        shapes=shapes,
+                        type=type_,
+                        types=types,
+                    )
+                else:
+                    stem = name
+                self._.update(
+                    full=source + path,
+                    name=name,
+                    parents=tuple(parents),
+                    parts=tuple([*parents, stem]),
+                    path=path,
+                    # Ensure that no source is interpreted as '/'
+                    source=source or DASH,
+                    stem=stem,
+                )
 
-            # NOTE Currently, 'full' is identical to 'specifier'. However, keep explicit
-            # construction of 'full', since later versions may introduce special specifier features.
+                # NOTE Currently, 'full' is identical to 'specifier'. However, keep explicit
+                # construction of 'full', since later versions may introduce special specifier features.
 
-        
+            return self
 
-        @property
-        def _(self) -> dict:
-            return self.__
-        
         def __contains__(self, part: str) -> bool:
             """Tests membership with respect to parts."""
             return part in self.parts
@@ -85,7 +88,7 @@ def main(use, **_):
             return str(self._)
 
         def __str__(self) -> str:
-            return self.full
+            return self.path
 
         @property
         def detail(self) -> dict:
@@ -150,11 +153,5 @@ def main(use, **_):
         def types(self) -> str:
             """Returns all file suffixes."""
             return self._.get("types", "")
-
-    def Path(arg) -> PathType:
-        """."""
-        if isinstance(arg, PathType):
-            return arg
-        return PathType(arg)
 
     return Path
