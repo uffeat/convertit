@@ -45,6 +45,8 @@ def main(
             registry[key] = container
             return handler
 
+
+
     class Use(Base):
         def __init__(self):
             Base.__init__(
@@ -125,6 +127,19 @@ def main(
             text = js.atob(value[1:-1])
             return dict(node=node, text=text)
 
+    class Export(Base):
+        def __init__(self, result: dict, owner=None):
+            Base.__init__(self, _result=result, owner=owner)
+
+        def __call__(self, *args, **kwargs):
+            """."""
+            _result: dict = self._["_result"]
+            for member in args:
+                _result[member.__name__] = member
+            _result.update(kwargs)
+
+
+
     @use.transpilers("py")
     class cls(Base):
 
@@ -140,14 +155,9 @@ def main(
             main = locals.get("main")
             if main:
 
-                exported = {}
+                result = {}  ##
 
-                def export(*args, **kwargs):
-                    for member in args:
-                        exported[member.__name__] = member
-                    exported.update(kwargs)
-
-                returned = main(
+                _result = main(
                     use,
                     anvil=anvil,
                     console=console,
@@ -159,21 +169,20 @@ def main(
                     path=path,
                     test=test,
                     window=window,
-                    export=export,
+                    export=Export(result),  ##
                 )
 
-                if isinstance(returned, dict):
-                    exported.update(returned)
+                if isinstance(_result, dict):
+                    result.update(_result)
 
-                if exported:
-                    if len(exported) == 1:
-                        result = list(exported.values())[0]
-                    else:
-                        result = js.freeze(exported)
-                else:
-                    result = returned
+                
+                if result:
+                    if len(result) == 1:
+                        return list(result.values())[0]
+                    return js.freeze(result)
+                return _result
 
-                return result
+                
 
             else:
                 result = js.freeze(locals)
@@ -193,6 +202,6 @@ def main(
     ##log("raw:", raw)
 
     use("/foo/foo.py").foo()
-    print("foo:", use("/foo/foo.py").Foo().foo)
+    print("foo:",  use("/foo/foo.py").Foo().foo)
 
     return use

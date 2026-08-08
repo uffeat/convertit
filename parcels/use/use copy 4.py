@@ -45,6 +45,9 @@ def main(
             registry[key] = container
             return handler
 
+    class Registries:
+        """."""
+
     class Use(Base):
         def __init__(self):
             Base.__init__(
@@ -125,6 +128,24 @@ def main(
             text = js.atob(value[1:-1])
             return dict(node=node, text=text)
 
+    class Export(Base):
+        def __init__(self, members: dict, owner=None):
+            Base.__init__(self, _members=members, owner=owner)
+
+        def __call__(self, *args, **kwargs):
+            """."""
+            members: dict = self._["_members"]
+            if len(args) == 1:
+                # Used as decorator
+                member = args[0]
+               
+                members[member.__name__] = member
+                
+            else:
+                for member in args:
+                    members[member.__name__] = member
+                members.update(kwargs)
+
     @use.transpilers("py")
     class cls(Base):
 
@@ -140,14 +161,9 @@ def main(
             main = locals.get("main")
             if main:
 
-                exported = {}
+                members = {}  ##
 
-                def export(*args, **kwargs):
-                    for member in args:
-                        exported[member.__name__] = member
-                    exported.update(kwargs)
-
-                returned = main(
+                result = main(
                     use,
                     anvil=anvil,
                     console=console,
@@ -159,21 +175,17 @@ def main(
                     path=path,
                     test=test,
                     window=window,
-                    export=export,
+                    export=Export(members),  ##
                 )
 
-                if isinstance(returned, dict):
-                    exported.update(returned)
+                print("members:", members)  ##
+                if members:
+                    if len(members) == 1:
+                        return list(members.values())[0]
+                    return js.freeze(members)
 
-                if exported:
-                    if len(exported) == 1:
-                        result = list(exported.values())[0]
-                    else:
-                        result = js.freeze(exported)
-                else:
-                    result = returned
-
-                return result
+                if isinstance(result, (dict, list)):
+                    result = js.freeze(result)
 
             else:
                 result = js.freeze(locals)
@@ -191,8 +203,5 @@ def main(
 
     raw = use("/ping.py", raw=True)
     ##log("raw:", raw)
-
-    use("/foo/foo.py").foo()
-    print("foo:", use("/foo/foo.py").Foo().foo)
 
     return use

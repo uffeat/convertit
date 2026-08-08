@@ -1,18 +1,14 @@
 def main(use, **_):
     """."""
 
-    Base = use("/base/base.py")
+    Base = use("/tools/base.py")
 
     DASH = "/"
     DOT = "."
 
     class PathType(Base):
         def __init__(self, specifier: str):
-            Base.__init__(self)
-            self._.update(
-                detail={},
-                specifier=specifier,
-            )
+            Base.__init__(self, detail={}, specifier=specifier)
             source, _, _path = specifier.partition(DASH)
             path = f"{DASH}{_path}"
             _parents, _, name = specifier.rpartition(DASH)
@@ -44,12 +40,10 @@ def main(use, **_):
             # NOTE Currently, 'full' is identical to 'specifier'. However, keep explicit
             # construction of 'full', since later versions may introduce special specifier features.
 
-        
-
         @property
         def _(self) -> dict:
             return self.__
-        
+
         def __contains__(self, part: str) -> bool:
             """Tests membership with respect to parts."""
             return part in self.parts

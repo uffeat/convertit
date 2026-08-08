@@ -45,6 +45,8 @@ def main(
             registry[key] = container
             return handler
 
+
+
     class Use(Base):
         def __init__(self):
             Base.__init__(
@@ -125,6 +127,10 @@ def main(
             text = js.atob(value[1:-1])
             return dict(node=node, text=text)
 
+   
+
+
+
     @use.transpilers("py")
     class cls(Base):
 
@@ -147,6 +153,9 @@ def main(
                         exported[member.__name__] = member
                     exported.update(kwargs)
 
+
+
+
                 returned = main(
                     use,
                     anvil=anvil,
@@ -159,12 +168,13 @@ def main(
                     path=path,
                     test=test,
                     window=window,
-                    export=export,
+                    export=export,  ##
                 )
 
                 if isinstance(returned, dict):
                     exported.update(returned)
 
+                
                 if exported:
                     if len(exported) == 1:
                         result = list(exported.values())[0]
@@ -172,8 +182,15 @@ def main(
                         result = js.freeze(exported)
                 else:
                     result = returned
+                        
+                        
 
+
+
+                       
                 return result
+
+                
 
             else:
                 result = js.freeze(locals)
@@ -193,6 +210,6 @@ def main(
     ##log("raw:", raw)
 
     use("/foo/foo.py").foo()
-    print("foo:", use("/foo/foo.py").Foo().foo)
+    print("foo:",  use("/foo/foo.py").Foo().foo)
 
     return use
