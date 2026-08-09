@@ -1,4 +1,4 @@
-def main(use: callable, export=None, **kwargs) -> dict:
+def main(use: callable, **kwargs) -> dict:
     """."""
     Base = use("/tools/base.py")
 
@@ -14,5 +14,6 @@ def main(use: callable, export=None, **kwargs) -> dict:
     def foo():
         print('foo')
 
-    export(Foo, foo=foo)
-    ##return dict(Foo=Foo, foo=foo)
+    
+    return Foo, foo
+    return dict(Foo=Foo, foo=foo)

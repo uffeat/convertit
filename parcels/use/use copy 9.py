@@ -22,6 +22,7 @@ def main(
             """."""
 
             def register(handler):
+
                 return self.add(key, handler)
 
             return register
@@ -50,15 +51,8 @@ def main(
                 self,
                 _cache={},
                 _public=dict(
-                    anvil=anvil,
-                    console=console,
-                    document=document,
-                    js=js,
-                    log=log,
-                    meta=meta,
                     sources=Registry(owner=self),
                     transpilers=Registry(owner=self),
-                    window=window,
                 ),
             )
 
@@ -72,39 +66,30 @@ def main(
             if key in _cache:
                 parcel = _cache[key]
             else:
-                # Build parcel
                 source = self.sources[path.source]
                 if not source:
                     raise ValueError(f"No {path.source} source registered.")
-                parcel: dict = source(key)
+                result: dict = source(key)
+
                 transpile = self.transpilers[path.type]
                 if transpile:
-                    value = transpile(self, path=key, **parcel)
-                    parcel.update(value=value)
+                    value = transpile(self, path=key, **result)
+                    parcel = dict(value=value, **result)
+                    _cache[key] = parcel
+                    
                 else:
-                    value = parcel.pop("text")
-                    parcel.update(value=value)
-                _cache[key] = parcel
+                    parcel = dict(**result)
 
-            # Deliver from parcel
-            ##key = kwargs.get('shape', 'value')
+                
 
-            return parcel.get('text' if kwargs.get('text') is True else 'value')
+            if kwargs.pop("raw", False):
+                return parcel["text"]
 
+            value = parcel.get('value')
+            if value is None:
+                return parcel["text"]
 
-
-
-            if kwargs.pop("text", False):
-                if 'text' in parcel:
-                    return parcel['text']
-            else:
-                return parcel['value']
-
-
-
-            
-
-            
+            return value
 
         def __getattr__(self, key):
             """."""
@@ -119,36 +104,33 @@ def main(
         def __init__(self, owner=None):
             Base.__init__(self, owner=owner)
 
-        def __call__(self, path: str) -> dict:
+        def __call__(self, path: str) -> tuple:
             """."""
-            if self.owner.meta.DEV:
+            result = dict()
+            if meta.DEV:
                 try:
-                    text = self.owner.anvil.server.call("_use", path)
-                    parcel = dict(test=True, text=text)
-                    print(f"Got {path} from local server.")  ##
-                except self.owner.anvil.server.UplinkDisconnectedError as error:
-                    parcel = self._get(path)
-                    print(f"Got {path} from sheet.")  ##
+                    text = anvil.server.call("_use", path)
+                    result.update(test=True, text=text)
+                    log(f"Got {path} from local server.", trace="create")  ##
+                except anvil.server.UplinkDisconnectedError as error:
+                    result.update(self._get(path))
+                    log(f"Got {path} from sheet.", trace="create")  ##
             else:
-                parcel = self._get(path)
-            return parcel
+                result.update(self._get(path))
+            return result
 
-        def _get(self, path: str) -> dict:
-            """Returns uncached parcel from sheet."""
-            node = self.owner.document.createElement("div")
+        @staticmethod
+        def _get(path: str) -> str:
+            """Returns uncached parcel text from sheet."""
+            node = document.createElement("div")
             node.setAttribute("__path__", path)
-            self.owner.document.head.append(node)
-            value = (
-                self.owner.js.getComputedStyle(node)
-                .getPropertyValue("--__use__")
-                .strip()
-            )
+            document.head.append(node)
+            value = js.getComputedStyle(node).getPropertyValue("--__use__").strip()
             if not value:
                 raise ValueError(f"Invalid {path}.")
             node.remove()
-            text = self.owner.js.atob(value[1:-1])
-            parcel = dict(node=node, text=text)
-            return parcel
+            text = js.atob(value[1:-1])
+            return dict(node=node, text=text)
 
     @use.transpilers("py")
     class cls(Base):
@@ -166,9 +148,11 @@ def main(
             if main:
 
                 def log(*args):
+                    """."""
                     if meta.DEV:
                         args = [*args, f"({path})"]
                         print(*args)
+                    
 
                 result = main(
                     use,
@@ -189,6 +173,7 @@ def main(
 
                 if isinstance(result, (dict, list)):
                     result = js.freeze(result)
+                
 
                 return result
 
@@ -203,10 +188,10 @@ def main(
     ping = use("/ping.py")
     print("ping:", ping())
 
-    raw = use("/ping.py", text=True)
+    raw = use("/ping.py", raw=True)
     log("raw:", raw)
 
-    raw = use("/ping.py", text=True)
+    raw = use("/ping.py", raw=True)
     ##log("raw:", raw)
 
     use("/foo/foo.py").foo()
