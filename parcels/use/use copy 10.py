@@ -1,24 +1,18 @@
 def main(
     use: callable,
-    Base=None,
-    Log=None,
-    Path=None,
     anvil=None,
     console=None,
     document=None,
     js=None,
     log=None,
     meta=None,
-    path: str = None,
     window=None,
     **kwargs,
 ) -> callable:
     """."""
-   
-
-
-    log = Log(path=path)
-    
+    Base = use("/tools/base.py")
+    instantiate = use("/tools/instantiate.py")
+    Path = use("/path/path.py")
 
     class Registry(Base):
         def __init__(self, owner=None):
@@ -60,6 +54,7 @@ def main(
                     console=console,
                     document=document,
                     js=js,
+                    log=log,
                     meta=meta,
                     sources=Registry(owner=self),
                     transpilers=Registry(owner=self),
@@ -74,27 +69,43 @@ def main(
             path = Path(specifier)
             key = str(path)  # Full path
 
-            # Get parcel
             if key in _cache:
                 parcel = _cache[key]
             else:
                 # Build parcel
                 source = self.sources[path.source]
-                if source:
-                    parcel: dict = source(path=key)
-                    transpile = self.transpilers[path.type]
-                    if transpile:
-                        value = transpile(path=key, **parcel)
-                        parcel.update(value=value)
-                    else:
-                        value = parcel.pop("text")
-                        parcel.update(value=value)
-                    _cache[key] = parcel
+                if not source:
+                    raise ValueError(f"No {path.source} source registered.")
+                parcel: dict = source(key)
+                transpile = self.transpilers[path.type]
+                if transpile:
+                    value = transpile(self, path=key, **parcel)
+                    parcel.update(value=value)
+                else:
+                    value = parcel.pop("text")
+                    parcel.update(value=value)
+                _cache[key] = parcel
 
             # Deliver from parcel
-            key = next(iter([k for k, v in kwargs.items() if v is True]), "value")
-            log("key:", key)  ##
-            return parcel.get(key)
+            ##key = kwargs.get('shape', 'value')
+
+            return parcel.get(next(iter([k for k, v in kwargs.items() if v is True]), "value"))
+            return parcel.get('text' if kwargs.get('text') is True else 'value')
+
+
+
+
+            if kwargs.pop("text", False):
+                if 'text' in parcel:
+                    return parcel['text']
+            else:
+                return parcel['value']
+
+
+
+            
+
+            
 
         def __getattr__(self, key):
             """."""
@@ -109,16 +120,16 @@ def main(
         def __init__(self, owner=None):
             Base.__init__(self, owner=owner)
 
-        def __call__(self, path: str=None) -> dict:
+        def __call__(self, path: str) -> dict:
             """."""
             if self.owner.meta.DEV:
                 try:
                     text = self.owner.anvil.server.call("_use", path)
                     parcel = dict(test=True, text=text)
-                    log(f"Got {path} from local server.")  ##
+                    print(f"Got {path} from local server.")  ##
                 except self.owner.anvil.server.UplinkDisconnectedError as error:
                     parcel = self._get(path)
-                    log(f"Got {path} from sheet.")  ##
+                    print(f"Got {path} from sheet.")  ##
             else:
                 parcel = self._get(path)
             return parcel
@@ -147,7 +158,7 @@ def main(
             Base.__init__(self, owner=owner)
 
         def __call__(
-            self, node=None, path: str = None, text: str = None, test: bool = None
+            self, use, node=None, path: str = None, text: str = None, test: bool = None
         ):
             """Returns transpiled parcel."""
             locals = {}
@@ -155,32 +166,35 @@ def main(
             main = locals.get("main")
             if main:
 
-                log = Log(path=path)
+                def log(*args):
+                    if meta.DEV:
+                        args = [*args, f"({path})"]
+                        print(*args)
 
                 result = main(
-                    self.owner,
-                    anvil=self.owner.anvil,
-                    console=self.owner.console,
-                    document=self.owner.document,
-                    js=self.owner.js,
+                    use,
+                    anvil=anvil,
+                    console=console,
+                    document=document,
+                    js=js,
                     log=log,
-                    meta=self.owner.meta,
+                    meta=meta,
                     node=node,
                     path=path,
                     test=test,
-                    window=self.owner.window,
+                    window=window,
                 )
 
                 if isinstance(result, tuple):
                     result = {a.__name__: a for a in result}
 
                 if isinstance(result, (dict, list)):
-                    result = self.owner.js.freeze(result)
+                    result = js.freeze(result)
 
                 return result
 
             else:
-                result = self.owner.js.freeze(locals)
+                result = js.freeze(locals)
 
             return result
 
@@ -196,7 +210,7 @@ def main(
     raw = use("/ping.py", text=True)
     ##log("raw:", raw)
 
-    ##use("/foo/foo.py").foo()
-    ##print("foo:", use("/foo/foo.py").Foo().foo)
+    use("/foo/foo.py").foo()
+    print("foo:", use("/foo/foo.py").Foo().foo)
 
     return use
