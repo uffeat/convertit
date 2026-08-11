@@ -5,7 +5,7 @@ from anvil import BlobMedia
 from anvil.tables import app_tables
 from tools import Base, Blob, file, minify, server
 
-SOURCE = Path.cwd() / "parcels"
+SOURCE = Path.cwd() / "use"
 UTF_8 = "utf-8"
 
 

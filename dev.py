@@ -4,8 +4,8 @@ from access import access
 from bundle import bundle
 from log import log
 from sheet import sheet
-from test import test
-from use import use
+from _test import test
+from _use import use
 
 sources = [
     access,
