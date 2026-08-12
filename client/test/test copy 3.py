@@ -29,16 +29,15 @@ def main(
             if value:
                 _registry: dict = self._["_registry"]
                 _registry[key] = dict(value=value)
-                return value
-           
+            else:
 
-            def register(value: type):
-                # XXX Must get _registry in function scope!
-                _registry: dict = self._["_registry"]
-                _registry[key] = dict(value=value)
-                return value
+                def register(value: type):
+                    # XXX Must get _registry in function scope!
+                    _registry: dict = self._["_registry"]
+                    _registry[key] = dict(value=value)
+                    return value
 
-            return register
+                return register
 
         def __getitem__(self, key):
             """Returns registree instance."""
@@ -123,8 +122,6 @@ def main(
 
     use = Use()
 
-    ##
-    ## XXX Purge
     @use.source("tools")
     class cls(Base):
         def __init__(self, **kwargs):
@@ -150,17 +147,12 @@ def main(
             if value is not None:
                 parcel["value"] = value
 
-    print('tools:', use.source['tools'])
-    print('Log:', use("tools/log.py"))
-    ##
-    ##
 
 
 
 
-
-    
-    class UseSource(Base):
+    @use.source("use")
+    class cls(Base):
         def __init__(self, **kwargs):
             Base.__init__(self, transpiler=Registry(), **kwargs)
 
@@ -174,13 +166,6 @@ def main(
                     text = self._get_text(path.path)
             else:
                 text = self._get_text(path.path)
-
-
-            transpile = self.transpiler[path.type]
-            if transpile:
-                value = transpile(text=text, path=path)
-
-            
 
             parcel['text'] = text
 
@@ -207,14 +192,8 @@ def main(
             text = use.js.atob(value[1:-1])
             return text
 
-
-    
-
-   
-
-    use_source = use.source("use", UseSource())
-
-    
+    print('tools:', use.source['tools'])
+    print('Log:', use("tools/log.py"))
 
 
     print('text:', use("use/ping.py", key='text'))
