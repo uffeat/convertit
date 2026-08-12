@@ -15,48 +15,13 @@ def main(
 ):
     """."""
 
-    class Sources(Base):
-        def __init__(self, owner=None):
-            Base.__init__(
-                self,
-                owner=owner,
-                _registry={},
-            )
-
-        def __call__(self, key, value=None):
-            """."""
-            # NOTE Register mutable to allow lazy instantiation
-            if value:
-                _registry: dict = self._["_registry"]
-                _registry[key] = dict(value=value)
-            else:
-
-                def register(value: type):
-                    # XXX Must get _registry in function scope!
-                    _registry: dict = self._["_registry"]
-                    _registry[key] = dict(value=value)
-                    return value
-
-                return register
-
-        def __getitem__(self, key):
-            """Returns source instance."""
-            _registry: dict = self._["_registry"]
-            source = _registry.get(key)
-            if source:
-                value = source["value"]
-                if isinstance(value, type):
-                    value = value(key=key, owner=self.owner)
-                    source["value"] = value
-                return value
-
     class Use(Base):
         def __init__(self):
 
             Base.__init__(
                 self,
                 _cache={},
-                sources=Sources(owner=self)
+                _sources={},
             )
 
         def __call__(self, specifier: str, *args, key="value", **kwargs):
@@ -70,11 +35,15 @@ def main(
                 parcel = _cache[path.full]
             else:
                 # Build parcel
+                _sources: dict = self._["_sources"]
                 parcel = dict(path=path.path)
-                source = self.source[path.source]
+                source = _sources.get(path.source)
                 if source:
-                   
-                    source(parcel)
+                    value = source["value"]
+                    if isinstance(value, type):
+                        value = value(key=path.source, owner=self)
+                        source["value"] = value
+                    value(parcel)
                     _cache[path.full] = parcel
             # Return parcel value
             return parcel.get(key)
@@ -112,14 +81,24 @@ def main(
             return meta
 
         @property
-        def source(self) -> Sources:
-            return self._["sources"]
-
-        @property
         def window(self):
             return window
 
-        
+        def source(self, key, value=None):
+            """."""
+            # NOTE Register mutable to allow lazy instantiation
+            if value:
+                _sources: dict = self._["_sources"]
+                _sources[key] = dict(value=value)
+            else:
+
+                def register(value: type):
+                    # XXX Get _sources in function scope!
+                    _sources: dict = self._["_sources"]
+                    _sources[key] = dict(key=key, value=value)
+                    return value
+
+                return register
 
     use = Use()
 
@@ -149,6 +128,18 @@ def main(
                 parcel["value"] = value
 
 
+    class UseSource(Base):
+        def __init__(self):
+        
+            Base.__init__(
+                self,
+                _cache={},
+                _sources={},
+            )
+
+
+
+
     @use.source("use")
     class cls(Base):
         def __init__(self, **kwargs):
@@ -157,5 +148,6 @@ def main(
         def __call__(self, parcel: dict):
             """."""
 
-    print('tools:', use.source['tools'])
+   
+
     print('Log:', use("tools/log.py"))
