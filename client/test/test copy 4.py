@@ -23,21 +23,11 @@ def main(
                 _registry={},
             )
 
-        def __call__(self, key, *args, **kwargs):
+        def __call__(self, key, value=None):
             """Registers callable."""
             # NOTE Register mutable to allow lazy instantiation
-            value = args[0] if args else None
-
             if value:
                 _registry: dict = self._["_registry"]
-
-                if isinstance(value, type):
-                    value = value(key=key, owner=self.owner)
-                
-
-
-
-
                 _registry[key] = dict(value=value)
                 return value
 
@@ -158,21 +148,19 @@ def main(
     ##
 
     class UseSource(Base):
-        def __init__(self, key=None, **kwargs):
-            Base.__init__(self, key=key, transpiler=Registry(), **kwargs)
+        def __init__(self, **kwargs):
+            Base.__init__(self, transpiler=Registry(), **kwargs)
 
         def __call__(self, parcel: dict, path=None):
             """."""
-            print("key:", self.key)##
-
 
             if use.meta.DEV:
                 try:
                     text = use.anvil.server.call("_use", path.path)
                 except use.anvil.server.UplinkDisconnectedError as error:
-                    text = self._get_text(path)
+                    text = self._get_text(path.path)
             else:
-                text = self._get_text(path)
+                text = self._get_text(path.path)
 
             transpile = self.transpiler[path.type]
             if transpile:
@@ -181,25 +169,21 @@ def main(
             parcel["text"] = text
 
         @property
-        def key(self):
-            return self._.get('key')
-
-        @property
         def transpiler(self) -> Registry:
             return self._["transpiler"]
 
-        def _get_text(self, path) -> str:
+        def _get_text(self, path: str) -> str:
             """Returns uncached text from sheet."""
             node = use.document.createElement("div")
-            node.setAttribute("__path__", path.path)
+            node.setAttribute("__path__", path)
             use.document.head.append(node)
             value = use.js.getComputedStyle(node).getPropertyValue("--__use__").strip()
             if not value:
-                raise ValueError(f"Invalid {path.path}.")
+                raise ValueError(f"Invalid {path}.")
             node.remove()
             text = use.js.atob(value[1:-1])
             return text
 
-    use_source = use.source("use", UseSource)
+    use_source = use.source("use", UseSource())
 
     print("text:", use("use/ping.py", key="text"))
