@@ -27,24 +27,14 @@ def main(
             """Registers callable."""
             # NOTE Register mutable to allow lazy instantiation
             value = args[0] if args else None
-
             if value:
-                _registry: dict = self._["_registry"]
-
                 if isinstance(value, type):
                     value = value(key=key, owner=self.owner)
-                
-
-
-
-
-                _registry[key] = dict(value=value)
+                self._registry[key] = dict(value=value)
                 return value
 
             def register(value: type):
-                # XXX Must get _registry in function scope!
-                _registry: dict = self._["_registry"]
-                _registry[key] = dict(value=value)
+                self._registry[key] = dict(value=value)
                 return value
 
             return register
@@ -61,114 +51,58 @@ def main(
                 return value
 
     class Use(Base):
-        def __init__(self):
-            Base.__init__(self, _cache={}, source=Registry(owner=self))
+        def __init__(self, **kwargs):
+            Base.__init__(self, _cache={}, **kwargs)
+            self._.update(source=self.Registry(owner=self),)
 
         def __call__(self, specifier: str, *args, key="value", **kwargs):
             """."""
-            _cache: dict = self._["_cache"]
             path = Path(specifier)
-
             # Get parcel
-            if path.full in _cache:
+            if path.full in self._cache:
                 # Retrieve parcel
-                parcel = _cache[path.full]
+                parcel = self._cache[path.full]
             else:
                 # Build parcel
-                parcel = dict(path=path.path)
+                
                 source = self.source[path.source]
                 if source:
-                    source(parcel, path=path)
-                    _cache[path.full] = parcel
+                    parcel = source(path)
+                    self._cache[path.full] = parcel
+                else:
+                    log(f"Invalid source: {path.source}", native='error')
+                    parcel = dict()
             # Return parcel value
             return parcel.get(key)
 
-        @property
-        def Base(self):
-            return Base
+    use = Use(
+        Base=Base,
+        Path=Path,
+        Log=Log,
+        Registry=Registry,
+        anvil=anvil,
+        console=console,
+        document=document,
+        js=js,
+        meta=meta,
+        window=window,
+    )
 
-        @property
-        def Log(self):
-            return Log
+    
 
-        @property
-        def Path(self):
-            return Path
-
-        @property
-        def anvil(self):
-            return anvil
-
-        @property
-        def console(self):
-            return console
-
-        @property
-        def document(self):
-            return document
-
-        @property
-        def js(self):
-            return js
-
-        @property
-        def meta(self):
-            return meta
-
-        @property
-        def source(self) -> Registry:
-            return self._["source"]
-
-        @property
-        def window(self):
-            return window
-
-    use = Use()
-
-    ##
-    ## XXX Purge
-    @use.source("tools")
-    class cls(Base):
+    @use.source("use")
+    class UseSource(use.Base):
         def __init__(self, **kwargs):
-            Base.__init__(
-                self,
-                _members={
-                    "/base.py": Base,
-                    "/log.py": Log,
-                    "/path.py": Path,
-                    "/anvil.py": anvil,
-                    "/console.py": console,
-                    "/document.py": document,
-                    "/js.py": js,
-                    "/window.py": window,
-                },
-                **kwargs,
-            )
+            use.Base.__init__(self, transpiler=use.Registry(), **kwargs)
 
-        def __call__(self, parcel: dict, path=None):
+        def __call__(self, path)-> dict:
             """."""
-            _members: dict = self._["_members"]
-            value = _members.get(path.path)
-            if value is not None:
-                parcel["value"] = value
-
-    print("tools:", use.source["tools"])##
-    print("Log:", use("tools/log.py"))##
-    ##
-    ##
-
-    class UseSource(Base):
-        def __init__(self, key=None, **kwargs):
-            Base.__init__(self, key=key, transpiler=Registry(), **kwargs)
-
-        def __call__(self, parcel: dict, path=None):
-            """."""
-            print("key:", self.key)##
-
+            ##log("key:", self.key)##
+            parcel = dict()
 
             if use.meta.DEV:
                 try:
-                    text = use.anvil.server.call("_use", path.path)
+                    text = use.anvil.server.call(f"_{self.key}", path.full)
                 except use.anvil.server.UplinkDisconnectedError as error:
                     text = self._get_text(path)
             else:
@@ -176,30 +110,63 @@ def main(
 
             transpile = self.transpiler[path.type]
             if transpile:
-                value = transpile(text=text, path=path)
+                value = transpile(path=path, text=text)
+                if value is not None:
+                    parcel.update(value=value)
 
-            parcel["text"] = text
 
-        @property
-        def key(self):
-            return self._.get('key')
 
-        @property
-        def transpiler(self) -> Registry:
-            return self._["transpiler"]
+            parcel.update(text=text)
+            
+            return parcel
+
+        
 
         def _get_text(self, path) -> str:
             """Returns uncached text from sheet."""
             node = use.document.createElement("div")
             node.setAttribute("__path__", path.path)
             use.document.head.append(node)
-            value = use.js.getComputedStyle(node).getPropertyValue("--__use__").strip()
+            value = (
+                use.js.getComputedStyle(node)
+                .getPropertyValue(f"--__{self.key}__")
+                .strip()
+            )
             if not value:
-                raise ValueError(f"Invalid {path.path}.")
+                raise ValueError(f"Invalid {path.full}.")
             node.remove()
             text = use.js.atob(value[1:-1])
             return text
 
-    use_source = use.source("use", UseSource)
+    use_source = use.source["use"]
 
-    print("text:", use("use/ping.py", key="text"))
+    ##use_source = use.source("use", UseSource)
+    log("use_source:", use_source)
+
+    
+
+
+    @use_source.transpiler("py")
+    class Transpiler(use.Base):
+        def __init__(self, **kwargs):
+            use.Base.__init__(self, **kwargs)
+
+        def __call__(self, path=None, test=False, text=None):
+            """."""
+            locals = {}
+            exec(text, {}, locals)
+            main = locals["main"]
+            value = main(
+                use,
+                log=Log(path=path.full),
+                path=path.full,
+                test=test
+                
+            )
+            return value
+
+
+
+    log("text:", use("use/ping.py", key="text"))
+
+    use("bad/ping.py")

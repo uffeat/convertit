@@ -1,9 +1,7 @@
 from tools import file, server
 
 
-def use(path: str) -> str:
-    """Returns parcel code from local disc."""
-    return file(f"use{path}")
+
 
 
 if __name__ == "__main__":
@@ -12,4 +10,6 @@ if __name__ == "__main__":
         @server.function
         def _use(path: str) -> str:
             print("path:", path)  ##
-            return use(path)
+            return file(path)
+
+            
