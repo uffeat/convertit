@@ -63,29 +63,24 @@ def main(
             # Update state
             self._.update(node=node, source=self.Registry(owner=self))
 
-        def __call__(self, specifier: str, *args, **kwargs):
-            """Returns result from import engine."""
+        def __call__(self, specifier: str, *args, key="value", **kwargs):
+            """Returns parcel member."""
             path = Path(specifier)
-            # Get result
+            # Get parcel
             if path.full in self._cache:
-                # Retrieve result
-                result = self._cache[path.full]
+                # Retrieve parcel
+                parcel: dict = self._cache[path.full]
             else:
-                # Build result
+                # Build parcel
                 source = self.source[path.source]
                 if not source:
                     raise ValueError(f"Invalid source: {path.source}.")
-                result = source(path)
-                self._cache[path.full] = result
-
-            if callable(result):
-                return result(*args, **kwargs)
-
-            if isinstance(result, dict):
-
-            
-                member = result.get(kwargs.get('key', 'value'))
-                return member
+                parcel: dict = source(path)
+                self._cache[path.full] = parcel
+            # Set 'text' as fallback
+            key = key if key in parcel else "text"
+            member = parcel.get(key)
+            return member
 
     use = Use(
         Base=Base,
@@ -128,13 +123,9 @@ def main(
             transpile = self.transpiler[path.type]
             if transpile:
                 value = transpile(path=path, text=text, **message)
-                if value is None:
-                    parcel.update(value=text)
-                else:
-                    parcel.update(value=value, text=text)
-            else:
-                parcel.update(value=text)
-            parcel.update(node=node)
+                if value is not None:
+                    parcel.update(value=value)
+            parcel.update(node=node, text=text)
             return parcel
 
         def _get_text(self, node=None, path=None) -> str:
@@ -164,14 +155,12 @@ def main(
             locals = {}
             exec(text, {}, locals)
             main = locals.pop("main", None)
-            if main:
-                value = main(
-                    use, log=Log(path=path.full), path=path.full, test=test, **locals
-                )
-                if isinstance(value, dict):
-                    value = use.js.freeze(value)
-            else:
-                value = use.js.freeze(locals)
+            value = main(
+                use, log=Log(path=path.full), path=path.full, test=test, **locals
+            )
+            if isinstance(value, dict):
+                value = use.js.freeze(value)
+
             return value
 
     log("ping:", use("use/ping.py")())

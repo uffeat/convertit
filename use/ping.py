@@ -1,16 +1,12 @@
+def ping():
+    return "PING.PY"
+
+
 def main(
-    use: callable, log=None, path: str = None, test: bool = None, **kwargs
+    use: callable, log=None, path: str = None, test: bool = None, ping=None, **kwargs
 ) -> callable:
 
-    print("globals()", globals())  ##
-
     if test:
-        log("Unbuilt")
-        print(f"Unbuilt version of {path}")
+        log(f"Unbuilt version of {path}")
 
-    
-    def ping():
-        return "PING.PY"
-
-    
     return ping

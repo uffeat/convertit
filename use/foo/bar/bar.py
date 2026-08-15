@@ -1,13 +1,17 @@
-def main(use, **kwargs):
-    Base = use("/tools/base.py")
+def main(use, log=None, **kwargs):
 
-    class Bar(Base):
+    Foo, foo = use("use/foo/foo.py")
+  
+
+    class Bar(use.Base):
         def __init__(self):
-            Base.__init__(self)
-            self._.update(foo="Py bar")
+            use.Base.__init__(self, bar="Py bar")
 
-        @property
-        def bar(self):
-            return self._['bar']
 
-    return Bar
+    def bar():
+        log(f'From bar function: {foo()}')
+          
+
+       
+
+    return dict(Bar=Bar, bar=bar)

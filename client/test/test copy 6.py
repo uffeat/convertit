@@ -63,29 +63,23 @@ def main(
             # Update state
             self._.update(node=node, source=self.Registry(owner=self))
 
-        def __call__(self, specifier: str, *args, **kwargs):
-            """Returns result from import engine."""
+        def __call__(self, specifier: str, *args, key="value", **kwargs):
+            """Returns parcel member."""
             path = Path(specifier)
-            # Get result
+            # Get parcel
             if path.full in self._cache:
-                # Retrieve result
-                result = self._cache[path.full]
+                # Retrieve parcel
+                parcel: dict = self._cache[path.full]
             else:
-                # Build result
+                # Build parcel
                 source = self.source[path.source]
                 if not source:
                     raise ValueError(f"Invalid source: {path.source}.")
-                result = source(path)
-                self._cache[path.full] = result
-
-            if callable(result):
-                return result(*args, **kwargs)
-
-            if isinstance(result, dict):
-
+                parcel: dict = source(path)
+                self._cache[path.full] = parcel
             
-                member = result.get(kwargs.get('key', 'value'))
-                return member
+            member = parcel.get(key)
+            return member
 
     use = Use(
         Base=Base,

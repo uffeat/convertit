@@ -1,18 +1,17 @@
 def main(use: callable, **kwargs) -> dict:
     """."""
-    Base = use("/tools/base.py")
+    
 
-    class Foo(Base):
+    class Foo(use.Base):
         def __init__(self):
-            Base.__init__(self, foo="Py foo")
+            use.Base.__init__(self, foo="Py foo")
            
 
-        @property
-        def foo(self):
-            return self._["foo"]
+        
         
     def foo():
-        print('foo')
+        return 'foo'
+       
 
     
     return Foo, foo
