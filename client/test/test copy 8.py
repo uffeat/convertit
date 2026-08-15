@@ -126,12 +126,7 @@ def main(
             if transpile:
 
                 ##log("transpile:", transpile)  ##
-                ##log("nocache:", getattr(transpile.__class__, "nocache", False))  ##
-                nocache = getattr(transpile.__class__, "nocache", False)
-                if nocache:
-                    parcel.update(nocache=nocache)
-
-
+                log("nocache:", getattr(transpile.__class__, "nocache", False))  ##
                 
 
                 value = transpile(path=path, text=text, **message)
@@ -141,7 +136,10 @@ def main(
                 if value is None:
                     parcel.update(value=text)
                 else:
-                    parcel.update(value=value, text=text)
+                    if isinstance(value, dict):
+                        parcel.update(text=text, **value)
+                    else:
+                        parcel.update(value=value, text=text)
             else:
                 parcel.update(value=text)
             parcel.update(node=node)
@@ -199,9 +197,8 @@ def main(
 
             value = json.loads(text)
 
-            return value
+            return dict(nocache=True, value=value)
 
-    log("ping:", use("use/ping.py")())
     log("ping:", use("use/ping.py")())
     log("text:", use("use/ping.py", key="text"))
 
