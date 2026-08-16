@@ -14,38 +14,6 @@ def main(
 ):
     """."""
 
-    class Parcel(Base):
-        def __init__(self, **kwargs):
-            Base.__init__(_creators={}, _data={}, **kwargs)
-
-        def __call__(self, key):
-            """REturns item value."""
-            if key in self._data:
-                return self._data[key]
-
-            if key in self._creators:
-                stored: dict = self._creators[key]
-                creator = stored["creator"]
-                if isinstance(creator, type):
-                    kwargs = stored.pop("kwargs", {})
-                    creator = creator(owner=self, **kwargs)
-                    stored["creator"] = creator
-                value = creator(key)
-                self._data[key] = value
-                return value
-
-        def creator(self, *keys, creator=None, **kwargs):
-            """Register creator."""
-
-            def register(creator):
-                for key in keys:
-                    stored = dict(creator=creator, kwargs=kwargs)
-                    self._creators[key] = stored
-
-            if not creator:
-                return register
-            register(creator)
-
     class Registry(Base):
         def __init__(self, owner=None):
             Base.__init__(
@@ -65,6 +33,7 @@ def main(
                 self._registry[key] = dict(value=value)
                 return value
 
+            
             def register(value: type) -> callable:
                 """Decorator."""
                 self._registry[key] = dict(value=value)
@@ -106,16 +75,38 @@ def main(
             kwargs.update(**next(iter([a for a in args if js.type(a, "Object")]), {}))
             path = Path(specifier)
             # Get result
-            key = kwargs.get("key", "value")
-            if key == "value":
-                handler = self.transpiler[path.type]
-                result = handler(path=path, key=key)
-
-            elif key == "text":
-                handler = self.source[path.source]
-                result = handler(path=path, key=key)
-
-            return result
+            if path.full in self._cache:
+                # Retrieve result
+                parcel: dict = self._cache[path.full]
+            else:
+                # Build result
+                source = self.source[path.source]
+                if not source:
+                    raise ValueError(f"Invalid source: {path.source}.")
+                parcel: dict = source(path)
+                transpile = self.transpiler[path.type]
+                if transpile:
+                    value = transpile(path=path, **parcel)
+                    parcel.update(value=value)
+                else:
+                    text = parcel.pop("text")
+                    parcel.update(value=text)
+                self._cache[path.full] = parcel
+            # Process (use for for uncached post-processing/transpilation)
+            process = kwargs.get("process", True)
+            if process:
+                processor = self.processor[path.type]
+                if processor:
+                    processed = processor(**parcel)
+                    if processed is not None:
+                        return processed
+            # Return from parcel
+            if kwargs.get("raw", False):
+                # Handle raw
+                key = "text" if "text" in parcel else "value"
+            else:
+                key = kwargs.get("key", "value")
+            return parcel.get(key)
 
     use = Use(
         Base=Base,
@@ -132,36 +123,28 @@ def main(
     @use.source("use")
     class cls(use.Base):
         def __init__(self, **kwargs):
-            use.Base.__init__(self, _cache={}, **kwargs)
+            use.Base.__init__(self, **kwargs)
 
-        def __call__(self, path=None, key="text") -> dict:
-            """Returns parcel text."""
-            if path.path in self._cache:
-                cached: dict = self._cache[path.path]
-            else:
-                cached = dict()
-                node = use.document.createElement("div")
-                node.setAttribute("__path__", path.path)
-                use.node.append(node)
-                message = {}
-                if use.meta.DEV:
-                    try:
-                        text = use.anvil.server.call(f"_{self.key}", path.full)
-                        message.update(test=True)
-                    except use.anvil.server.UplinkDisconnectedError as error:
-                        text = self._get_text(node=node, path=path)
-                    except Exception as error:
-                        raise ValueError(
-                            f"Invalid path: {path.full}. Error: {str(error)}"
-                        )
-                else:
+        def __call__(self, path) -> dict:
+            """Returns parcel."""
+            parcel = dict()
+            node = use.document.createElement("div")
+            node.setAttribute("__path__", path.path)
+            use.node.append(node)
+            message = {}
+            if use.meta.DEV:
+                try:
+                    text = use.anvil.server.call(f"_{self.key}", path.full)
+                    message.update(test=True)
+                except use.anvil.server.UplinkDisconnectedError as error:
                     text = self._get_text(node=node, path=path)
+                except Exception as error:
+                    raise ValueError(f"Invalid path: {path.full}. Error: {str(error)}")
 
-                ##log("text:", text)  ##
-                cached.update(node=node, text=text, **message)
-                self._cache[path.path] = cached
-
-            return cached.get(key)
+            else:
+                text = self._get_text(node=node, path=path)
+            parcel.update(node=node, text=text, **message)
+            return parcel
 
         def _get_text(self, node=None, path=None) -> str:
             """Returns uncached text from sheet."""
@@ -182,10 +165,12 @@ def main(
 
         def __call__(self, node=None, path=None, test=False, text=None, **kwargs):
             """Returns transpiled value."""
-            Future = use("use/future/future.py")
+            Future = use('use/future/future.py')
             link = document.createElement("link")
             link.rel = "stylesheet"
             link.setAttribute("path", path.path)
+
+          
 
             ##href = f"{path.path}?content={use.js.btoa(text)}&encoding=base64"
             href = f"{path.path}?content={text}"
@@ -202,6 +187,8 @@ def main(
             future.wait()
 
             return link
+
+            
 
     @use.transpiler("js")
     class cls(use.Base):
@@ -233,7 +220,6 @@ def main(
 
         def __call__(self, node=None, path=None, test=False, text=None, **kwargs):
             """Returns transpiled value."""
-            text = use(path, key="text")
             locals = {}
             exec(text, {}, locals)
             main = locals.pop("main", None)
@@ -266,7 +252,7 @@ def main(
 
     # Set up test harness
     if use.meta.DEV:
-
+        
         def test(path: str) -> None:
             """Runs test script."""
             text = use.anvil.server.call(f"_test", path)
@@ -289,8 +275,5 @@ def main(
                     use.js.localStorage.setItem("__test__", path)
                     test(path)
 
-    text = use("use/ping.py", key="text")
-    log("text:", text)
 
-    text = use("use/ping.py", key="text")
-    log("text:", text)
+    

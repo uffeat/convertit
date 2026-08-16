@@ -7,6 +7,6 @@ def main(
 ) -> callable:
 
     if test:
-        log(f"Unbuilt version of {path}")
+        log(f"Unbuilt version of {path.full}")
 
     return ping

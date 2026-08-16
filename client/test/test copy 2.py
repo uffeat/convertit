@@ -3,7 +3,6 @@ def main(
     Log: type = None,
     Path: callable = None,
     anvil=None,
-    console=None,
     document=None,
     js=None,
     log: callable = None,
@@ -15,139 +14,51 @@ def main(
 ):
     """."""
 
-    class Use(Base):
-        def __init__(self):
-
-            Base.__init__(
-                self,
-                _cache={},
-                _sources={},
-            )
-
-        def __call__(self, specifier: str, *args, key="value", **kwargs):
-            """."""
-            _cache: dict = self._["_cache"]
-            path = Path(specifier)
-
-            # Get parcel
-            if path.full in _cache:
-                # Retrieve parcel
-                parcel = _cache[path.full]
-            else:
-                # Build parcel
-                _sources: dict = self._["_sources"]
-                parcel = dict(path=path.path)
-                source = _sources.get(path.source)
-                if source:
-                    value = source["value"]
-                    if isinstance(value, type):
-                        value = value(key=path.source, owner=self)
-                        source["value"] = value
-                    value(parcel)
-                    _cache[path.full] = parcel
-            # Return parcel value
-            return parcel.get(key)
-
-        @property
-        def Base(self):
-            return Base
-
-        @property
-        def Log(self):
-            return Log
-
-        @property
-        def Path(self):
-            return Path
-
-        @property
-        def anvil(self):
-            return anvil
-
-        @property
-        def console(self):
-            return console
-
-        @property
-        def document(self):
-            return document
-
-        @property
-        def js(self):
-            return js
-
-        @property
-        def meta(self):
-            return meta
-
-        @property
-        def window(self):
-            return window
-
-        def source(self, key, value=None):
-            """."""
-            # NOTE Register mutable to allow lazy instantiation
-            if value:
-                _sources: dict = self._["_sources"]
-                _sources[key] = dict(value=value)
-            else:
-
-                def register(value: type):
-                    # XXX Get _sources in function scope!
-                    _sources: dict = self._["_sources"]
-                    _sources[key] = dict(key=key, value=value)
-                    return value
-
-                return register
-
-    use = Use()
-
-    @use.source("tools")
-    class cls(Base):
+    class Parcel(Base):
         def __init__(self, **kwargs):
-            Base.__init__(
-                self,
-                _members={
-                    "/base.py": Base,
-                    "/log.py": Log,
-                    "/path.py": Path,
-                    "/anvil.py": anvil,
-                    "/console.py": console,
-                    "/document.py": document,
-                    "/js.py": js,
-                    "/window.py": window,
-                },
-                **kwargs
-            )
+            Base.__init__(self, _creators={}, _data={}, **kwargs)
 
-        def __call__(self, parcel: dict):
-            """."""
-            _members: dict = self._["_members"]
-            value = _members.get(parcel["path"])
-            if value is not None:
-                parcel["value"] = value
+        def __call__(self, *args, **kwargs):
+            """Registers creator."""
+            if callable(args[0]):
+                creator, *keys = args
+            else:
+                creator, keys = None, args
 
+            def register(creator):
+                for key in keys:
+                    stored = dict(creator=creator, kwargs=kwargs)
+                    self._creators[key] = stored
 
-    class UseSource(Base):
-        def __init__(self):
-        
-            Base.__init__(
-                self,
-                _cache={},
-                _sources={},
-            )
+            if not creator:
+                return register
+            register(creator)
 
+        def __getitem__(self, key):
+            """Returns item value."""
+            if key in self._data:
+                return self._data[key]
 
+            if key in self._creators:
+                stored: dict = self._creators[key]
+                creator = stored["creator"]
+                if isinstance(creator, type):
+                    kwargs = stored.pop("kwargs", {})
+                    creator = creator(owner=self, **kwargs)
+                    stored["creator"] = creator
+                value = creator(key)
+                self._data[key] = value
+                return value
 
+    my_parcel = Parcel()
 
-    @use.source("use")
+    @my_parcel("foo")
     class cls(Base):
         def __init__(self, **kwargs):
             Base.__init__(self, **kwargs)
 
-        def __call__(self, parcel: dict):
+        def __call__(self, key):
             """."""
+            return "FOO"
 
-   
-
-    print('Log:', use("tools/log.py"))
+    log("foo:", my_parcel["foo"])

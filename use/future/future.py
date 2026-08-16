@@ -1,12 +1,10 @@
 def main(use, **kwargs) -> type:
     """."""
-    from anvil.js import await_promise
-    from anvil.js.window import Promise
 
     class Future:
 
         def __init__(self):
-            pwr = Promise.withResolvers()
+            pwr = use.js.Promise.withResolvers()
             self._ = dict(promise=pwr.promise, resolve=pwr.resolve)
 
         def __call__(self, value=True) -> "Future":
@@ -16,7 +14,7 @@ def main(use, **kwargs) -> type:
 
         def wait(self):
             """Awaits promise and returns resolved value."""
-            value = await_promise(self._["promise"])
+            value = use.anvil.js.await_promise(self._["promise"])
             return value
 
     return Future

@@ -3,7 +3,6 @@ def main(
     Log: type = None,
     Path: callable = None,
     anvil=None,
-    console=None,
     document=None,
     js=None,
     log: callable = None,
@@ -16,39 +15,54 @@ def main(
     """."""
 
     class Registry(Base):
-        def __init__(self, owner=None):
-            Base.__init__(
-                self,
-                owner=owner,
-                _registry={},
-            )
+        def __init__(self, **kwargs):
+            Base.__init__(self, _registry={}, **kwargs)
 
-        def __call__(self, key, *args):
+        def __call__(self, *keys, **kwargs):
             """Registers callable."""
-            # NOTE Register mutable to allow lazy instantiation
-            value = args[0] if args else None
-            if value:
-                # Not used as decorator
-                if isinstance(value, type):
-                    value = value(key=key, owner=self)
-                self._registry[key] = dict(value=value)
+            if keys:
+                if callable(keys[-1]):
+                    keys = list(keys)
+                    value = keys.pop()
+                    keys = tuple(keys)
+                else:
+                    value = None
+            else:
+                value = None
+
+            # NOTE Reliable alternative to using 'global'
+            context = dict(keys=keys)
+
+            def register(value):
+                keys = context["keys"]
+                if not keys:
+                    keys = tuple([value.__name__])
+                # NOTE Create 'stored' once - NOT in keys loop!
+                stored = dict(keys=keys, value=value, kwargs=kwargs)
+                for key in keys:
+                    self._registry[key] = stored
                 return value
 
-            # Used as decorator
-            def register(value: type):
-                self._registry[key] = dict(value=value)
-                return value
+            if not value:
+                return register
+            return register(value)
 
-            return register
+        def __contains__(self, key) -> bool:
+            return key in self._registry
 
         def __getitem__(self, key):
-            """Returns registree instance."""
-            source = self._registry.get(key)
-            if source:
-                value = source["value"]
+            """Returns instance."""
+            if key in self:
+                stored: dict = self._registry[key]
+                value = stored["value"]
                 if isinstance(value, type):
-                    value = value(key=key, owner=self)
-                    source["value"] = value
+                    ##print("Instatiating for:", key)  ##
+                    kwargs = stored.get("kwargs")
+                    if "__init__" in value.__dict__:
+                        value = value(owner=self, **kwargs)
+                    else:
+                        value = value()
+                    stored.update(value=value)
                 return value
 
     class Use(Base):
@@ -64,49 +78,34 @@ def main(
             # Update state
             self._.update(
                 node=node,
-                processor=self.Registry(owner=self),
+                transpiler=self.Registry(owner=self),
                 source=self.Registry(owner=self),
             )
 
         def __call__(self, specifier: str, *args, **kwargs):
             """Returns result from import engine."""
+            # Enable setting options from JS
+            kwargs.update(**next(iter([a for a in args if js.type(a, "Object")]), {}))
             path = Path(specifier)
-            # Get result
-            if path.full in self._cache:
-                # Retrieve result
-                result: dict = self._cache[path.full]
+            key = "text" if kwargs.get("raw", False) else kwargs.get("key", "value")
+            if key == "value":
+                result: dict = self._value(path=path)
+            elif key == "text":
+                result: dict = self._text(path=path)
             else:
-                # Build result
-                source = self.source[path.source]
-                if not source:
-                    raise ValueError(f"Invalid source: {path.source}.")
-                result: dict = source(path)
-                self._cache[path.full] = result
+                # Ensure that result is always a dict
+                result = {}
+            return result.get(key)
 
-            # Process
-            process = kwargs.get("process", True)
-            if process:
-                processor = self.processor[path.type]
-                if processor:
-                    processed = processor(**result)
-                    if processed is not None:
-                        return processed
+        def _text(self, path=None) -> dict:
+            handler = self.source[path.source]
+            return handler(path=path) if handler else {}
+            
 
-            raw = kwargs.get("raw", False)
-            if raw:
-                if 'text' in result:
-                    return result['text']
-                return result['value']
-
-
-            key = kwargs.get("key")
-            if key:
-                return result.get(key)
-            return result['value']
-
-
-
-           
+        def _value(self, path=None) -> dict:
+            handler = self.transpiler[path.type]
+            return handler(path=path, **self._text(path=path)) if handler else {}
+            
 
     use = Use(
         Base=Base,
@@ -114,62 +113,39 @@ def main(
         Log=Log,
         Registry=Registry,
         anvil=anvil,
-        console=console,
         document=document,
         js=js,
         meta=meta,
         window=window,
     )
 
-    @use.processor("json")
+    @use.source("use")
     class cls(use.Base):
         def __init__(self, **kwargs):
-            """."""
-            from json import loads as parse
+            use.Base.__init__(self, _cache={}, **kwargs)
 
-            use.Base.__init__(self, _parse=parse, **kwargs)
-
-        def __call__(self, value: str = None, **kwargs):
-            """Returns parsed json."""
-            ##log("processor got value:", value)  ##
-            return self._parse(value)
-
-    @use.source("use")
-    class UseSource(use.Base):
-        def __init__(self, **kwargs):
-            use.Base.__init__(self, transpiler=use.Registry(), **kwargs)
-            node = use.document.createElement("div")
-            node.setAttribute("source", self.key)
-            use.node.append(node)
-            self._.update(node=node)
-
-        def __call__(self, path) -> dict:
-            """Returns parcel."""
-            ##log("key:", self.key)##
-            parcel = dict()
+        def __call__(self, path=None, **kwargs) -> dict:
+            key = path.path
+            if key in self._cache:
+                return self._cache[key]
+            result = dict()
             node = use.document.createElement("div")
             node.setAttribute("__path__", path.path)
-            self.node.append(node)
+            use.node.append(node)
             message = {}
             if use.meta.DEV:
                 try:
-                    text = use.anvil.server.call(f"_{self.key}", path.full)
+                    text = use.anvil.server.call(f"_use", path.full)
                     message.update(test=True)
                 except use.anvil.server.UplinkDisconnectedError as error:
                     text = self._get_text(node=node, path=path)
+                except Exception as error:
+                    raise ValueError(f"Invalid path: {path.full}. Error: {str(error)}")
             else:
                 text = self._get_text(node=node, path=path)
-            transpile = self.transpiler[path.type]
-            if transpile:
-                value = transpile(path=path, text=text, **message)
-                if value is None:
-                    parcel.update(value=text)
-                else:
-                    parcel.update(value=value, text=text)
-            else:
-                parcel.update(value=text)
-            parcel.update(node=node)
-            return parcel
+            result.update(node=node, text=text, **message)
+            self._cache[key] = result
+            return result
 
         def _get_text(self, node=None, path=None) -> str:
             """Returns uncached text from sheet."""
@@ -183,50 +159,64 @@ def main(
             text = use.js.atob(value[1:-1])
             return text
 
-    use_source = use.source["use"]
-
-    ##use_source = use.source("use", UseSource)
-    ##log("use_source:", use_source)  ##
-
-    @use_source.transpiler("py")
-    class Transpiler(use.Base):
+    @use.transpiler("py")
+    class cls(use.Base):
         def __init__(self, **kwargs):
-            use.Base.__init__(self, **kwargs)
+            use.Base.__init__(self, _cache={}, **kwargs)
 
-        def __call__(self, path=None, test=False, text=None):
-            """Returns transpiled value."""
+        def __call__(
+            self, node=None, path=None, test=None, text=None, **kwargs
+        ) -> dict:
+            key = path.full
+            if key in self._cache:
+                return self._cache[key]
+            result = dict()
             locals = {}
             exec(text, {}, locals)
             main = locals.pop("main", None)
             if main:
                 value = main(
-                    use, log=Log(path=path.full), path=path.full, test=test, **locals
+                    use,
+                    log=Log(path=path.full),
+                    node=node,
+                    path=path,
+                    test=test,
+                    **locals,
                 )
                 if isinstance(value, dict):
                     value = use.js.freeze(value)
             else:
                 value = use.js.freeze(locals)
-            return value
+            result.update(value=value)
+            self._cache[key] = result
+            return result
 
-    log("ping:", use("use/ping.py")())
-    log("ping:", use("use/ping.py")())
-    log("text:", use("use/ping.py", raw=True))
-    log("node:", use("use/ping.py", key='node'), native=True)
 
-    log("foo.html:", use("use/foo/foo.html"))
+    # Set up test harness
+    if use.meta.DEV:
+        
+        def test(path: str) -> None:
+            """Runs test script."""
+            text = use.anvil.server.call(f"_test", path)
+            locals = {}
+            exec(text, {}, locals)
+            main = locals.get("main")
+            main(
+                use,
+                log=Log(path=path),
+                path=path,
+                test=True,
+            )
 
-    Foo, foo = use("use/foo/foo.py")
-    log("Foo.foo:", Foo().foo)
+        @use.window.on()
+        def keydown(event):
+            if event.code == "KeyU" and event.shiftKey:
+                stored = use.js.localStorage.getItem("__test__")
+                path = use.window.prompt("Path:", stored)
+                if path:
+                    use.js.localStorage.setItem("__test__", path)
+                    test(path)
 
-    use("use/foo/bar/bar.py").bar()
 
-    foo_json = use("use/foo/foo.json")
-    log("foo_json:", foo_json)
 
-    foo_json["foo"] = 43
-
-    foo_json = use("use/foo/foo.json")
-    log("foo_json:", foo_json)
-    log("foo_json:", use("use/foo/foo.json", process=False))
-
-    ##use("bad/ping.py")
+    

@@ -1,28 +1,21 @@
 """
-/parcels/foo/test/test.py
+test/use/foo/test/test.py
 """
 
 
-def main(use, console=None, document=None, **kwargs):
+def main(use, log=None, **kwargs):
+    log("html:\n", use("use/foo/foo.html"), native=True)
 
-    sheet = use("/foo/bar.css")
-    console.log("sheet", sheet)
+    Foo, foo = use("use/foo/foo.py")
+    log("Foo.foo:\n", Foo().foo)
 
-    link = use("/foo/bar.css", link=True)
-    console.log("link", link)
+    use("use/foo/bar/bar.py").bar()
 
-   
-    print("Foo:", use("/foo/foo.py"))
-    console.log("Foo:", use("/foo/foo.js"))
+    foo_json = use("use/foo/foo.json")
+    log("foo_json:", foo_json)
 
-    Foo = use("/foo/foo.py")
+    foo_json["foo"] = 43
 
-    foo = Foo()
-
-    print("foo.foo:", foo.foo)
-
-    element = document.createElement("h1")
-    element.setAttribute("foo", "")
-    element.setAttribute("bar", "")
-    element.textContent = "Foo"
-    document.body.append(element)
+    foo_json = use("use/foo/foo.json")
+    log("foo_json:\n", foo_json)
+    log("foo_json:\n", use("use/foo/foo.json", process=False))

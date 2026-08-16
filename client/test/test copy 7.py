@@ -3,7 +3,6 @@ def main(
     Log: type = None,
     Path: callable = None,
     anvil=None,
-    console=None,
     document=None,
     js=None,
     log: callable = None,
@@ -16,38 +15,72 @@ def main(
     """."""
 
     class Registry(Base):
-        def __init__(self, owner=None):
-            Base.__init__(
-                self,
-                owner=owner,
-                _registry={},
-            )
+        def __init__(self, **kwargs):
+            Base.__init__(self, _registry={}, **kwargs)
 
-        def __call__(self, key, *args, **kwargs):
+        def __call__(self, *keys, **kwargs):
             """Registers callable."""
-            # NOTE Register mutable to allow lazy instantiation
-            value = args[0] if args else None
-            if value:
-                if isinstance(value, type):
-                    value = value(key=key, owner=self)
-                self._registry[key] = dict(value=value)
+            if keys:
+                if callable(keys[-1]):
+                    keys = list(keys)
+                    value = keys.pop()
+                    keys = tuple(keys)
+                else:
+                    value = None
+            else:
+                value = None
+
+            # NOTE Reliable alternative to using 'global'
+            context = dict(keys=keys)
+
+            def register(value):
+                keys = context["keys"]
+                if not keys:
+                    keys = tuple([value.__name__])
+                # NOTE Create 'stored' once - NOT in keys loop!
+                stored = dict(keys=keys, value=value, kwargs=kwargs)
+                for key in keys:
+                    self._registry[key] = stored
                 return value
 
-            def register(value: type):
-                self._registry[key] = dict(value=value)
-                return value
+            if not value:
+                return register
+            return register(value)
 
-            return register
+        def __contains__(self, key) -> bool:
+            return key in self._registry
 
         def __getitem__(self, key):
-            """Returns registree instance."""
-            _registry: dict = self._["_registry"]
-            source = _registry.get(key)
-            if source:
-                value = source["value"]
+            """Returns instance."""
+            if key in self:
+                stored: dict = self._registry[key]
+                value = stored["value"]
                 if isinstance(value, type):
-                    value = value(key=key, owner=self)
-                    source["value"] = value
+                    ##print("Instatiating for:", key)  ##
+                    kwargs = stored.get("kwargs")
+                    if "__init__" in value.__dict__:
+                        value = value(owner=self, **kwargs)
+                    else:
+                        value = value()
+                    stored.update(value=value)
+                return value
+
+    class Parcel(Base):
+        def __init__(self, **kwargs):
+            Base.__init__(self, _creators=Registry(owner=self), _data={}, **kwargs)
+
+        def __call__(self, *args, **kwargs):
+            """Registers creator."""
+            return self._creators(*args, **kwargs)
+
+        def __getitem__(self, key):
+            """Returns item value."""
+            if key in self._data:
+                return self._data[key]
+            creator = self._creators[key]
+            if creator:
+                value = creator(key)
+                self._data[key] = value
                 return value
 
     class Use(Base):
@@ -61,39 +94,77 @@ def main(
             node.id = "use"
             self.document.body.append(node)
             # Update state
-            self._.update(node=node, source=self.Registry(owner=self))
+
+            self._.update(
+                node=node,
+                transpiler=Registry(owner=self),
+                source=Registry(owner=self),
+            )
+
+            handlers = {}
+
+            def value():
+                handler = self.transpiler[path.type]
+                if handler:
+                    result: dict = self._get_text(path=path)
+                    result: dict = handler(path=path, **result)
+                    return result
+                return {}
+
+            handlers["value"] = value
+
+            def text():
+                result: dict = self._get_text(path=path)
+                return result
+
+            handlers["text"] = text
+
+            self._.update(
+                _handlers=handlers,
+            )
 
         def __call__(self, specifier: str, *args, **kwargs):
             """Returns result from import engine."""
+            # Enable setting options from JS
+            kwargs.update(**next(iter([a for a in args if js.type(a, "Object")]), {}))
             path = Path(specifier)
-            # Get result
-            if path.full in self._cache:
-                # Retrieve result
-                result = self._cache[path.full]
-            else:
-                # Build result
-                source = self.source[path.source]
-                if not source:
-                    raise ValueError(f"Invalid source: {path.source}.")
-                result = source(path)
-                self._cache[path.full] = result
+            key = kwargs.get("key", "value")
 
-            if callable(result):
-                return result(*args, **kwargs)
+            result = {}
 
-            if isinstance(result, dict):
+            log('handlers:', self._handlers)##
 
-            
-                member = result.get(kwargs.get('key', 'value'))
-                return member
+            handler = self._handlers.get(key)
+            if handler:
+                log('handler:', handler)##
+                result: dict = handler()
+                log('result:', result)##
+
+            return result.get(key)
+
+            if key == "value":
+                handler = self.transpiler[path.type]
+                if handler:
+                    result: dict = self._get_text(path=path)
+                    result: dict = handler(path=path, **result)
+            elif key == "text":
+                result: dict = self._get_text(path=path)
+
+            return result.get(key)
+
+        def _get_text(self, path=None) -> dict:
+            """."""
+            handler = self.source[path.source]
+            if handler:
+                result: dict = handler(path=path)
+                return result
+            return {}
 
     use = Use(
         Base=Base,
         Path=Path,
         Log=Log,
-        Registry=Registry,
         anvil=anvil,
-        console=console,
         document=document,
         js=js,
         meta=meta,
@@ -101,41 +172,38 @@ def main(
     )
 
     @use.source("use")
-    class UseSource(use.Base):
+    class cls(use.Base):
         def __init__(self, **kwargs):
-            use.Base.__init__(self, transpiler=use.Registry(), **kwargs)
-            node = use.document.createElement("div")
-            node.setAttribute("source", self.key)
-            use.node.append(node)
-            self._.update(node=node)
+            use.Base.__init__(self, _cache={}, **kwargs)
 
-        def __call__(self, path) -> dict:
-            """Returns parcel."""
-            ##log("key:", self.key)##
-            parcel = dict()
-            node = use.document.createElement("div")
-            node.setAttribute("__path__", path.path)
-            self.node.append(node)
-            message = {}
-            if use.meta.DEV:
-                try:
-                    text = use.anvil.server.call(f"_{self.key}", path.full)
-                    message.update(test=True)
-                except use.anvil.server.UplinkDisconnectedError as error:
-                    text = self._get_text(node=node, path=path)
+        def __call__(self, path=None, **kwargs) -> dict:
+            key = path.path
+            if key in self._cache:
+                result: dict = self._cache[key]
+                if use.meta.DEV and "cached" not in result:
+                    log("Using cache")  ##
+                    result.update(cached=True)
             else:
-                text = self._get_text(node=node, path=path)
-            transpile = self.transpiler[path.type]
-            if transpile:
-                value = transpile(path=path, text=text, **message)
-                if value is None:
-                    parcel.update(value=text)
+                result = dict()
+                node = use.document.createElement("div")
+                node.setAttribute("__path__", path.path)
+                use.node.append(node)
+                message = {}
+                if use.meta.DEV:
+                    try:
+                        text = use.anvil.server.call(f"_use", path.full)
+                        message.update(test=True)
+                    except use.anvil.server.UplinkDisconnectedError as error:
+                        text = self._get_text(node=node, path=path)
+                    except Exception as error:
+                        raise ValueError(
+                            f"Invalid path: {path.full}. Error: {str(error)}"
+                        )
                 else:
-                    parcel.update(value=value, text=text)
-            else:
-                parcel.update(value=text)
-            parcel.update(node=node)
-            return parcel
+                    text = self._get_text(node=node, path=path)
+                result.update(node=node, text=text, **message)
+                self._cache[key] = result
+            return result
 
         def _get_text(self, node=None, path=None) -> str:
             """Returns uncached text from sheet."""
@@ -149,39 +217,40 @@ def main(
             text = use.js.atob(value[1:-1])
             return text
 
-    use_source = use.source["use"]
-
-    ##use_source = use.source("use", UseSource)
-    ##log("use_source:", use_source)  ##
-
-    @use_source.transpiler("py")
-    class Transpiler(use.Base):
+    @use.transpiler("py")
+    class cls(use.Base):
         def __init__(self, **kwargs):
-            use.Base.__init__(self, **kwargs)
+            use.Base.__init__(self, _cache={}, **kwargs)
 
-        def __call__(self, path=None, test=False, text=None):
-            """Returns transpiled value."""
-            locals = {}
-            exec(text, {}, locals)
-            main = locals.pop("main", None)
-            if main:
-                value = main(
-                    use, log=Log(path=path.full), path=path.full, test=test, **locals
-                )
-                if isinstance(value, dict):
-                    value = use.js.freeze(value)
+        def __call__(
+            self, node=None, path=None, test=None, text=None, **kwargs
+        ) -> dict:
+            key = path.full
+            if key in self._cache:
+                result: dict = self._cache[key]
             else:
-                value = use.js.freeze(locals)
-            return value
+                result = dict()
+                locals = {}
+                exec(text, {}, locals)
+                main = locals.pop("main", None)
+                if main:
+                    value = main(
+                        use,
+                        log=Log(path=path.full),
+                        node=node,
+                        path=path,
+                        test=test,
+                        **locals,
+                    )
+                    if isinstance(value, dict):
+                        value = use.js.freeze(value)
+                else:
+                    value = use.js.freeze(locals)
+                result.update(value=value)
+                self._cache[key] = result
+            return result
 
-    log("ping:", use("use/ping.py")())
-    log("text:", use("use/ping.py", key="text"))
+    log("use/ping.py:", use("use/ping.py")())
 
-    log("foo.html:", use("use/foo/foo.html"))
-
-    Foo, foo = use("use/foo/foo.py")
-    log("Foo.foo:", Foo().foo)
-
-    use("use/foo/bar/bar.py").bar()
-
-    ##use("bad/ping.py")
+    log("use/ping.py:", use("use/ping.py", key="text"))
+    log("use/ping.py:", use("use/ping.py", key="text"))
