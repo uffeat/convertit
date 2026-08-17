@@ -87,6 +87,10 @@ def main(
             # Enable setting options from JS
             kwargs.update(**next(iter([a for a in args if js.type(a, "Object")]), {}))
             path = Path(specifier)
+            # XXX TODO key in specifier, so that kwargs can go directly to processors (not critical since key in kwargs does no harm)
+
+
+
             key = "text" if kwargs.get("raw", False) else kwargs.get("key", "value")
             if key == "value":
                 result: dict = self._value(path=path)
