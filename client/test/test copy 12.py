@@ -85,20 +85,35 @@ def main(
         def __call__(self, specifier: str, *args, **kwargs):
             """Returns result from import engine."""
             path = Path(specifier)
-            parcel = self._get_parcel(path)
+            if path.full in self._cache:
+                parcel = self._cache[path.full]
+            else:
+                # Create minimal parcel
+                parcel = dict()
+                if path.source in self.source:
+                    updates = self.source[path.source](path=path)
+                    if updates:
+                        parcel.update(updates)
+                parcel.update(
+                    default="load" if path.type in self.transpiler else "text"
+                )
+                self._cache[path.full] = parcel
 
-            # Enable kwargs from JS
+            # Enable setting options from JS
             kwargs.update(**next(iter([a for a in args if js.type(a, "Object")]), {}))
-            default = parcel.get("default", "text")
-            key = kwargs.get("key", default)
+            
+            key = kwargs.get("key", parcel['default'])
 
-            # Enhance parcel
             if key not in parcel:
-                if default == "load":
-                    parcel.update(load=self.transpiler[path.type](path=path, **parcel))
+                if path.type in self.transpiler:
+                    # Enhance parcel
+                    load = self.transpiler[path.type](path=path, **parcel)
+                    if load:
+                        parcel.update(load=load)
+                
 
             result = parcel.get(key)
-            if callable(result):
+            if key == "load":
                 result = result()
 
             if path.type in self.processor:
@@ -108,22 +123,6 @@ def main(
                     result = processed
 
             return result
-
-        def _enhance_parcel(self, parcel, *args, **kwargs):
-            """."""
-
-        def _get_parcel(self, path) -> dict:
-            """."""
-            if path.full in self._cache:
-                return self._cache[path.full]
-            # Create minimal parcel
-            parcel = dict()
-            if path.source in self.source:
-                parcel.update(**self.source[path.source](path=path))
-            if path.type in self.transpiler:
-                parcel.update(default="load")
-            self._cache[path.full] = parcel
-            return parcel
 
     use = Use(
         Base=Base,
@@ -204,7 +203,10 @@ def main(
             else:
                 value = use.js.freeze(locals)
 
-            return lambda *args, **kwargs: value
+            def load():
+                return value
+
+            return load
 
     @use.transpiler("json")
     class cls(use.Base):
@@ -214,11 +216,16 @@ def main(
             use.Base.__init__(self, _parse=loads, **kwargs)
 
         def __call__(self, text=None, **kwargs) -> callable:
-            return lambda *args, **kwargs: self._parse(text)
+
+            def load():
+                return self._parse(text)
+
+            return load
 
     @use.processor("json")
     class cls(use.Base):
         def __init__(self, **kwargs):
+
             use.Base.__init__(self, **kwargs)
 
         def __call__(self, result, *args, **kwargs):
