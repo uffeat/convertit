@@ -1,18 +1,17 @@
 def main(
+    use,
     Base: type = None,
-    Log: type = None,
-    Path: callable = None,
-    anvil=None,
-    document=None,
-    js=None,
     log: callable = None,
-    meta=None,
-    path: str = None,
-    window=None,
-    server=None,
     **kwargs,
 ):
     """."""
+    # XXX TODO Create prelim use here
+
+
+
+
+
+    log('ping:', use('use/ping.py'))##
 
     class Registry(Base):
         def __init__(self, **kwargs):
@@ -84,11 +83,13 @@ def main(
 
         def __call__(self, specifier: str, *args, **kwargs):
             """Returns result from import engine."""
-            path = Path(specifier)
+            path = self.Path(specifier)
             parcel = self._get_parcel(path)
 
             # Enable kwargs from JS
-            kwargs.update(**next(iter([a for a in args if js.type(a, "Object")]), {}))
+            kwargs.update(
+                **next(iter([a for a in args if self.js.type(a, "Object")]), {})
+            )
             default = parcel.get("default", "text")
             key = kwargs.get("key", default)
 
@@ -109,8 +110,6 @@ def main(
 
             return result
 
-        
-
         def _get_parcel(self, path) -> dict:
             """."""
             if path.full in self._cache:
@@ -124,17 +123,7 @@ def main(
             self._cache[path.full] = parcel
             return parcel
 
-    use = Use(
-        Base=Base,
-        Path=Path,
-        Log=Log,
-        Registry=Registry,
-        anvil=anvil,
-        document=document,
-        js=js,
-        meta=meta,
-        window=window,
-    )
+    use = Use(Base=Base, Registry=Registry, **kwargs)
 
     @use.source("use")
     class cls(use.Base):
@@ -186,14 +175,17 @@ def main(
             use.Base.__init__(self, **kwargs)
 
         def __call__(self, path=None, text=None, **kwargs) -> callable:
+            log("use:", self.owner.owner)  ##
+
             locals = {}
             exec(text, {}, locals)
             main = locals.pop("main", None)
             if main:
                 kwargs.update(locals)
+
                 value = main(
                     use,
-                    log=Log(path=path.full),
+                    log=use.Log(path=path.full),
                     path=path,
                     text=text,
                     **kwargs,
