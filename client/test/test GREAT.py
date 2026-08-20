@@ -75,53 +75,48 @@ def main(
             node.shadowRoot.append(slot)
             node.id = "use"
             self.document.body.append(node)
-
+            # Update state
             self._.update(
                 node=node,
-                processor=self.Registry(owner=self),
-                source=self.Registry(owner=self),
                 transpiler=self.Registry(owner=self),
+                source=self.Registry(owner=self),
             )
 
         def __call__(self, specifier: str, *args, **kwargs):
             """Returns result from import engine."""
+
             path = Path(specifier)
+
             if path.full in self._cache:
                 parcel = self._cache[path.full]
+
             else:
                 # Create minimal parcel
                 parcel = dict()
                 if path.source in self.source:
-                    updates = self.source[path.source](path=path)
-                    if updates:
-                        parcel.update(updates)
+                    create = self.source[path.source]
+                    updates = create(path=path, **parcel)
+                    parcel.update(updates)
                 self._cache[path.full] = parcel
 
             # Enable setting options from JS
             kwargs.update(**next(iter([a for a in args if js.type(a, "Object")]), {}))
             # XXX TODO key in specifier, so that kwargs can go directly to processors (not critical since key in kwargs does no harm)
-            key = kwargs.get("key", "load")
-            if key not in parcel:
+            key = kwargs.get("key", "value")
+
+            if key in parcel:
+                ...
+            else:
                 if path.type in self.transpiler:
                     # Enhance parcel
-                    load = self.transpiler[path.type](path=path, **parcel)
-                    if load:
-                        parcel.update(load=load)
+                    create = self.transpiler[path.type]
+                    updates = create(path=path, **parcel)
+                    parcel.update(updates)
 
                 else:
                     key = "text"
 
-            result = parcel.get(key)
-            if key == "load":
-                result = result()
-
-            if path.type in self.processor:
-                process = self.processor[path.type]
-                processed = process(result, *args, **kwargs)
-                if processed is not None:
-                    result = processed
-
-            return result
+            return parcel.get(key)
 
     use = Use(
         Base=Base,
@@ -140,10 +135,8 @@ def main(
         def __init__(self, **kwargs):
             use.Base.__init__(self, **kwargs)
 
-        def __call__(
-            self,
-            path=None,
-        ) -> dict:
+        def __call__(self, path=None, **kwargs) -> dict:
+            result = dict()
             node = use.document.createElement("div")
             node.setAttribute("__path__", path.path)
             use.node.append(node)
@@ -158,14 +151,8 @@ def main(
                     raise ValueError(f"Invalid path: {path.full}. Error: {str(error)}")
             else:
                 text = self._get_text(node=node, path=path)
-
-            if use.meta.DEV:
-                child = use.document.createElement("pre")
-                child.textContent = text
-                child.style.display = "none"
-                node.append(child)
-
-            return dict(node=node, text=text, **message)
+            result.update(node=node, text=text, **message)
+            return result
 
         def _get_text(self, node=None, path=None) -> str:
             """Returns uncached text from sheet."""
@@ -182,9 +169,10 @@ def main(
     @use.transpiler("py")
     class cls(use.Base):
         def __init__(self, **kwargs):
-            use.Base.__init__(self, **kwargs)
+            use.Base.__init__(self, _cache={}, **kwargs)
 
-        def __call__(self, path=None, text=None, **kwargs) -> callable:
+        def __call__(self, path=None, text=None, **kwargs) -> dict:
+            result = dict()
             locals = {}
             exec(text, {}, locals)
             main = locals.pop("main", None)
@@ -202,33 +190,9 @@ def main(
             else:
                 value = use.js.freeze(locals)
 
-            def load():
-                return value
+            result.update(value=value)
 
-            return load
-
-    @use.transpiler("json")
-    class cls(use.Base):
-        def __init__(self, **kwargs):
-            from json import loads
-
-            use.Base.__init__(self, _parse=loads, **kwargs)
-
-        def __call__(self, text=None, **kwargs) -> callable:
-
-            def load():
-                return self._parse(text)
-
-            return load
-
-    @use.processor("json")
-    class cls(use.Base):
-        def __init__(self, **kwargs):
-
-            use.Base.__init__(self, **kwargs)
-
-        def __call__(self, result, *args, **kwargs):
-            """."""
+            return result
 
     # Set up test harness
     if use.meta.DEV:
@@ -261,9 +225,8 @@ def main(
     log("html:", use("use/foo/foo.html"))
 
     foo = use("use/foo/foo.json")
-    foo["foo"] = 43
     log("json:", foo)
-    log("json:", use("use/foo/foo.json"))
+
 
     use("use/foo/bar/bar.py").bar()
     log("node:", use("use/foo/bar/bar.py").node)
