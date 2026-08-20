@@ -84,40 +84,32 @@ def main(
 
         def __call__(self, specifier: str, *args, **kwargs):
             """Returns result from import engine."""
-
-            path = Path(specifier)
-
-            if path.full in self._cache:
-                parcel = self._cache[path.full]
-            else:
-                # Create minimal parcel
-                parcel = dict()
-                if path.source in self.source:
-                    create = self.source[path.source]
-                    updates = create(path=path, **parcel)
-                    parcel.update(updates)
-                self._cache[path.full] = parcel
-
             # Enable setting options from JS
             kwargs.update(**next(iter([a for a in args if js.type(a, "Object")]), {}))
+            path = Path(specifier)
             # XXX TODO key in specifier, so that kwargs can go directly to processors (not critical since key in kwargs does no harm)
-            key = kwargs.get("key", "value")
 
-            if key in parcel:
-                ...
+
+
+            key = "text" if kwargs.get("raw", False) else kwargs.get("key", "value")
+            if key == "value":
+                result: dict = self._value(path=path)
+            elif key == "text":
+                result: dict = self._text(path=path)
             else:
-                if path.type in self.transpiler:
-                    # Enhance parcel
-                    create = self.transpiler[path.type]
-                    updates = create(path=path, **parcel)
-                    parcel.update(updates)
+                # Ensure that result is always a dict
+                result = {}
+            return result.get(key)
 
-                else:
-                    key = "text"
+        def _text(self, path=None) -> dict:
+            handler = self.source[path.source]
+            return handler(path=path) if handler else {}
+            
 
-            return parcel.get(key)
-
-        
+        def _value(self, path=None) -> dict:
+            handler = self.transpiler[path.type]
+            return handler(path=path, **self._text(path=path)) if handler else {}
+            
 
     use = Use(
         Base=Base,
@@ -137,7 +129,9 @@ def main(
             use.Base.__init__(self, _cache={}, **kwargs)
 
         def __call__(self, path=None, **kwargs) -> dict:
-
+            key = path.path
+            if key in self._cache:
+                return self._cache[key]
             result = dict()
             node = use.document.createElement("div")
             node.setAttribute("__path__", path.path)
@@ -154,7 +148,7 @@ def main(
             else:
                 text = self._get_text(node=node, path=path)
             result.update(node=node, text=text, **message)
-
+            self._cache[key] = result
             return result
 
         def _get_text(self, node=None, path=None) -> str:
@@ -177,6 +171,9 @@ def main(
         def __call__(
             self, node=None, path=None, test=None, text=None, **kwargs
         ) -> dict:
+            key = path.full
+            if key in self._cache:
+                return self._cache[key]
             result = dict()
             locals = {}
             exec(text, {}, locals)
@@ -194,14 +191,14 @@ def main(
                     value = use.js.freeze(value)
             else:
                 value = use.js.freeze(locals)
-
             result.update(value=value)
-
+            self._cache[key] = result
             return result
+
 
     # Set up test harness
     if use.meta.DEV:
-
+        
         def test(path: str) -> None:
             """Runs test script."""
             text = use.anvil.server.call(f"_test", path)
@@ -224,11 +221,6 @@ def main(
                     use.js.localStorage.setItem("__test__", path)
                     test(path)
 
-    Foo, foo = use("use/foo/foo.py")
-    log("foo:", foo())
 
-    log("text:", use("use/foo/foo.py", key="text"))
 
     
-
-    log('html:', use('use/foo/foo.html'))

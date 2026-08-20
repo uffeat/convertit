@@ -84,40 +84,42 @@ def main(
 
         def __call__(self, specifier: str, *args, **kwargs):
             """Returns result from import engine."""
-
+            
             path = Path(specifier)
+            
 
             if path.full in self._cache:
                 parcel = self._cache[path.full]
             else:
                 # Create minimal parcel
-                parcel = dict()
-                if path.source in self.source:
-                    create = self.source[path.source]
-                    updates = create(path=path, **parcel)
-                    parcel.update(updates)
+                parcel = dict(path=path)
+                parcel.update(self._text(path))
                 self._cache[path.full] = parcel
+
 
             # Enable setting options from JS
             kwargs.update(**next(iter([a for a in args if js.type(a, "Object")]), {}))
             # XXX TODO key in specifier, so that kwargs can go directly to processors (not critical since key in kwargs does no harm)
-            key = kwargs.get("key", "value")
+            key = "text" if kwargs.get("raw", False) else kwargs.get("key", "value")
 
+            
+            
             if key in parcel:
                 ...
             else:
-                if path.type in self.transpiler:
-                    # Enhance parcel
-                    create = self.transpiler[path.type]
-                    updates = create(path=path, **parcel)
-                    parcel.update(updates)
-
-                else:
-                    key = "text"
+                transpile = self.transpiler[path.type]
+                if transpile:
+                    transpiled = transpile(**parcel)
+                    if transpiled:
+                        value = transpiled
+                    parcel[key] = value
 
             return parcel.get(key)
+            
 
-        
+        def _text(self, path) -> dict:
+            handler = self.source[path.source]
+            return handler(path=path) if handler else {}
 
     use = Use(
         Base=Base,
@@ -136,7 +138,7 @@ def main(
         def __init__(self, **kwargs):
             use.Base.__init__(self, _cache={}, **kwargs)
 
-        def __call__(self, path=None, **kwargs) -> dict:
+        def __call__(self, path) -> dict:
 
             result = dict()
             node = use.document.createElement("div")
@@ -174,10 +176,8 @@ def main(
         def __init__(self, **kwargs):
             use.Base.__init__(self, _cache={}, **kwargs)
 
-        def __call__(
-            self, node=None, path=None, test=None, text=None, **kwargs
-        ) -> dict:
-            result = dict()
+        def __call__(self, node=None, path=None, test=None, text=None, **kwargs):
+
             locals = {}
             exec(text, {}, locals)
             main = locals.pop("main", None)
@@ -195,9 +195,7 @@ def main(
             else:
                 value = use.js.freeze(locals)
 
-            result.update(value=value)
-
-            return result
+            return value
 
     # Set up test harness
     if use.meta.DEV:
@@ -224,11 +222,11 @@ def main(
                     use.js.localStorage.setItem("__test__", path)
                     test(path)
 
-    Foo, foo = use("use/foo/foo.py")
-    log("foo:", foo())
 
-    log("text:", use("use/foo/foo.py", key="text"))
+    Foo, foo = use('use/foo/foo.py')
+    log('foo:', foo())
 
-    
+    log('raw:', use('use/foo/foo.py', raw=True))
 
     log('html:', use('use/foo/foo.html'))
+
