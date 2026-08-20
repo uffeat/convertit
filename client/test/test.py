@@ -109,8 +109,7 @@ def main(
 
             return result
 
-        def _enhance_parcel(self, parcel, *args, **kwargs):
-            """."""
+        
 
         def _get_parcel(self, path) -> dict:
             """."""
