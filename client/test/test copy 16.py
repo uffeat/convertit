@@ -137,9 +137,10 @@ def main(
                 **next(iter([a for a in args if self.js.type(a, "Object")]), {})
             )
 
-          
-            key = kwargs.get("key", parcel.get("default", "text"))
-            
+            if "key" in kwargs:
+                key = kwargs.get("key")
+            else:
+                key = parcel.get("default", "text")
 
             result = parcel.get(key)
 
@@ -224,7 +225,7 @@ def main(
             use.Base.__init__(self, **kwargs)
 
         def __call__(self, path=None, text=None, **kwargs) -> dict:
-            ##log("use:", self.owner.owner)  ##
+            log("use:", self.owner.owner)  ##
 
             locals = {}
             exec(text, {}, locals)
@@ -244,9 +245,10 @@ def main(
             else:
                 value = use.js.freeze(locals)
 
-            
+            def load(*args, **kwargs):
+                return value
 
-            return dict(default="value", value=value)
+            return dict(default="value", value=value, load=load)
 
     @use.transpiler("json")
     class cls(use.Base):
@@ -309,7 +311,4 @@ def main(
         use("use/foo/bar/bar.py").bar()
         log("node:", use("use/foo/bar/bar.py").node)
 
-    ##_()
-
-    log('ping:', use('use/ping.py')())##
-    log('ping:', use('use/ping.py')())##
+    _()

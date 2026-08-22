@@ -1,61 +1,15 @@
 def main(
+    use,
     Base: type = None,
     log: callable = None,
     **kwargs,
 ):
     """."""
+    # XXX TODO Create prelim use here
 
-    # XXX prelim use
-    class Use(Base):
-        def __init__(self, **kwargs):
-            Base.__init__(self, _cache={}, **kwargs)
 
-        def __call__(self, specifier: str, *args, **kwargs):
-            """Returns result from import engine."""
-            path = specifier[len("use") :]
-            if path in self._cache:
-                return self._cache[path]
 
-            if self.meta.DEV:
-                try:
-                    text = self.anvil.server.call(f"_use", path)
-                except:
-                    text = self._get_text(path)
-            else:
-                text = self._get_text(path)
 
-            if path.endswith(".py"):
-                locals = {}
-                exec(text, {}, locals)
-                main = locals.pop("main", None)
-                result = main(
-                    self,
-                    path=specifier,
-                    log=self.Log(path=specifier),
-                    text=text,
-                    **locals,
-                )
-            elif path.endswith(".js"):
-                ...
-            else:
-                return
-
-            self._cache[path] = result
-            return result
-
-        def _get_text(self, path) -> str:
-            """Returns uncached text from sheet."""
-            node = self.document.createElement("div")
-            node.setAttribute("__path__", path)
-            self.document.head.append(node)
-            value = (
-                self.js.getComputedStyle(node).getPropertyValue(f"--__use__").strip()
-            )
-            node.remove()
-            text = self.js.atob(value[1:-1])
-            return text
-
-    use = Use(Base=Base, **kwargs)
 
     ##log('ping:', use('use/ping.py'))##
 
@@ -136,14 +90,16 @@ def main(
             kwargs.update(
                 **next(iter([a for a in args if self.js.type(a, "Object")]), {})
             )
+            default = parcel.get("default", "text")
+            key = kwargs.get("key", default)
 
-          
-            key = kwargs.get("key", parcel.get("default", "text"))
-            
+            # Enhance parcel
+            if key not in parcel:
+                if default == "load":
+                    parcel.update(self.transpiler[path.type](path=path, **parcel))
 
             result = parcel.get(key)
-
-            if key == "load":
+            if callable(result):
                 result = result()
 
             if path.type in self.processor:
@@ -161,14 +117,9 @@ def main(
             # Create minimal parcel
             parcel = dict()
             if path.source in self.source:
-                updates = self.source[path.source](path=path)
-                if updates:
-                    parcel.update(**updates)
+                parcel.update(**self.source[path.source](path=path))
             if path.type in self.transpiler:
-                updates = self.transpiler[path.type](path=path, **parcel)
-                if updates:
-                    parcel.update(**updates)
-
+                parcel.update(default="load")
             self._cache[path.full] = parcel
             return parcel
 
@@ -224,7 +175,7 @@ def main(
             use.Base.__init__(self, **kwargs)
 
         def __call__(self, path=None, text=None, **kwargs) -> dict:
-            ##log("use:", self.owner.owner)  ##
+            log("use:", self.owner.owner)  ##
 
             locals = {}
             exec(text, {}, locals)
@@ -244,9 +195,10 @@ def main(
             else:
                 value = use.js.freeze(locals)
 
-            
+            def load(*args, **kwargs):
+                return value
 
-            return dict(default="value", value=value)
+            return dict(load=load)
 
     @use.transpiler("json")
     class cls(use.Base):
@@ -258,8 +210,7 @@ def main(
         def __call__(self, text=None, **kwargs) -> dict:
             def load(*args, **kwargs):
                 return self._parse(text)
-
-            return dict(default="load", load=load)
+            return dict(load=load)
 
     @use.processor("json")
     class cls(use.Base):
@@ -280,7 +231,7 @@ def main(
             main = locals.get("main")
             main(
                 use,
-                log=use.Log(path=path),
+                log=Log(path=path),
                 path=path,
                 test=True,
             )
@@ -309,7 +260,4 @@ def main(
         use("use/foo/bar/bar.py").bar()
         log("node:", use("use/foo/bar/bar.py").node)
 
-    ##_()
-
-    log('ping:', use('use/ping.py')())##
-    log('ping:', use('use/ping.py')())##
+    _()
