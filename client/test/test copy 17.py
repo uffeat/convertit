@@ -59,15 +59,6 @@ def main(
 
     ##log('ping:', use('use/ping.py'))##
 
-    class Uid(Base):
-        def __init__(self, **kwargs):
-            Base.__init__(self, _value=0, **kwargs)
-
-        def __call__(self) -> int:
-            result = self._value
-            self._value += 1
-            return result
-
     class Registry(Base):
         def __init__(self, **kwargs):
             Base.__init__(self, _registry={}, **kwargs)
@@ -110,7 +101,7 @@ def main(
                 stored: dict = self._registry[key]
                 value = stored["value"]
                 if isinstance(value, type):
-                    ##print("Instantiating for:", key)  ##
+                    ##print("Instatiating for:", key)  ##
                     kwargs = stored.get("kwargs")
                     if "__init__" in value.__dict__:
                         value = value(owner=self, **kwargs)
@@ -132,20 +123,13 @@ def main(
             self._.update(
                 node=node,
                 processor=self.Registry(owner=self),
-                _session=self.Uid(),
                 source=self.Registry(owner=self),
                 transpiler=self.Registry(owner=self),
             )
 
         def __call__(self, specifier: str, *args, **kwargs):
             """Returns result from import engine."""
-
-            session = self._session()
-
             path = self.Path(specifier)
-
-            print("path:", path)  ##
-
             parcel = self._get_parcel(path)
 
             # Enable kwargs from JS
@@ -153,17 +137,17 @@ def main(
                 **next(iter([a for a in args if self.js.type(a, "Object")]), {})
             )
 
-            caller = kwargs.get("caller")
-
+          
             key = kwargs.get("key", parcel.get("default", "text"))
+            
 
             result = parcel.get(key)
 
             if key == "load":
-                result = result(caller=caller, session=session)
+                result = result()
 
-            if path.types in self.processor:
-                process = self.processor[path.types]
+            if path.type in self.processor:
+                process = self.processor[path.type]
                 processed = process(result, *args, **kwargs)
                 if processed is not None:
                     result = processed
@@ -181,16 +165,14 @@ def main(
                 if updates:
                     parcel.update(**updates)
             if path.type in self.transpiler:
-
                 updates = self.transpiler[path.type](path=path, **parcel)
-
                 if updates:
                     parcel.update(**updates)
 
             self._cache[path.full] = parcel
             return parcel
 
-    use = Use(Base=Base, Registry=Registry, Uid=Uid, **kwargs)
+    use = Use(Base=Base, Registry=Registry, **kwargs)
 
     @use.source("use")
     class cls(use.Base):
@@ -243,7 +225,6 @@ def main(
 
         def __call__(self, path=None, text=None, **kwargs) -> dict:
             ##log("use:", self.owner.owner)  ##
-            result = {}
 
             locals = {}
             exec(text, {}, locals)
@@ -251,37 +232,21 @@ def main(
             if main:
                 kwargs.update(locals)
 
-                class _Use:
-                    def __call__(self, *args, **kwargs):
-                        return use(*args, caller=path, **kwargs)
-
-                    def __getattr__(self, key: str):
-                        return getattr(use, key, None)
-
-                def _use(*args, **kwargs):
-                    return use(*args, caller=path, **kwargs)
-
-                _use = _Use()
-
                 value = main(
-                    ##_Use(),
-                    _use,
+                    use,
                     log=use.Log(path=path.full),
                     path=path,
                     text=text,
                     **kwargs,
                 )
-                if callable(value):
-                    result.update(default="load", load=value)
-                elif isinstance(value, dict):
-                    result.update(default="value", value=use.js.freeze(value))
-                else:
-                    result.update(default="value", value=value)
-
+                if isinstance(value, dict):
+                    value = use.js.freeze(value)
             else:
-                result.update(default="value", value=use.js.freeze(locals))
+                value = use.js.freeze(locals)
 
-            return result
+            
+
+            return dict(default="value", value=value)
 
     @use.transpiler("json")
     class cls(use.Base):
@@ -331,9 +296,9 @@ def main(
 
     def _():
 
-        ##Foo, foo = use("use/foo/foo.py")
-        ##log("foo:", foo())
-        ##log("text:", use("use/foo/foo.py", key="text"))
+        Foo, foo = use("use/foo/foo.py")
+        log("foo:", foo())
+        log("text:", use("use/foo/foo.py", key="text"))
         log("html:", use("use/foo/foo.html"))
 
         foo = use("use/foo/foo.json")
@@ -341,12 +306,10 @@ def main(
         log("json:", foo)
         log("json:", use("use/foo/foo.json"))
 
-        ##use("use/foo/bar/bar.py").bar()
-        ##log("node:", use("use/foo/bar/bar.py").node)
+        use("use/foo/bar/bar.py").bar()
+        log("node:", use("use/foo/bar/bar.py").node)
 
     ##_()
 
-    log("ping:", use("use/ping.py")())  ##
-    log("ping:", use("use/ping.py")())  ##
-
-    log("pong:", use("use/pong.py")())  ##
+    log('ping:', use('use/ping.py')())##
+    log('ping:', use('use/ping.py')())##
