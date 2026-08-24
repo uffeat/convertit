@@ -1,11 +1,13 @@
-export default async (use, { node, path, text, test, ...rest } = {}) => {
-  if (test) {
-    console.log("Unbuilt version of", path);
-  }
+export default async (use, {log}) => {
+  const pong = await use("use/pong.js");
+  console.log("pong:", pong());
 
-  function ping() {
-    return "PING.JS";
-  }
+  console.log("text:", await use("use/pong.js", { key: "text" }));
 
-  return ping;
+  return (caller) => {
+    log("caller:", caller);
+    return function ping() {
+      return "PING";
+    };
+  };
 };

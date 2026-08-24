@@ -1,12 +1,14 @@
-def main(use, Base=None, **kwargs):
+def main(use, **_):
     """."""
+
+    Base = use("/tools/base.py")
 
     DASH = "/"
     DOT = "."
 
-    class Path(Base):
+    class PathType(Base):
         def __init__(self, specifier: str):
-            Base.__init__(self, specifier=specifier)
+            Base.__init__(self, detail={}, specifier=specifier)
             source, _, _path = specifier.partition(DASH)
             path = f"{DASH}{_path}"
             _parents, _, name = specifier.rpartition(DASH)
@@ -17,33 +19,26 @@ def main(use, Base=None, **kwargs):
                 stem, _, types = name.partition(DOT)
                 shapes, _, type_ = types.rpartition(DOT)
                 self._.update(
-                    # is-file flag
                     file=True,
-                    # file suffixes without file type
                     shapes=shapes,
-                    # file type
                     type=type_,
-                    # All file suffixes
                     types=types,
                 )
             else:
                 stem = name
             self._.update(
-                # path with source
                 full=source + path,
-                # name of file of leaf dir
                 name=name,
-                # parents of file or leaf dir. Does not include source
                 parents=tuple(parents),
-                # path parts without source, but with file or leaf dir stem
                 parts=tuple([*parents, stem]),
-                # path relative to source. Always starts with '/'
                 path=path,
                 # Ensure that no source is interpreted as '/'
                 source=source or DASH,
-                # stem of file or leaf dir
                 stem=stem,
             )
+
+            # NOTE Currently, 'full' is identical to 'specifier'. However, keep explicit
+            # construction of 'full', since later versions may introduce special specifier features.
 
         @property
         def _(self) -> dict:
@@ -86,7 +81,74 @@ def main(use, Base=None, **kwargs):
         def __str__(self) -> str:
             return self.full
 
-    def load(caller):
-        return Path
+        @property
+        def detail(self) -> dict:
+            return self._["detail"]
 
-    return load
+        @property
+        def file(self) -> bool:
+            """Returns is-file flag."""
+            return self._.get("file", False)
+
+        @property
+        def full(self) -> str:
+            """Returns path with source."""
+            return self._["full"]
+
+        @property
+        def name(self) -> str:
+            """Returns name of file of leaf dir."""
+            return self._["name"]
+
+        @property
+        def parents(self) -> tuple:
+            """Returns parents of file or leaf dir. Does not include source."""
+            return self._["parents"]
+
+        @property
+        def parts(self) -> tuple:
+            """Returns path parts without source, but with file or leaf dir stem."""
+            return self._["parts"]
+
+        @property
+        def path(self) -> str:
+            """Returns path relative to source. Always starts with '/'."""
+            return self._["path"]
+
+        @property
+        def shapes(self) -> str:
+            """Returns file suffixes without file type."""
+            return self._.get("shapes", "")
+
+        @property
+        def source(self) -> str:
+            """Returns source ('/' if no explicit source)."""
+            return self._["source"]
+
+        @property
+        def specifier(self) -> str:
+            """Returns specifier."""
+            return self._["specifier"]
+
+        @property
+        def stem(self) -> str:
+            """Returns stem of file or leaf dir."""
+            return self._["stem"]
+
+        @property
+        def type(self) -> str:
+            """Returns file type."""
+            return self._.get("type", "")
+
+        @property
+        def types(self) -> str:
+            """Returns all file suffixes."""
+            return self._.get("types", "")
+
+    def Path(arg) -> PathType:
+        """."""
+        if isinstance(arg, PathType):
+            return arg
+        return PathType(arg)
+
+    return Path

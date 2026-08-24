@@ -6,9 +6,8 @@ def main(
     def pong(*args, **kwargs):
         return 'PONG'
 
-    def load(*args, caller=None, session: int = None, **kwargs):
+    def load(caller):
         log("caller:", caller)
-        log("session:", session)
-        return pong
+        return dict(pong=pong)
 
     return load

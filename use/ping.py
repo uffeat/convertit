@@ -1,15 +1,15 @@
 def main(
-    use: callable, log=None, path: str = None, test: bool = None, **kwargs
+    use: callable, log=None, meta=None, path: str = None, test: bool = None, **kwargs
 ) -> callable:
 
     
 
-    log("use.meta.DEV:", use.meta.DEV)
+    log("meta.DEV:", meta.DEV)
 
    
 
-    pong = use("use/pong.py")
-    log("pong:", pong)
+    pong = use("use/pong.py").pong
+    log("pong:", pong())
 
     if test:
         log(f"Unbuilt version of {path.full}")
@@ -21,9 +21,9 @@ def main(
         count["value"] += 1
         return result
 
-    def load(*args, caller=None, session: int = None, **kwargs):
+    def load(caller):
         log("caller:", caller)
-        log("session:", session)
+        
         return ping
 
     return load

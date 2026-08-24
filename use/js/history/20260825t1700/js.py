@@ -1,38 +1,31 @@
-def main(use, Base=None, anvil=None, **kwargs):
+def main(use, **kwargs):
     """."""
+    from anvil.js import import_from, new
+    from anvil.js.window import Blob, Object, Reflect, URL, window
 
-    window = anvil.window
-    
-    
-    import_from = anvil.js.import_from
-    new = anvil.js.new
-    
-    class Js(Base):
+    _ = {}
 
-        def __init__(self):
-            Base.__init__(self)
+    class js:
 
         def __getattr__(self, key: str):
             return self[key]
 
         def __getitem__(self, key: str):
-            if key in self._:
-                return self._[key]
             item = getattr(window, key, None)
             return item
 
         def freeze(self, target):
             """Freezes target (shallowly)."""
-            return self.Object.freeze(target)
+            return Object.freeze(target)
 
         def module(self, text: str, path: str = None):
             """Returns constructed JS module (no caching)."""
             if path:
                 text = f"{text}\n//# sourceURL={path}"
-            blob = new(self.Blob, [text], dict(type="text/javascript"))
-            url = self.URL.createObjectURL(blob)
+            blob = new(Blob, [text], dict(type="text/javascript"))
+            url = URL.createObjectURL(blob)
             result = import_from(url)
-            self.URL.revokeObjectURL(url)
+            URL.revokeObjectURL(url)
             return result
 
         def new(self, target):
@@ -45,7 +38,7 @@ def main(use, Base=None, anvil=None, **kwargs):
 
         def object(self, **kwargs):
             """Returns JS vanilla object."""
-            result = self.Object.create({})
+            result = Object.create({})
             for key, value in kwargs.items():
                 result[key] = value
             return result
@@ -55,7 +48,7 @@ def main(use, Base=None, anvil=None, **kwargs):
             # HACK Circumvents Anvil-Python's lack of support for JS 'delete'.
             if key in target:
                 value = target[key]
-                self.Reflect.deleteProperty(target, key)
+                Reflect.deleteProperty(target, key)
                 return value
             else:
                 return default
@@ -79,7 +72,7 @@ def main(use, Base=None, anvil=None, **kwargs):
         def type(self, value, *refs):
             """Returns type name as JS sees it - or checks against refs."""
             try:
-                type_name = self.Object.prototype.toString.call(value)[8:-1]
+                type_name = Object.prototype.toString.call(value)[8:-1]
             except:
                 type_name = ""
             if refs:
@@ -87,18 +80,13 @@ def main(use, Base=None, anvil=None, **kwargs):
                     if ref == type_name:
                         return True
                 return False
+
             return type_name
 
         def use(self, *args):
             """."""
             return import_from(*args)
 
-    value = Js()
+    js = js()
 
-    def load(caller):
-        return value
-
-    return load
-
-
-   
+    return js

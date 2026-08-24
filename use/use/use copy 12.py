@@ -1,13 +1,4 @@
-def main(
-    _use: callable,
-    Base: type = None,
-    Log: type = None,
-    anvil=None,
-    log: callable=None,
-    owner=None,
-    path: str = None,
-    **kwargs,
-) -> callable:
+def main(_use, Base=None, anvil=None, **kwargs):
     """."""
     Uid = _use("use/tools/uid.py")
     Registry = _use("use/use/registry.py")
@@ -16,14 +7,20 @@ def main(
     js = _use("use/js/js.py")
     meta = _use("use/meta/meta.py")
     window = _use("use/window/window.py")
+    Log = _use("use/log/log.py")
 
-    ##log('parcel:', use._cache["use/tools/uid.py"])##
+    ##print('parcel:', use._cache["use/tools/uid.py"])##
 
-    ##log('cache:', owner._cache)##
+    ##print('cache:', use._cache)##
+
+    _cache: dict = _use._cache
+
+    
+    
 
     class Use(Base):
         def __init__(self, **kwargs):
-            Base.__init__(self, **kwargs)
+            Base.__init__(self, _cache={}, **kwargs)
 
             # Create top-level container
             node = document.createElement("div")
@@ -59,7 +56,9 @@ def main(
                 self._cache[path.full] = parcel
 
             # Enable kwargs from JS
-            kwargs.update(**next(iter([a for a in args if js.type(a, "Object")]), {}))
+            kwargs.update(
+                **next(iter([a for a in args if js.type(a, "Object")]), {})
+            )
 
             key = kwargs.get("key", parcel.get("default"))
 
@@ -77,7 +76,7 @@ def main(
                 result = parcel.get(key)
 
             if key == "load":
-                result = result(dict(caller=kwargs.get("caller"), session=session))
+                result = result(caller=kwargs.get("caller"), session=session)
 
             if path.types in self.processor:
                 process = self.processor[path.types]
@@ -87,10 +86,20 @@ def main(
 
             return result
 
-    use = Use(_cache=owner._cache)
+    use = Use()
 
-   
-    Uid = use("use/tools/uid.py")##
+    for key, parcel in _cache.items():
+        use._cache[key] = parcel
+        use.node.append(parcel['node'])
+
+
+
+
+    ##use._cache["use/tools/uid.py"] = dict(value=Uid, default='value')
+    ##Uid = use("use/tools/uid.py")
+
+
+
 
     @use.source("use")
     class cls(Base):
@@ -126,7 +135,11 @@ def main(
 
         def _get_text(self, node=None, path=None) -> str:
             """Returns uncached text from sheet."""
-            value = js.getComputedStyle(node).getPropertyValue(f"--__use__").strip()
+            value = (
+                js.getComputedStyle(node)
+                .getPropertyValue(f"--__use__")
+                .strip()
+            )
             if not value:
                 raise ValueError(f"Invalid path: {path.full}.")
             text = js.atob(value[1:-1])
@@ -197,7 +210,7 @@ def main(
                 kwargs.update(locals)
 
                 def _use(*args, **kwargs):
-                    return use(*args, caller=path.full, **kwargs)
+                    return use(*args, caller=path, **kwargs)
 
                 value = main(
                     _use,
@@ -244,7 +257,5 @@ def main(
             if kwargs.get("key") != "text":
                 return self._parse(result)
 
-    def load(caller):
-        return use
 
-    return load
+    return use

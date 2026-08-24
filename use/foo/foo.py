@@ -1,10 +1,10 @@
-def main(use: callable, **kwargs) -> dict:
+def main(use: callable, Base: type=None, **kwargs) -> dict:
     """."""
     
 
-    class Foo(use.Base):
+    class Foo(Base):
         def __init__(self):
-            use.Base.__init__(self, foo="Py foo")
+            Base.__init__(self, foo="Foo")
            
 
         
@@ -15,4 +15,4 @@ def main(use: callable, **kwargs) -> dict:
 
     
     return Foo, foo
-    return dict(Foo=Foo, foo=foo)
+    ##return dict(Foo=Foo, foo=foo)

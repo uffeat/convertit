@@ -2,29 +2,32 @@ def main(use, Base=None, anvil=None, **kwargs):
     """."""
 
     CustomEvent = anvil.window.CustomEvent
-    document = anvil.window.document
+    Reflect = anvil.window.Reflect
+    globalThis = anvil.window.globalThis
+    
     new = anvil.js.new
-
-    class Document(Base):
-        """document wrapper."""
+   
+    
+    class Window(Base):
+        """window wrapper."""
 
         def __init__(self):
             Base.__init__(self)
 
         def __call__(self, **updates):
             for key, value in updates.items():
-                setattr(document, key, value)
+                setattr(globalThis, key, value)
             return self
 
         def __getattr__(self, key):
             return self[key]
 
         def __getitem__(self, key):
-            return getattr(document, key, None)
+            return getattr(globalThis, key, None)
 
         @property
-        def document(self):
-            return document
+        def window(self):
+            return globalThis
 
         def on(self, *args, run: bool = False, **options) -> callable:
             """Decorates event handler."""
@@ -32,21 +35,29 @@ def main(use, Base=None, anvil=None, **kwargs):
             def register(handler: callable) -> callable:
                 """Registers event handler."""
                 event_type = next(iter(args), handler.__name__)
-                document.addEventListener(event_type, handler, options)
+                globalThis.addEventListener(event_type, handler, options)
 
                 if run:
                     handler(new(CustomEvent, event_type, dict(detail="run")))
 
                 def remove() -> None:
                     """Removes event handler."""
-                    document.removeEventListener(handler)
+                    globalThis.removeEventListener(handler)
 
                 return remove
 
             return register
+        
+        def remove(self, key: str):
+            """Removes item from global namespace."""
+            value = self[key]
+            Reflect.deleteProperty(globalThis, key)
+            return value
 
-    value = Document()
 
+    
+    value = Window()
+    
     def load(caller):
         return value
 

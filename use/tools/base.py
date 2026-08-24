@@ -10,12 +10,14 @@ def main(use, **kwargs)-> type:
         def _(self) -> dict:
             return self.__
 
-        @property
-        def owner(self):
-            return self._.get("owner")
-        
+        def __getattr__(self, key: str):
+            return self._.get(key)
+
     return Base
+
+    
         
 
 
     
+
