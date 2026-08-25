@@ -1,9 +1,13 @@
-export default async (use) => {
+export default async (use, {path, session}) => {
+
+  function pong() {
+      console.log("session():", session());
+      return `${path}`;
+    };
   
 
-  return (caller) => {
-    return function pong() {
-      return "PONG";
-    };
+  return (session) => {
+    console.log("session:", session);
+    return pong
   };
 };

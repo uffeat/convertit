@@ -1,13 +1,13 @@
 def main(
-    use: callable, log=None, **kwargs
+    use: callable, log=None, path: str = None, session: callable = None, **kwargs
 ) -> callable:
 
-   
     def pong(*args, **kwargs):
-        return 'PONG'
+        return f"{path}"
 
-    def load(caller):
-        log("caller:", caller)
+    def load(session):
+        log("session:", session)
+        ##return pong
         return dict(pong=pong)
 
     return load

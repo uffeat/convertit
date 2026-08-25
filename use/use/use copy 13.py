@@ -3,7 +3,7 @@ def main(
     Base: type = None,
     Log: type = None,
     anvil=None,
-    log: callable = None,
+    log: callable=None,
     owner=None,
     path: str = None,
     **kwargs,
@@ -42,11 +42,11 @@ def main(
 
         def __call__(self, specifier: str, *args, **kwargs):
             """Returns result from import engine."""
-            session = dict(
-                caller=kwargs.get("caller", self.path), session=self._create_uid()
-            )
+            session = dict(caller=kwargs.get("caller", self.path), session=self._create_uid())
             session = js.freeze(session)
             self._["_session"] = session
+
+          
 
             path = Path(specifier)
 
@@ -97,7 +97,8 @@ def main(
 
     use = Use(_cache=owner._cache, path=path)
 
-    Uid = use("use/tools/uid.py")  ##
+   
+    Uid = use("use/tools/uid.py")##
 
     @use.source("use")
     class cls(Base):
@@ -216,7 +217,6 @@ def main(
                     window=window,
                     log=Log(path=path.full),
                     path=path,
-                    session=use.session,
                     text=text,
                     **kwargs,
                 )
@@ -227,15 +227,18 @@ def main(
 
                     def load(*args, **kwargs):
                         result = value(*args, **kwargs)
+                        if isinstance(result, dict):
+                            result = js.freeze(result)
                         return result
 
                     return dict(default="load", load=load)
 
-                
+                if isinstance(value, dict):
+                    return dict(default="value", value=js.freeze(value))
 
                 return dict(default="value", value=value)
 
-            return dict(default="value", value=locals)
+            return dict(default="value", value=js.freeze(locals))
 
     @use.processor("json")
     class cls(Base):
@@ -249,14 +252,7 @@ def main(
             if kwargs.get("key") != "text":
                 return self._parse(result)
 
-    @use.processor("py")
-    def process(result, *args, **kwargs):
-        """."""
-        if 'text' not in kwargs:
-            if isinstance(result, dict):
-                return js.freeze(result)
-
-    def load(session):
+    def load(caller):
         return use
 
     return load
