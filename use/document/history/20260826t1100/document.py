@@ -1,4 +1,5 @@
 def main(use, Base=None, anvil=None, **kwargs):
+    """."""
 
     CustomEvent = anvil.window.CustomEvent
     document = anvil.window.document
@@ -44,4 +45,9 @@ def main(use, Base=None, anvil=None, **kwargs):
 
             return register
 
-    return Document()
+    value = Document()
+
+    def load(caller):
+        return value
+
+    return load

@@ -93,9 +93,12 @@ def main(use, Base=None, anvil=None, **kwargs):
             """."""
             return import_from(*args)
 
-    return Js()
+    value = Js()
 
-   
+    def load(caller):
+        return value
+
+    return load
 
 
    

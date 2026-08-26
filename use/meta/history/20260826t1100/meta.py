@@ -21,8 +21,10 @@ def main(use, Base=None, anvil=None, **kwargs):
             return origin
 
    
+    value = Meta()
     
-    
-    
-    return Meta()
+    def load(caller):
+        return value
+
+    return load
     

@@ -256,6 +256,7 @@ def main(
             if isinstance(result, dict):
                 return js.freeze(result)
 
-    
+    def load(session):
+        return use
 
-    return use
+    return load

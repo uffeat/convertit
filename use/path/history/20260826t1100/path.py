@@ -1,5 +1,5 @@
 def main(use, Base=None, **kwargs):
-    
+    """."""
 
     DASH = "/"
     DOT = "."
@@ -86,6 +86,7 @@ def main(use, Base=None, **kwargs):
         def __str__(self) -> str:
             return self.full
 
-   
+    def load(caller):
+        return Path
 
-    return Path
+    return load

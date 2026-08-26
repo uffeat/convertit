@@ -1,5 +1,5 @@
 def main(use, Base=None, anvil=None, **kwargs):
-    """."""
+    
 
     CustomEvent = anvil.window.CustomEvent
     Reflect = anvil.window.Reflect
@@ -9,7 +9,7 @@ def main(use, Base=None, anvil=None, **kwargs):
    
     
     class Window(Base):
-        """window wrapper."""
+        
 
         def __init__(self):
             Base.__init__(self)
@@ -56,9 +56,6 @@ def main(use, Base=None, anvil=None, **kwargs):
 
 
     
-    value = Window()
     
-    def load(caller):
-        return value
 
-    return load
+    return Window()

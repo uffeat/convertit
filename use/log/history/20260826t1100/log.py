@@ -39,9 +39,10 @@ def main(use, Base=None, anvil=None, **kwargs):
                 """."""
 
 
-   
+    def load(caller):
+        return Log
 
-    return Log
+    return load
 
 
 

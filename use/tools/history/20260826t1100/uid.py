@@ -15,9 +15,10 @@ def main(use, Base=None, **kwargs)-> callable:
 
   
 
-    
+    def load(caller):
+        return Uid
 
-    return Uid
+    return load
 
     
         
