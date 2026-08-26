@@ -39,7 +39,7 @@ def main(
                 node = anvil.window.document.createElement("div")
                 node.setAttribute("__path__", path)
 
-                message = dict(node=node)
+                message = dict(node=node, path=specifier)
 
                 if self.meta.DEV:
                     try:
@@ -69,7 +69,6 @@ def main(
                         Log=Log,
                         anvil=anvil,
                         log=Log(path=specifier),
-                       
                         **message,
                     )
                 else:
@@ -80,7 +79,6 @@ def main(
 
         def _get_text(self, node) -> str:
             """Returns uncached text from sheet."""
-
             anvil.window.document.head.append(node)
             value = (
                 anvil.window.getComputedStyle(node)
@@ -94,6 +92,7 @@ def main(
     use = Use()
 
     ##
+    log("ping:", use("use/foo/ping.py")())  ##
     ##log("ping:", use("use/ping.js")())  ##
     ##log("ping:", use("use/ping.py")())  ##
     ##log("ping:", use("use/ping.py")())  ##
