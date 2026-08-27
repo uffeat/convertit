@@ -1,12 +1,13 @@
 def main(
     use: callable,
     log=None,
+    meta=None,
     path: str = None,
     test: bool = None,
     **kwargs,
 ) -> callable:
 
-    log("use.meta.DEV:", use.meta.DEV)
+    log("meta.DEV:", meta.DEV)
 
     
     if test:
