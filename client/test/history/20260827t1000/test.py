@@ -1,4 +1,5 @@
 def main(
+    use,
     Base: type = None,
     Log: type = None,
     Path: type = None,
@@ -6,9 +7,16 @@ def main(
     log: callable = None,
     meta=None,
     path: str = None,
+    tools=None,
     **kwargs,
 ):
     """."""
+
+    ##log("dir(meta):", dir(meta))  ##
+    ##log("meta.__module__:", meta.__module__)  ##
+    ##log("dir(tools):", dir(tools))  ##
+    ##log("tools.__dict__:", tools.__dict__)  ##
+    ##log("tools:", tools)  ##
 
     class Use(Base):
         def __init__(self, **kwargs):
@@ -62,7 +70,7 @@ def main(
                         Base=Base,
                         Log=Log,
                         anvil=anvil,
-                        log=Log(path=specifier),
+                        log=Log(specifier),
                         meta=meta,
                         **message,
                     )
@@ -94,7 +102,6 @@ def main(
     ##
 
     js = use("use/js/js.py")
-
     window = use("use/window/window.py")
 
     ##use = use("use/use/use.py")
@@ -113,7 +120,7 @@ def main(
             main = locals.get("main")
             main(
                 use,
-                log=Log(path=path),
+                log=Log(path),
                 path=path,
                 test=True,
             )

@@ -1,4 +1,5 @@
 def main(
+    use,
     Base: type = None,
     Log: type = None,
     Path: type = None,
@@ -6,9 +7,20 @@ def main(
     log: callable = None,
     meta=None,
     path: str = None,
+    tools=None,
     **kwargs,
 ):
     """."""
+
+    ##log("dir(meta):", dir(meta))  ##
+    ##log("meta.__module__:", meta.__module__)  ##
+    ##log("dir(tools):", dir(tools))  ##
+    ##log("tools.__dict__:", tools.__dict__)  ##
+    ##log("tools:", tools)  ##
+
+    js = use("use/js/js.py")
+    document = use("use/document/document.py")
+    window = use("use/window/window.py")
 
     class Use(Base):
         def __init__(self, **kwargs):
@@ -22,21 +34,19 @@ def main(
         def __call__(self, specifier: str, *args, **kwargs):
             """Returns result from import engine."""
             # Parse specifier
-            source, *path = specifier.partition("/")
-            path = "".join(path)
-            *_, suffix = path.rpartition(".")
+            path = Path(specifier)
 
-            if specifier in self._cache:
-                result = self._cache[specifier]
+            if path.full in self._cache:
+                result = self._cache[path.full]
             else:
-                node = anvil.window.document.createElement("div")
+                node = document.createElement("div")
                 node.setAttribute("__path__", path)
 
-                message = dict(node=node, path=specifier)
+                message = dict(node=node)
 
                 if meta.DEV:
                     try:
-                        text = anvil.server.call(f"_{source}", specifier)
+                        text = anvil.server.call(f"_{path.source}", path.full)
                         message.update(test=True)
                     except:
                         text = self._get_text(node)
@@ -44,17 +54,14 @@ def main(
                     text = self._get_text(node)
                 message.update(text=text)
 
-                if suffix == "js":
-                    text = f"{text}\n//# sourceURL={path}"
-                    blob = anvil.js.new(
-                        anvil.window.Blob, [text], dict(type="text/javascript")
+                if path.type == "js":
+                    module = js.module(text, path=path)
+                    result = module.default(
+                        self,
+                        dict(log=Log(path.full), meta=meta._, path=path.full, **message),
                     )
-                    url = anvil.window.URL.createObjectURL(blob)
-                    module = anvil.js.import_from(url)
-                    anvil.window.URL.revokeObjectURL(url)
-                    result = module.default(self, dict(**message))
 
-                elif suffix == "py":
+                elif path.type == "py":
                     locals = {}
                     exec(text, {}, locals)
                     result = locals["main"](
@@ -62,38 +69,34 @@ def main(
                         Base=Base,
                         Log=Log,
                         anvil=anvil,
-                        log=Log(path=specifier),
+                        log=Log(path.full),
                         meta=meta,
+                        path=path,
                         **message,
                     )
                 else:
                     result = text
-                self._cache[specifier] = result
+                self._cache[path.full] = result
 
             return result
 
         def _get_text(self, node) -> str:
             """Returns uncached text from sheet."""
-            anvil.window.document.head.append(node)
-            value = (
-                anvil.window.getComputedStyle(node)
-                .getPropertyValue(f"--__use__")
-                .strip()
-            )
+            document.head.append(node)
+            value = js.getComputedStyle(node).getPropertyValue(f"--__use__").strip()
             node.remove()
-            text = anvil.window.atob(value[1:-1])
+            text = js.atob(value[1:-1])
             return text
 
     use = Use()
 
     ##
     log("ping:", use("use/foo/ping.py")())  ##
+    log("ping:", use("use/foo/ping.js")())  ##
     ##log("ping:", use("use/ping.js")())  ##
     ##log("ping:", use("use/ping.py")())  ##
     ##log("ping:", use("use/ping.py")())  ##
     ##
-
-    js = use("use/js/js.py")
 
     window = use("use/window/window.py")
 
@@ -113,7 +116,7 @@ def main(
             main = locals.get("main")
             main(
                 use,
-                log=Log(path=path),
+                log=Log(path),
                 path=path,
                 test=True,
             )

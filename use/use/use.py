@@ -183,6 +183,8 @@ def main(
                         node=node,
                         path=path.full,
                         test=test,
+
+                        meta=meta
                     ),
                 )
                 if js.type(value, "Array", "Object"):
