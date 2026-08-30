@@ -1,6 +1,5 @@
 def main(
     _use,
-    Log: type = None,
     log: callable = None,
     path: str = None,
     tools=None,
@@ -17,6 +16,7 @@ def main(
     document = window.document
 
     Base = tools.base.Base
+    Log = tools.log.Log
     Path = tools.path.Path
     meta = tools.meta.meta
 
@@ -25,21 +25,34 @@ def main(
     ##log("dir(meta):", dir(meta))  ##
     ##log("meta.__module__:", meta.__module__)  ##
     ##log("dir(tools):", dir(tools))  ##
-    ##log("tools.__dict__:", tools.__dict__)  ##
+    log("tools.__dict__:", tools.__dict__)  ##
     ##log("type(tools):", type(tools))  ##
     ##log("tools:", tools)  ##
    
     log("tools.meta.__dict__:", tools.meta.__dict__)  ##
 
 
-    def parse_module(module: ModuleType):
+   
+
+    
+
+
+    def parse_module(target: ModuleType) -> dict:
         """."""
-        key = 'client_code/' + '/'.join(module.__file__.split('/')[2:])
-        value = getattr(module, 'export', None)
-        return key, value
+        result = {}
+        modules = [v for v in target.__dict__.values() if isinstance(v, ModuleType)]
+        if modules:
+            for module in modules:
+                result.update(parse_module(module))
+        else:
+            result['client_code/' + '/'.join(target.__file__.split('/')[2:])] = getattr(target, 'export', None)
+        return result
+        
         
 
-    parse_module(tools.meta)
+    
+    ##log('parsed:', parse_module(tools))
+    ##log('parsed:', parse_module(tools.meta))
     
 
 
@@ -111,10 +124,16 @@ def main(
 
             return result
 
-        def add(self, key: str, value):
+        def add(self, *args):
             """."""
-            parcel = dict(value=value)
-            self._cache[key] = parcel
+            module = next(iter([a for a in args if isinstance(a, ModuleType)]), None)
+            if module:
+                parsed = parse_module(module)
+                for key, value in parsed.items():
+                    self._cache[key] = dict(value=value)
+            else:
+                key, value = args
+                self._cache[key] = dict(value=value)
             return self
 
         def _get_text(self, node) -> str:
@@ -126,6 +145,13 @@ def main(
             return text
 
     use = Use()
+
+    use.add(tools)
+
+    _meta = use('client_code/tools/meta.py')
+    log("same:",  _meta is meta)  ##
+
+
 
 
     ##
