@@ -1,5 +1,5 @@
 def main(
-    use,
+    _use,
     Log: type = None,
     log: callable = None,
     path: str = None,
@@ -8,8 +8,13 @@ def main(
 ):
     """."""
     from types import ModuleType
-    
+    import anvil.js
     import anvil.server
+
+    import_from = anvil.js.import_from
+    new = anvil.js.new
+    window = anvil.js.window
+    document = window.document
 
     Base = tools.base.Base
     Path = tools.path.Path
@@ -23,26 +28,27 @@ def main(
     ##log("tools.__dict__:", tools.__dict__)  ##
     ##log("type(tools):", type(tools))  ##
     ##log("tools:", tools)  ##
-    ##foo = tools.__dict__.get('meta')
-    ##log("foo.__dict__:", foo.__dict__)  ##
+   
+    log("tools.meta.__dict__:", tools.meta.__dict__)  ##
 
-    def scope(target):
-        return target()
 
-    @scope
-    def _():
-        for key, value in tools.__dict__.items():
-            if not isinstance(value, ModuleType):
-                continue
-            specifier = (
-                f"client_code{value.__file__.partition(tools.meta.meta.name)[2]}"
-            )
-            print("specifier:", specifier)
-            print("value:", value)
+    def parse_module(module: ModuleType):
+        """."""
+        key = 'client_code/' + '/'.join(module.__file__.split('/')[2:])
+        value = getattr(module, 'export', None)
+        return key, value
+        
 
-    js = use("use/js/js.py")
-    document = use("use/document/document.py")
-    window = use("use/window/window.py")
+    parse_module(tools.meta)
+    
+
+
+   
+
+    window = anvil.js.window
+    document = window.document
+
+    
 
     class Use(Base):
         def __init__(self, **kwargs):
@@ -75,7 +81,12 @@ def main(
                 parcel.update(text=text)
                 # Transpile
                 if path.type == "js":
-                    module = js.module(text, path=path)
+                    text = f"{text}\n//# sourceURL={path.full}"
+                    blob = new(window.Blob, [text], dict(type="text/javascript"))
+                    url = window.URL.createObjectURL(blob)
+                    module = import_from(url)
+                    window.URL.revokeObjectURL(url)
+
                     value = module.default(
                         self,
                         dict(path=path.full, **parcel),
@@ -102,16 +113,20 @@ def main(
 
         def add(self, key: str, value):
             """."""
+            parcel = dict(value=value)
+            self._cache[key] = parcel
+            return self
 
         def _get_text(self, node) -> str:
             """Returns uncached text from sheet."""
             document.head.append(node)
-            value = js.getComputedStyle(node).getPropertyValue(f"--__use__").strip()
+            value = window.getComputedStyle(node).getPropertyValue(f"--__use__").strip()
             node.remove()
-            text = js.atob(value[1:-1])
+            text = window.atob(value[1:-1])
             return text
 
     use = Use()
+
 
     ##
     log("ping:", use("use/foo/ping.py")())  ##
@@ -121,6 +136,7 @@ def main(
     ##log("ping:", use("use/ping.py")())  ##
     ##
 
+    
     window = use("use/window/window.py")
 
     ##use = use("use/use/use.py")
@@ -147,10 +163,10 @@ def main(
         @window.on()
         def keydown(event):
             if event.code == "KeyU" and event.shiftKey:
-                stored = js.localStorage.getItem("__test__")
+                stored = window.localStorage.getItem("__test__")
                 path = window.prompt("Path:", stored)
                 if path:
-                    js.localStorage.setItem("__test__", path)
+                    window.localStorage.setItem("__test__", path)
                     test(path)
 
     # XXX TODO Move to tests
