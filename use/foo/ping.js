@@ -1,13 +1,7 @@
-export default async (use, { log, path, meta }) => {
-
-  console.log('meta:',meta)
-
-  log(path)
- 
-  
+export default async (use, { path }) => {
   function ping() {
     return `${path}`;
   }
 
-  return ping
+  return ping;
 };

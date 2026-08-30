@@ -1,8 +1,11 @@
-def main(use, Base=None, anvil=None, **kwargs):
+def main(use, tools=None, **kwargs):
+    import anvil.js
 
-    CustomEvent = anvil.window.CustomEvent
-    document = anvil.window.document
+    CustomEvent = anvil.js.window.CustomEvent
+    document = anvil.js.window.document
     new = anvil.js.new
+
+    Base = tools.base.Base
 
     class Document(Base):
         """document wrapper."""

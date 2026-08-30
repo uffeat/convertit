@@ -1,9 +1,16 @@
-def main(use, Base=None, anvil=None, **kwargs):
+def main(use, tools=None, **kwargs):
+    import anvil.js
+    
+   
+    new = anvil.js.new
+    window = anvil.js.window
+
+    Base = tools.base.Base
     
 
-    CustomEvent = anvil.window.CustomEvent
-    Reflect = anvil.window.Reflect
-    globalThis = anvil.window.globalThis
+    CustomEvent = window.CustomEvent
+    Reflect = window.Reflect
+    globalThis = window.globalThis
     
     new = anvil.js.new
    

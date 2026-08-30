@@ -1,17 +1,11 @@
 def main(
     use: callable,
-    log=None,
-    meta=None,
-    path: str = None,
+    path=None,
     test: bool = None,
     **kwargs,
 ) -> callable:
 
-    log("meta.DEV:", meta.DEV)
-
-    
-    if test:
-        log(f"Unbuilt version of {path}")
+    import convertit.tools as tools
 
     count = dict(value=0)
 
@@ -19,7 +13,5 @@ def main(
         result = f"{path} x {count['value']}"
         count["value"] += 1
         return result
-
-    
 
     return ping

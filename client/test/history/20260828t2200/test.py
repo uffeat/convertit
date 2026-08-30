@@ -1,44 +1,22 @@
 def main(
     use,
+    Base: type = None,
     Log: type = None,
+    Path: type = None,
+    anvil=None,
     log: callable = None,
+    meta=None,
     path: str = None,
     tools=None,
     **kwargs,
 ):
     """."""
-    from types import ModuleType
-    
-    import anvil.server
 
-    Base = tools.base.Base
-    Path = tools.path.Path
-    meta = tools.meta.meta
-
-    ##log("dir(app):", dir(app))  ##
-    # log("(app.__dict__:", app.__dict__)  ## This is really interesting!!!
     ##log("dir(meta):", dir(meta))  ##
     ##log("meta.__module__:", meta.__module__)  ##
     ##log("dir(tools):", dir(tools))  ##
     ##log("tools.__dict__:", tools.__dict__)  ##
-    ##log("type(tools):", type(tools))  ##
     ##log("tools:", tools)  ##
-    ##foo = tools.__dict__.get('meta')
-    ##log("foo.__dict__:", foo.__dict__)  ##
-
-    def scope(target):
-        return target()
-
-    @scope
-    def _():
-        for key, value in tools.__dict__.items():
-            if not isinstance(value, ModuleType):
-                continue
-            specifier = (
-                f"client_code{value.__file__.partition(tools.meta.meta.name)[2]}"
-            )
-            print("specifier:", specifier)
-            print("value:", value)
 
     js = use("use/js/js.py")
     document = use("use/document/document.py")
@@ -59,49 +37,47 @@ def main(
             path = Path(specifier)
 
             if path.full in self._cache:
-                parcel = self._cache[path.full]
+                result = self._cache[path.full]
             else:
                 node = document.createElement("div")
                 node.setAttribute("__path__", path)
-                parcel = dict(node=node)
+                message = dict(node=node)
+
                 if meta.DEV:
                     try:
-                        text = anvil.server.call(f"_use", path.full)
-                        parcel.update(test=True)
+                        text = anvil.server.call(f"_{path.source}", path.full)
+                        message.update(test=True)
                     except:
                         text = self._get_text(node)
                 else:
                     text = self._get_text(node)
-                parcel.update(text=text)
-                # Transpile
+                message.update(text=text)
+
                 if path.type == "js":
                     module = js.module(text, path=path)
-                    value = module.default(
+                    result = module.default(
                         self,
-                        dict(path=path.full, **parcel),
+                        dict(log=Log(path.full), meta=meta._, path=path.full, **message),
                     )
-                    if value is not None:
-                        parcel.update(default="value", value=value)
+
                 elif path.type == "py":
                     locals = {}
                     exec(text, {}, locals)
-                    value = locals["main"](
+                    result = locals["main"](
                         self,
+                        Base=Base,
+                        Log=Log,
+                        anvil=anvil,
                         log=Log(path.full),
+                        meta=meta,
                         path=path,
-                        tools=tools,
-                        **parcel,
+                        **message,
                     )
-                    if value is not None:
-                        parcel.update(default="value", value=value)
-                self._cache[path.full] = parcel
-
-            result = parcel.get("value", parcel.get("text"))
+                else:
+                    result = text
+                self._cache[path.full] = result
 
             return result
-
-        def add(self, key: str, value):
-            """."""
 
         def _get_text(self, node) -> str:
             """Returns uncached text from sheet."""

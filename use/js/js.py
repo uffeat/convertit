@@ -1,12 +1,13 @@
-def main(use, Base=None, anvil=None, **kwargs):
+def main(use, tools=None, **kwargs):
     """."""
+    import anvil.js
 
-    window = anvil.window
-    
-    
     import_from = anvil.js.import_from
     new = anvil.js.new
-    
+    window = anvil.js.window
+
+    Base = tools.base.Base
+
     class Js(Base):
 
         def __init__(self):
@@ -94,8 +95,3 @@ def main(use, Base=None, anvil=None, **kwargs):
             return import_from(*args)
 
     return Js()
-
-   
-
-
-   
