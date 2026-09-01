@@ -25,39 +25,43 @@ def main(
     ##log("dir(meta):", dir(meta))  ##
     ##log("meta.__module__:", meta.__module__)  ##
     ##log("dir(tools):", dir(tools))  ##
-    ##log("tools.__dict__:", tools.__dict__)  ##
+    log("tools.__dict__:", tools.__dict__)  ##
     ##log("type(tools):", type(tools))  ##
     ##log("tools:", tools)  ##
+   
+    log("tools.meta.__dict__:", tools.meta.__dict__)  ##
 
-    ##log("tools.path.__dict__:", tools.path.__dict__)  ##
+
+   
+
+    
+
 
     def parse_module(target: ModuleType) -> dict:
         """."""
-        if isinstance(target, ModuleType):
-            file = getattr(target, "__file__", None)
-            if file and isinstance(file, str):
-                result = {}
-                if file.endswith("__init__.py"):
-                    for _target in [
-                        v
-                        for k, v in target.__dict__.items()
-                        if isinstance(v, ModuleType)
-                    ]:
-                        _result = parse_module(_target)
-                        if isinstance(_result, dict):
-                            result.update(_result)
-                else:
-                    export = getattr(target, 'export', None)
-                    if export:
-                        ##key = "client_code/" + "/".join(file.split("/")[2:])
-                        key = "/".join(file.split("/")[2:])
-                        value = export
+        result = {}
+        modules = [v for v in target.__dict__.values() if hasattr(v,  '__file__')]
+        if modules:
+            for module in modules:
+                _result = parse_module(module)
+                if isinstance(_result, dict):
+                    result.update(_result)
+        else:
+            result['client_code/' + '/'.join(target.__file__.split('/')[2:])] = getattr(target, 'export', None)
+        return result
+        
+        
 
-                        result[key] = value
-                return result
+    
+    ##log('parsed:', parse_module(tools))
+    ##log('parsed:', parse_module(tools.meta))
+    
 
-    ##log("parsed:", parse_module(tools))##
-    ##log('parsed:', parse_module(tools.meta))##
+
+   
+
+    window = anvil.js.window
+    document = window.document
 
     
 
@@ -72,11 +76,6 @@ def main(
 
         def __call__(self, specifier: str, *args, **kwargs):
             """Returns result from import engine."""
-
-            log('window', window)##
-
-
-
             # Parse specifier
             path = Path(specifier)
 
@@ -84,7 +83,7 @@ def main(
                 parcel = self._cache[path.full]
             else:
                 node = document.createElement("div")
-                node.setAttribute("__path__", path.path)
+                node.setAttribute("__path__", path)
                 parcel = dict(node=node)
                 if meta.DEV:
                     try:
@@ -116,6 +115,7 @@ def main(
                         self,
                         log=Log(path.full),
                         path=path,
+                        tools=tools,
                         **parcel,
                     )
                     if value is not None:
@@ -126,14 +126,14 @@ def main(
 
             return result
 
-        def add(self, *args, **kwargs):
+        def add(self, *args):
             """."""
             module = next(iter([a for a in args if isinstance(a, ModuleType)]), None)
             if module:
                 parsed = parse_module(module)
                 for key, value in parsed.items():
                     self._cache[key] = dict(value=value)
-            elif len(args) == 2:
+            else:
                 key, value = args
                 self._cache[key] = dict(value=value)
             return self
@@ -150,9 +150,11 @@ def main(
 
     use.add(tools)
 
-    window = use("use/window/window.py")
+    _meta = use('client_code/tools/meta.py')
+    log("same:",  _meta is meta)  ##
 
-    
+
+
 
     ##
     log("ping:", use("use/foo/ping.py")())  ##
@@ -163,6 +165,7 @@ def main(
     ##
 
     
+    window = use("use/window/window.py")
 
     ##use = use("use/use/use.py")
 

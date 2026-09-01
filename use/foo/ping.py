@@ -1,11 +1,18 @@
 def main(
     use: callable,
+    log: callable,
     path=None,
     test: bool = None,
     **kwargs,
 ) -> callable:
 
-    ##import convertit.tools as tools
+    if test:
+        log('Using uncommitted version of', path.full)
+
+    meta = use('tools/meta.py')
+    log('meta.DEV:', meta.DEV)
+
+    
 
     count = dict(value=0)
 

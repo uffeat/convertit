@@ -1,11 +1,13 @@
-def main(use, tools=None, **kwargs):
+def main(use, **kwargs):
     import anvil.js
+
+    Base = use('tools/base.py')
     
    
     new = anvil.js.new
     window = anvil.js.window
 
-    Base = tools.base.Base
+  
     
 
     CustomEvent = window.CustomEvent
