@@ -6,7 +6,7 @@ def main(
     **kwargs,
 ):
     """."""
-   
+    from types import ModuleType
     import anvil.js
     import anvil.server
 
@@ -20,9 +20,44 @@ def main(
     Path = tools.path.Path
     meta = tools.meta.meta
 
-    
+    ##log("dir(app):", dir(app))  ##
+    # log("(app.__dict__:", app.__dict__)  ## This is really interesting!!!
+    ##log("dir(meta):", dir(meta))  ##
+    ##log("meta.__module__:", meta.__module__)  ##
+    ##log("dir(tools):", dir(tools))  ##
+    ##log("tools.__dict__:", tools.__dict__)  ##
+    ##log("type(tools):", type(tools))  ##
+    ##log("tools:", tools)  ##
 
-    
+    ##log("tools.path.__dict__:", tools.path.__dict__)  ##
+
+    def parse_module(target: ModuleType) -> dict:
+        """."""
+        if isinstance(target, ModuleType):
+            file = getattr(target, "__file__", None)
+            if file and isinstance(file, str):
+                result = {}
+                if file.endswith("__init__.py"):
+                    for _target in [
+                        v
+                        for k, v in target.__dict__.items()
+                        if isinstance(v, ModuleType)
+                    ]:
+                        _result = parse_module(_target)
+                        if isinstance(_result, dict):
+                            result.update(_result)
+                else:
+                    export = getattr(target, "export", None)
+                    if export:
+
+                        key = "/".join(file.split("/")[2:])
+                        value = export
+
+                        result[key] = value
+                return result
+
+    ##log("parsed:", parse_module(tools))##
+    ##log('parsed:', parse_module(tools.meta))##
 
     class Use(Base):
         def __init__(self, **kwargs):
@@ -89,7 +124,12 @@ def main(
 
         def add(self, *args, **kwargs):
             """."""
-            if len(args) == 2:
+            module = next(iter([a for a in args if isinstance(a, ModuleType)]), None)
+            if module:
+                parsed = parse_module(module)
+                for key, value in parsed.items():
+                    self._cache[key] = dict(value=value)
+            elif len(args) == 2:
                 key, value = args
                 self._cache[key] = dict(value=value)
             return self

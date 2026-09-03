@@ -1,0 +1,6 @@
+ding = "DING"
+
+
+export = ding
+
+
