@@ -1,91 +1,54 @@
-def main(use, Base=None, **kwargs):
-    
+def main(use, Base=None, **kwargs) -> type:
+    """."""
 
-    DASH = "/"
-    DOT = "."
+    def parse(specifier: str) -> dict:
+        """."""
+        path = specifier
+        parts = tuple([p if p else "/" for p in path.split("/")])
+        source = parts[0]
+        relative = "/" + "/".join(parts[1:])
+        parents = tuple(parts[1:-1])
+        parent = parents[-1] if parents else ""
+        name = parts[-1]
+        _file = {}
+        if "." in name:
+            stem, sep, types = name.partition(".")
+            _file.update(
+                file=True,
+                stem=stem,
+                type=types.split(sep)[-1],
+                types=types,
+            )
+        else:
+            _file.update(stem=name)
+
+        return dict(
+            name=name,
+            parent=parent,
+            parents=parents,
+            parts=parts,
+            path=path,
+            relative=relative,
+            source=source,
+            **_file,
+        )
 
     class Path(Base):
         def __init__(self, specifier: str):
-            Base.__init__(self, specifier=specifier)
-            source, _, _path = specifier.partition(DASH)
-            path = f"{DASH}{_path}"
-            _parents, _, name = specifier.rpartition(DASH)
-            parents = _parents.split(DASH)
-            parents.pop(0)
-            if DOT in name:
-                # Handle file
-                stem, _, types = name.partition(DOT)
-                shapes, _, type_ = types.rpartition(DOT)
-                self._.update(
-                    # is-file flag
-                    file=True,
-                    # file suffixes without file type
-                    shapes=shapes,
-                    # file type
-                    type=type_,
-                    # All file suffixes
-                    types=types,
-                )
-            else:
-                stem = name
-            self._.update(
-                # path with source
-                full=source + path,
-                # name of file of leaf dir
-                name=name,
-                # parents of file or leaf dir. Does not include source
-                parents=tuple(parents),
-                # path parts without source, but with file or leaf dir stem
-                parts=tuple([*parents, stem]),
-                # path relative to source. Always starts with '/'
-                path=path,
-                # Ensure that no source is interpreted as '/'
-                source=source or DASH,
-                # stem of file or leaf dir
-                stem=stem,
-            )
+            Base.__init__(self)
+            self(specifier)
 
-        @property
-        def _(self) -> dict:
-            return self.__
+
+        def __call__(self, specifier: str):
+            parsed = parse(specifier)
+            self._.update(**parsed)
+            return parsed
 
         def __contains__(self, part: str) -> bool:
             """Tests membership with respect to parts."""
             return part in self.parts
 
-        def __getitem__(self, a):
-            """Returns parts part of slice."""
-            if isinstance(a, slice):
-                start, stop = a.start, a.stop
-                if (
-                    isinstance(start, int)
-                    and not isinstance(start, bool)
-                    and isinstance(stop, int)
-                    and not isinstance(stop, bool)
-                ):
-                    # Standard slicing
-                    return self.parts[a]
-
-                print(f"Not implemented: {start}:{stop}")  ##
-                return
-
-            elif isinstance(a, int) and not isinstance(a, bool):
-                # Standard item by index, but without index errors; out-of-index returns None
-                if -len(self) <= a < len(self):
-                    return self.parts[a]
-
-            print(f"Not implemented: [{a}]")  ##
-
-        def __len__(self) -> int:
-            """Returns number of parts."""
-            return len(self.parts)
-
-        def __repr__(self) -> str:
-            return str(self._)
-
         def __str__(self) -> str:
-            return self.full
-
-   
+            return self.path
 
     return Path

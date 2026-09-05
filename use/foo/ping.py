@@ -1,16 +1,16 @@
 def main(
     use: callable,
     log: callable,
-    path=None,
+    path: str=None,
     test: bool = None,
     **kwargs,
 ) -> callable:
 
     if test:
-        log('Using uncommitted version of', path.full)
+        log('Using uncommitted version of', path)
 
-    meta = use('tools/meta.py')
-    log('meta.DEV:', meta.DEV)
+   
+    log('use.meta.DEV:', use.meta.DEV)
 
     
 

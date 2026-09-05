@@ -1,33 +1,18 @@
-def main(use, Base=None, anvil=None, **kwargs):
+def main(use, Base=None, **kwargs):
     """."""
 
-    meta = use("use/meta/meta.py")
-
-    
-    if meta.DEV:
-
-        console = anvil.window.console
-
-        PREFIX = f"app/{meta.name}"
+    if use.meta.DEV:
 
         class Log(Base):
-            def __init__(self, path: str = None):
-                if path and path.startswith(PREFIX):
-                    path = f"client_code{path[len(PREFIX):]}"
-                Base.__init__(self, _path=path)
+            def __init__(self, *args, **kwargs):
+                path = next(iter(args), None)
+                Base.__init__(self, path=path)
 
-            def __call__(self, *args, native: str = None):
+            def __call__(self, *args, **kwargs):
                 """Writes to console."""
-                if self._path:
-                    args = [*args, f"\n(trace: {self._path})"]
-
-                if native:
-                    if isinstance(native, str):
-                        console[native](*args)
-                    else:
-                        console.log(*args)
-                else:
-                    print(*args)
+                if self.path:
+                    args = [*args, f"\n(trace: {self.path})"]
+                print(*args)
 
     else:
 
@@ -38,11 +23,4 @@ def main(use, Base=None, anvil=None, **kwargs):
             def __call__(self, *args, **kwargs):
                 """."""
 
-
-   
-
     return Log
-
-
-
-
