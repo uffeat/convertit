@@ -28,13 +28,33 @@ def main(
             caller = kwargs.get("caller")
 
             path = specifier if isinstance(specifier, Path) else Path(specifier)
-            
+
+
+            log("self._hooks:", self._hooks)  ##
+
+
+
             log("path.path:", path.path)  ##
             if path.path in self._cache:
                 parcel = self._cache[path.path]
             else:
                 parcel = {}
                 self._cache[path.path] = parcel
+
+                registry = self._hooks.get('source')
+                if registry:
+
+                    hook = registry.get(path.source)
+                    if hook:
+
+                        log("hook:", hook)  ##
+
+
+                        updates = hook(path, **parcel)
+                        if updates:
+                            parcel.update(**updates)
+
+            return parcel  ##
 
             ##log("path.source:", path.source)  ##
             ##log("path.type:", path.type)  ##
@@ -56,7 +76,7 @@ def main(
                 if hook:
                     updates = hook(path, **parcel)
                     if updates:
-                        parcel.update(updates)
+                        parcel.update(**updates)
                         return self(path)
 
             result = parcel.get(key)
@@ -64,24 +84,30 @@ def main(
 
         def hook(self, cls):
             """."""
+            registry = getattr(cls, "registry", None)
+            keys = getattr(cls, "keys", None)
+            if registry not in self._hooks:
+                self._hooks[registry] = {}
+            registry = self._hooks[registry]
             hook = cls(owner=self)
-            self._hooks[cls.key] = hook
-            return hook
+            for key in keys:
+                registry[key] = hook
 
     use = Use(**_use._)
 
     @use.hook
     class cls(Base):
 
-        key = "value"
+        registry = "source"
+        keys = ("use",)
 
         def __init__(self, **kwargs):
             Base.__init__(self, **kwargs)
 
-        def __call__(self, path, **parcel):
+        def __call__(self, path, **parcel) -> dict:
             """."""
-            
-   
+            result = dict(node=None, text=None)
+            return result
 
     ping = use("use/foo/ping.py")
 
