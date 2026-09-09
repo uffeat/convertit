@@ -1,4 +1,4 @@
-def main(use, **kwargs)-> type:
+def main(use, **kwargs) -> type:
 
     class Base:
 
@@ -13,11 +13,7 @@ def main(use, **kwargs)-> type:
         def __getattr__(self, key: str):
             return self._.get(key)
 
+        def __getitem__(self, key):
+            return self._.get(key)
+
     return Base
-
-    
-        
-
-
-    
-

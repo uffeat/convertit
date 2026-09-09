@@ -35,14 +35,11 @@ def main(use, Base=None, **kwargs) -> type:
 
     class Path(Base):
         def __init__(self, specifier: str):
-            Base.__init__(self)
-            self(specifier)
-
-
-        def __call__(self, specifier: str):
             parsed = parse(specifier)
-            self._.update(**parsed)
-            return parsed
+            Base.__init__(self, **parsed)
+
+        def __call__(self):
+            return {**self._}
 
         def __contains__(self, part: str) -> bool:
             """Tests membership with respect to parts."""

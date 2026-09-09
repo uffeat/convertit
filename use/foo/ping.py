@@ -6,6 +6,8 @@ def main(
     **kwargs,
 ) -> callable:
 
+    log('use.foo:', use.foo)
+
     if test:
         log('Using uncommitted version of', path)
 
