@@ -1,6 +1,5 @@
 def main(
     _use: callable,
-    Base: type = None,
     Log: callable = None,
     log: callable = None,
     path: str = None,
@@ -9,18 +8,14 @@ def main(
 ) -> callable:
     """."""
 
-   
-   
-    
-
     from anvil.server import call
     from anvil.js import import_from, new, window
 
-
+    Base = tools.base.Base
 
     window.Object.defineProperty(
         _use,
-        'foo',
+        "foo",
         dict(
             configurable=False,
             enumerable=True,
@@ -29,20 +24,17 @@ def main(
         ),
     )
 
-
-
-
-
-
-    log('ping():', _use("use/foo/ping.js")())
-
-    ping = _use('use/foo/ping.py')
-    log('ping():', ping())
-    log('ping():', ping())
-
-
+    log("ping():", _use("use/foo/ping.js")())
+    ping = _use("use/foo/ping.py")
+    log("ping():", ping())
+    log("ping():", ping())
 
     document = window.document
+
+
+    log("tools.__dict__:", tools.__dict__)
+
+
 
     Path = _use("use/path/path.py")
 
@@ -169,7 +161,6 @@ def main(
     class Stuff:
 
         def __init__(self, **kwargs):
-           
 
             self.__dict__.update(__={k: v for k, v in kwargs.items() if v is not None})
 
@@ -179,15 +170,13 @@ def main(
 
         @property
         def _public(self) -> dict:
-            return {k: v for k, v in self._.items() if not k.startswith('_')}
-
+            return {k: v for k, v in self._.items() if not k.startswith("_")}
 
         def __getattr__(self, key: str):
             return self._.get(key)
 
         def __getitem__(self, key):
             return self._.get(key)
-           
 
         def __iter__(self):
             return iter(self._public)
@@ -200,7 +189,6 @@ def main(
     def test_stuff(**kwargs):
         for key, value in kwargs.items():
             print(key, value)
-
 
     test_stuff(**stuff)
 
