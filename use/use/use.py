@@ -1,17 +1,18 @@
 def main(
     _use: callable,
-    Log: callable = None,
     log: callable = None,
     path: str = None,
     tools=None,
     **kwargs,
 ) -> callable:
     """."""
+    from types import ModuleType
 
     from anvil.server import call
     from anvil.js import import_from, new, window
 
     Base = tools.base.Base
+    Log = tools.log.Log
 
     window.Object.defineProperty(
         _use,

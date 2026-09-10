@@ -3,6 +3,7 @@ def main(
     log: callable,
     path: str=None,
     test: bool = None,
+    tools=None,
     **kwargs,
 ) -> callable:
 
