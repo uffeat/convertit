@@ -32,10 +32,7 @@ def main(
 
     document = window.document
 
-
     log("tools.__dict__:", tools.__dict__)
-
-
 
     Path = _use("use/path/path.py")
 
@@ -47,24 +44,23 @@ def main(
         def __call__(self, specifier, *args, **kwargs):
             """Returns result from import engine."""
             caller = kwargs.get("caller")  ##
-            path = specifier if isinstance(specifier, Path) else Path(specifier)
+            path = Path(specifier)
             if path.path in self._cache:
                 parcel = self._cache[path.path]
             else:
+                # Create parcel
                 parcel = {}
-
+                log("self._registry:", self._registry)  ##
                 def update(key):
-                    """."""
                     registry: dict = self._registry.get(key)
                     if registry:
-                        item = registry.get(path[key])
-                        if item:
-                            hook = item["value"]
+                        container = registry.get(path[key])
+                        if container:
+                            hook = container["value"]
                             updates: dict = hook(path, **parcel)
                             if updates:
                                 parcel.update(**updates)
                     return update
-
                 update("source")("type")
 
             key = next(
@@ -80,6 +76,9 @@ def main(
             ##log("key:", key)  ##
 
             result = parcel.get(key)
+
+
+
             return result
 
         def hook(self, key: str, *keys):
@@ -89,14 +88,14 @@ def main(
                     registry = {}
                     self._registry[key] = registry
                 value = cls(owner=self, _key=key, _keys=keys)
-                item = dict(value=value)
+                container = dict(value=value)
                 for k in keys:
-                    registry[k] = item
+                    registry[k] = container
                 return value
 
             return register
 
-    use = Use(**_use._)
+    use = Use(**_use)
 
     @use.hook("source", "use")
     class cls(Base):
@@ -152,45 +151,37 @@ def main(
                     result.update(default="value", value=value)
                 return result
 
+    @use.hook("value", "py")
+    class cls(Base):
+
+        def __init__(self, **kwargs):
+            Base.__init__(self, **kwargs)
+
+        def __call__(self, path, **parcel) -> dict:
+            """."""
+            value = parcel.get('value')
+            if isinstance(value, dict):
+                return window.Object.freeze(value)
+
+
+    @use.hook("text", "json")
+    class cls(Base):
+
+        def __init__(self, **kwargs):
+            Base.__init__(self, **kwargs)
+
+        def __call__(self, path, **parcel) -> dict:
+            """."""
+            import json
+            text = parcel.get('text')
+            return json.loads(text)
+            
+
     ##ping = use("use/foo/ping.py")
 
     ##foo = use("use/foo/foo.py", "?text")
     Foo, foo = use("use/foo/foo.py")
 
     log("foo:", foo)
-
-    class Stuff:
-
-        def __init__(self, **kwargs):
-
-            self.__dict__.update(__={k: v for k, v in kwargs.items() if v is not None})
-
-        @property
-        def _(self) -> dict:
-            return self.__
-
-        @property
-        def _public(self) -> dict:
-            return {k: v for k, v in self._.items() if not k.startswith("_")}
-
-        def __getattr__(self, key: str):
-            return self._.get(key)
-
-        def __getitem__(self, key):
-            return self._.get(key)
-
-        def __iter__(self):
-            return iter(self._public)
-
-        def keys(self):
-            return self._public.keys()
-
-    stuff = Stuff(foo="FOO", bar="BAR")
-
-    def test_stuff(**kwargs):
-        for key, value in kwargs.items():
-            print(key, value)
-
-    test_stuff(**stuff)
 
     return use
