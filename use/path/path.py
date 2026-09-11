@@ -6,6 +6,10 @@ def main(use, tools=None, **kwargs) -> type:
     class PathType(Base):
         def __init__(self, specifier: str):
 
+            specifier, *search = specifier.partition('?')
+
+
+
             path = specifier
             parts = tuple([p if p else "/" for p in path.split("/")])
             source = parts[0]

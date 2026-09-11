@@ -51,6 +51,7 @@ def main(
                 # Create parcel
                 parcel = {}
                 log("self._registry:", self._registry)  ##
+
                 def update(key):
                     registry: dict = self._registry.get(key)
                     if registry:
@@ -61,6 +62,7 @@ def main(
                             if updates:
                                 parcel.update(**updates)
                     return update
+
                 update("source")("type")
 
             key = next(
@@ -76,8 +78,6 @@ def main(
             ##log("key:", key)  ##
 
             result = parcel.get(key)
-
-
 
             return result
 
@@ -159,10 +159,9 @@ def main(
 
         def __call__(self, path, **parcel) -> dict:
             """."""
-            value = parcel.get('value')
+            value = parcel.get("value")
             if isinstance(value, dict):
                 return window.Object.freeze(value)
-
 
     @use.hook("text", "json")
     class cls(Base):
@@ -173,15 +172,24 @@ def main(
         def __call__(self, path, **parcel) -> dict:
             """."""
             import json
-            text = parcel.get('text')
+
+            text = parcel.get("text")
             return json.loads(text)
-            
+
+    def scope(*args, **kwargs):
+
+        def scope(target):
+            return target(*args, **kwargs)
+
+        return scope
 
     ##ping = use("use/foo/ping.py")
 
     ##foo = use("use/foo/foo.py", "?text")
-    Foo, foo = use("use/foo/foo.py")
 
-    log("foo:", foo)
+    @scope()
+    def _():
+        Foo, foo = use("use/foo/foo.py")
+        log("foo:", foo)
 
     return use
