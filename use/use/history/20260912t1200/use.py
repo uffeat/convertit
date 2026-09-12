@@ -14,28 +14,18 @@ def main(
     Base = tools.base.Base
     Log = tools.log.Log
 
-    Path = _use("use/path/path.py")
-    scope = _use("use/tools/scope.py")
-
-    @scope()
-    def _():
-        log("tools.__dict__:", tools.__dict__)
-        value = Base
-        parcel = dict(value=value)
-
-
-
     
 
-    ##log("ping():", _use("use/foo/ping.js").ping())
-    ##log("ping():", _use("use/foo/ping.py")())
-    ##log("ping():", _use("use/foo/ping.py")())
+    log("ping():", _use("use/foo/ping.js").ping())
+   
+    log("ping():", _use("use/foo/ping.py")())
+    log("ping():", _use("use/foo/ping.py")())
 
     document = window.document
 
-    
+    log("tools.__dict__:", tools.__dict__)
 
-    
+    Path = _use("use/path/path.py")
 
     class Use(Base):
         def __init__(self, **kwargs):
@@ -146,6 +136,7 @@ def main(
                 value = locals["main"](
                     self,
                     Base=Base,
+                    Log=Log,
                     log=Log(path.path),
                     path=path.path,
                     **parcel,
@@ -181,12 +172,17 @@ def main(
 
     
 
-    ##log("ping():", use("use/foo/ping.py")())
-    ##log("ping():", use("use/foo/ping.py")())
+    log("ping():", use("use/foo/ping.py")())
+    log("ping():", use("use/foo/ping.py")())
 
     ##foo = use("use/foo/foo.py", "?text")
 
+    def scope(*args, **kwargs):
     
+        def scope(target):
+            return target(*args, **kwargs)
+
+        return scope
 
     @scope()
     def _():

@@ -3,8 +3,9 @@ def main(use, tools=None, **kwargs) -> type:
 
     Base = tools.base.Base
 
-    class Path(Base):
+    class PathType(Base):
         def __init__(self, specifier: str):
+
             path = specifier
             parts = tuple([p if p else "/" for p in path.split("/")])
             source = parts[0]
@@ -46,5 +47,9 @@ def main(use, tools=None, **kwargs) -> type:
         def __str__(self) -> str:
             return self.path
 
-   
+    def Path(specifier: str) -> PathType:
+        if isinstance(specifier, PathType):
+            return specifier
+        return PathType(specifier)
+
     return Path
