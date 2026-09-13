@@ -1,7 +1,7 @@
-def main(use, tools=None, **kwargs) -> type:
+def main(use, Base: type = None, **kwargs) -> type:
     """."""
 
-    Base = tools.base.Base
+  
 
     class Path(Base):
         def __init__(self, specifier: str):
@@ -22,7 +22,7 @@ def main(use, tools=None, **kwargs) -> type:
                     types=types,
                 )
             else:
-                _file.update(stem=name)
+                _file.update(file=False,stem=name)
 
             Base.__init__(
                 self,
@@ -42,6 +42,9 @@ def main(use, tools=None, **kwargs) -> type:
         def __contains__(self, part: str) -> bool:
             """Tests membership with respect to parts."""
             return part in self.parts
+
+        def __repr__(self) -> str:
+                return str(self._)
 
         def __str__(self) -> str:
             return self.path

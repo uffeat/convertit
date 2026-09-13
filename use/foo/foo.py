@@ -11,5 +11,5 @@ def main(use: callable, Base: type = None, log=None, **kwargs) -> dict:
         return "foo"
 
     
-    return Foo, foo
-    ##return dict(Foo=Foo, foo=foo)
+   
+    return dict(Foo=Foo, foo=foo)

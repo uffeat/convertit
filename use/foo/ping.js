@@ -1,10 +1,18 @@
-export default async (use, { path, ...parcel }) => {
-  console.log("use:", use); //
+export default async (use, { meta, path, test, ...parcel }) => {
+  //console.log("use:", use); //
 
-  //console.log("parcel:", parcel); //
+  console.log("meta:", meta); //
+
+  if (test) {
+    console.log("Using uncommitted version of", path); //
+  }
+
+  let count = 0
 
   function ping() {
-    return `${path}`;
+    const result = `${path} x ${count}`
+    count++
+    return result;
   }
 
   return { ping };

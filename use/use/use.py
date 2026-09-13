@@ -1,96 +1,78 @@
 def main(
-    _use: callable,
+    use: callable,
+    Base: type = None,
     log: callable = None,
     path: str = None,
-    tools=None,
     **kwargs,
 ) -> callable:
     """."""
-    from types import ModuleType
 
-    from anvil.server import call
     from anvil.js import import_from, new, window
-
-    Base = tools.base.Base
-    Log = tools.log.Log
-
-    Path = _use("use/path/path.py")
-    scope = _use("use/tools/scope.py")
-
-    @scope()
-    def _():
-        log("tools.__dict__:", tools.__dict__)
-        value = Base
-        parcel = dict(value=value)
-
-
-
-    
-
-    ##log("ping():", _use("use/foo/ping.js").ping())
-    ##log("ping():", _use("use/foo/ping.py")())
-    ##log("ping():", _use("use/foo/ping.py")())
 
     document = window.document
 
-    
+    Path = use("use/path/path.py")
+    typeName = use("use/type/name.js")
+    scope = use("use/tools/scope.py")
 
-    
+
+    create_proxy = use("use/use/_proxy.js")
+
+    def get(key):
+        return use.meta[key]
+
+    def call(*args):
+        return 42
+
+    proxy = create_proxy(dict(get=get, call=call))
+
+    log('proxy.DEV:', proxy.DEV)
+    log('proxy():', proxy())
+
+
+
+
+
+
 
     class Use(Base):
         def __init__(self, **kwargs):
             Base.__init__(self, **kwargs)
-            self._.update(_registry={})
+            self._.update(_creators={}, _processors={})
 
         def __call__(self, specifier, *args, **kwargs):
             """Returns result from import engine."""
-            caller = kwargs.get("caller")  ##
-
-            specifier, *search = specifier.partition('?')
-
+            args = self._parse(args, kwargs)
             path = Path(specifier)
-            if path.path in self._cache:
-                parcel = self._cache[path.path]
-            else:
-                # Create parcel
-                parcel = {}
-                log("self._registry:", self._registry)  ##
+            parcel = self._create(path)
+            ##log("parcel:", parcel)  ##
 
-                def update(key):
-                    registry: dict = self._registry.get(key)
-                    if registry:
-                        container = registry.get(path[key])
-                        if container:
-                            hook = container["value"]
-                            updates: dict = hook(path, **parcel)
-                            if updates:
-                                parcel.update(**updates)
-                    return update
+            @scope()
+            def _():
+                for key in parcel:
+                    if kwargs.pop(key, None) is True:
+                        kwargs.update(key=key)
+                        break
 
-                update("source")("type")
-
-            key = next(
-                iter(
-                    [
-                        a[1:]
-                        for a in args
-                        if isinstance(a, str) and a.startswith("?") and len(a) > 1
-                    ]
-                ),
-                "value",
-            )
-            ##log("key:", key)  ##
-
-            result = parcel.get(key)
-
+            result = parcel.get(kwargs.get("key", parcel.get("default", "text")))
+            processor = self._processors.get(path.types, {}).get("value")
+            if processor:
+                processed = processor(
+                    args=args,
+                    kwargs=kwargs,
+                    path=path,
+                    result=result,
+                )
+                if processed is not None:
+                    result = processed
             return result
 
-        def hook(self, key: str, *keys):
+        def creator(self, key: str, *keys):
             def register(cls):
-                registry = self._registry.get(key)
+                registry = self._creators.get(key)
                 if registry is None:
                     registry = {}
-                    self._registry[key] = registry
+                    self._creators[key] = registry
                 value = cls(owner=self, _key=key, _keys=keys)
                 container = dict(value=value)
                 for k in keys:
@@ -99,9 +81,80 @@ def main(
 
             return register
 
-    use = Use(**_use)
+        def processor(self, *keys):
+            def register(cls):
+                value = cls(owner=self, __keys=keys)
+                container = dict(value=value)
+                for k in keys:
+                    self._processors[k] = container
+                return value
 
-    @use.hook("source", "use")
+            return register
+
+        def _create(self, path):
+            """."""
+            if path.path in self._cache:
+                parcel = self._cache[path.path]
+            else:
+                parcel = {}
+
+                def create(key):
+                    registry: dict = self._creators.get(key)
+                    if registry:
+                        container = registry.get(path[key])
+                        if container:
+                            hook = container["value"]
+                            updates: dict = hook(path, **parcel)
+                            if updates:
+                                parcel.update(**updates)
+                    return create
+
+                for key in self._creators.keys():
+                    create(key)
+
+            return parcel
+
+    dev = use("use/tools/dev.py")
+
+    @dev()
+    def _():
+        """."""
+        return  ##
+      
+        log("ping():", use("use/foo/ping.py")())
+        log("ping():", use("use/foo/ping.py")())
+
+    @dev()
+    def _():
+        """."""
+        ##return  ##
+        log("ping():", use("use/foo/ping.js").ping())
+
+    # Create new use
+    use = Use(_parse=use("use/use/parse.py"), **use)
+
+    @use.creator("source", "app")
+    class cls(Base):
+
+        def __init__(self, **kwargs):
+            Base.__init__(self, **kwargs)
+
+        def __call__(self, path, **parcel) -> dict:
+            """."""
+            from types import ModuleType
+
+            result = {}
+            parent = use.package
+            for key in path.parents:
+                _parent = getattr(parent, key, None)
+                if isinstance(_parent, ModuleType):
+                    parent = _parent
+            value = getattr(parent, path.stem, None)
+            if value is not None:
+                result.update(default="value", value=value)
+            return result
+
+    @use.creator("source", "use")
     class cls(Base):
 
         def __init__(self, **kwargs):
@@ -114,6 +167,8 @@ def main(
             node.setAttribute("__path__", path.relative)
             use.node.append(node)
             if use.meta.DEV:
+                from anvil.server import call
+
                 try:
                     text = call("_use", path.path)
                     result.update(test=True)
@@ -124,14 +179,13 @@ def main(
             result.update(node=node, text=text)
             return result
 
-        @staticmethod
-        def _get_text(node) -> str:
+        def _get_text(self, node) -> str:
             """Returns uncached text from sheet."""
             value = window.getComputedStyle(node).getPropertyValue("--__use__").strip()
             text = window.atob(value[1:-1])
             return text
 
-    @use.hook("type", "py")
+    @use.creator("type", "py")
     class cls(Base):
 
         def __init__(self, **kwargs):
@@ -140,6 +194,7 @@ def main(
         def __call__(self, path, text: str = None, **parcel) -> dict:
             """."""
             if isinstance(text, str):
+                Log = use("app/tools/log.py").Log
                 result = {}
                 locals = {}
                 exec(text, {}, locals)
@@ -154,43 +209,108 @@ def main(
                     result.update(default="value", value=value)
                 return result
 
-    @use.hook("value", "py")
+    @use.creator("type", "js")
+    class cls(Base):
+
+        def __init__(self, **kwargs):
+            Base.__init__(self, **kwargs)
+            self._.update(meta=window.Object.freeze(dict(use.meta)))
+
+
+
+        def __call__(self, path, text: str = None, **parcel) -> dict:
+            """."""
+            if isinstance(text, str):
+                result = {}
+                text = f"{text}\n//# sourceURL={path.path}"
+                blob = new(window.Blob, [text], dict(type="text/javascript"))
+                url = window.URL.createObjectURL(blob)
+                module = import_from(url)
+                window.URL.revokeObjectURL(url)
+                value = module.default(self, dict(meta=self.meta, path=path.path, **parcel))
+                if value is not None:
+                    result.update(default="value", value=value)
+                return result
+
+    @use.processor("js", "py")
     class cls(Base):
 
         def __init__(self, **kwargs):
             Base.__init__(self, **kwargs)
 
-        def __call__(self, path, **parcel) -> dict:
+        def __call__(
+            self,
+            args=None,
+            kwargs=None,
+            path=None,
+            result=None,
+        ):
             """."""
-            value = parcel.get("value")
-            if isinstance(value, dict):
-                return window.Object.freeze(value)
 
-    @use.hook("text", "json")
+            if isinstance(result, dict) or typeName(result) == "Object":
+                return window.Object.freeze(result)
+
+    @use.processor("json")
     class cls(Base):
 
         def __init__(self, **kwargs):
             Base.__init__(self, **kwargs)
 
-        def __call__(self, path, **parcel) -> dict:
+        def __call__(
+            self,
+            args=None,
+            kwargs=None,
+            path=None,
+            result=None,
+        ):
             """."""
-            import json
+            if not kwargs.get("key") == "text" and isinstance(result, str):
+                import json
 
-            text = parcel.get("text")
-            return json.loads(text)
+                return json.loads(result)
 
-    
-
-    ##log("ping():", use("use/foo/ping.py")())
-    ##log("ping():", use("use/foo/ping.py")())
-
-    ##foo = use("use/foo/foo.py", "?text")
-
-    
-
-    @scope()
+    @dev()
     def _():
-        Foo, foo = use("use/foo/foo.py")
+        """."""
+        return  ##
+        log("ping():", use("use/foo/ping.py")())
+        log("ping():", use("use/foo/ping.py")())
+
+    @dev()
+    def _():
+        """."""
+        ##return  ##
+        log("ping():", use("use/foo/ping.js").ping())
+
+    @dev()
+    def _():
+        """."""
+        ##return  ##
+
+        log("foo():", use("use/foo/foo.py").foo())
+
+    @dev()
+    def _():
+        """."""
+        return  ##
+        foo = use("use/foo/foo.json")
+        foo.update(foo=43)
         log("foo:", foo)
+
+        foo = use("use/foo/foo.json")
+        log("foo:", foo)
+
+        log(
+            "foo:",
+            use(
+                "use/foo/foo.json",
+                dict(key="node"),
+                1,
+                2,
+                3,
+            ),
+        )
+        log("foo:", use("use/foo/foo.json", key="text"))
+        log("foo:", use("use/foo/foo.json", text=True))
 
     return use

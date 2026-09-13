@@ -2,9 +2,9 @@ def main(use, **kwargs) -> callable:
 
     def scope(*args, **kwargs):
         
-        def scope(target):
+        def wrapper(target):
             return target(*args, **kwargs)
 
-        return scope
+        return wrapper
 
     return scope
