@@ -27,7 +27,9 @@ def main(
     proxy = create_proxy(dict(get=get, call=call))
 
     log('proxy.DEV:', proxy.DEV)
-    log('proxy():', proxy())
+
+    result = proxy()
+    log('result:', result)
 
 
 
