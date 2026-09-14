@@ -15,27 +15,7 @@ def main(
     typeName = use("use/type/name.js")
     scope = use("use/tools/scope.py")
 
-
-    create_proxy = use("use/use/_proxy.js")
-
-    def get(key):
-        return use.meta[key]
-
-    def call(*args):
-        return 42
-
-    proxy = create_proxy(dict(get=get, call=call))
-
-    log('proxy.DEV:', proxy.DEV)
-
-    result = proxy()
-    log('result:', result)
-
-
-
-
-
-
+    log("use.meta.DEV:", use.meta.DEV)  ##
 
     class Use(Base):
         def __init__(self, **kwargs):
@@ -122,18 +102,20 @@ def main(
     def _():
         """."""
         return  ##
-      
+
         log("ping():", use("use/foo/ping.py")())
         log("ping():", use("use/foo/ping.py")())
 
     @dev()
     def _():
         """."""
-        ##return  ##
+        return  ##
         log("ping():", use("use/foo/ping.js").ping())
 
     # Create new use
-    use = Use(_parse=use("use/use/parse.py"), **use)
+    use = Use(_parse=use("use/use/parse.py"), **use._)
+    log("use.meta.DEV:", use.meta.DEV)  ##
+    ##use = Use(_parse=use("use/use/parse.py"), _cache=use._cache, package=use.package, meta=use.meta)
 
     @use.creator("source", "app")
     class cls(Base):
@@ -218,8 +200,6 @@ def main(
             Base.__init__(self, **kwargs)
             self._.update(meta=window.Object.freeze(dict(use.meta)))
 
-
-
         def __call__(self, path, text: str = None, **parcel) -> dict:
             """."""
             if isinstance(text, str):
@@ -229,7 +209,14 @@ def main(
                 url = window.URL.createObjectURL(blob)
                 module = import_from(url)
                 window.URL.revokeObjectURL(url)
-                value = module.default(self, dict(meta=self.meta, path=path.path, **parcel))
+                value = module.default(
+                    self,
+                    dict(
+                        meta=self.meta,
+                        path=path.path,
+                        **parcel,
+                    ),
+                )
                 if value is not None:
                     result.update(default="value", value=value)
                 return result
@@ -271,6 +258,8 @@ def main(
 
                 return json.loads(result)
 
+    log("use.meta.DEV:", use.meta.DEV)  ##
+
     @dev()
     def _():
         """."""
@@ -281,14 +270,13 @@ def main(
     @dev()
     def _():
         """."""
-        ##return  ##
+        return  ##
         log("ping():", use("use/foo/ping.js").ping())
 
     @dev()
     def _():
         """."""
         ##return  ##
-
         log("foo():", use("use/foo/foo.py").foo())
 
     @dev()

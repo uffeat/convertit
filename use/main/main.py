@@ -1,6 +1,6 @@
-def main(use, path: str=None, **kwargs):
+def main(use, log: callable, path: str=None, **kwargs):
     """."""
-    print("use.meta.DEV:", use.meta.DEV)  ##
+    log("use.meta.DEV:", use.meta.DEV)  ##
 
     def is_part(key: str):
         if key.startswith('_') and key.endswith('_') and len(key) > 2:
@@ -8,12 +8,12 @@ def main(use, path: str=None, **kwargs):
     
 
     def main(*args, **kwargs):
-        print("args:", args)  ##
-        print("kwargs:", kwargs)  ##
+        log("args:", args)  ##
+        log("kwargs:", kwargs)  ##
 
         
         parts = [v for k, v in kwargs.items() if is_part(k)]
-        print("parts:", parts)  ##
+        log("parts:", parts)  ##
 
     return main
 
