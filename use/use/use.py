@@ -183,7 +183,7 @@ def main(
                 locals = {}
                 exec(text, {}, locals)
                 value = locals["main"](
-                    self,
+                    use,
                     Base=Base,
                     log=Log(path.path),
                     path=path.path,
@@ -210,7 +210,7 @@ def main(
                 module = import_from(url)
                 window.URL.revokeObjectURL(url)
                 value = module.default(
-                    self,
+                    use,
                     dict(
                         meta=self.meta,
                         path=path.path,
