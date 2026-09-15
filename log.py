@@ -5,17 +5,12 @@ def log(*args) -> None:
     try:
         print(*args)
     except:
-        pass
-
-
-
+        return print("Could not not print.")
 
 
 if __name__ == "__main__":
     with server("Running local server for logging."):
 
         @server.function
-        def _log(*args) -> str:
+        def _log(*args):
             log(*args)
-            result = ' '.join([str(a) for a in args])
-            return result
