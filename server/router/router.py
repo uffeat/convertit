@@ -37,7 +37,7 @@ def main(
 
     test_path = Path('foo/foo.py')
 
-    log("test_path:", test_path())  ##
+    log("test_path:", dict(**test_path))  ##
     
     ##log("Path:", Path)  ##
 
