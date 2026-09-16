@@ -38,30 +38,16 @@ def main(
         if key.startswith("_") and key.endswith("_") and len(key) > 2:
             return key[1:-1].isnumeric()
 
-    class client(Base):
-        def __init__(self, **kwargs):
-            Base.__init__(self, **kwargs)
+    def client(*args, **kwargs):
 
-        def __call__(*args, **kwargs):
-            ##log("client route got kwargs:", kwargs)  ##
-            parts = [v for k, v in kwargs.items() if is_part(k)]
-            ##log("parts:", parts)  ##
-            specifier = "/" + "/".join(parts)
-            ##log("specifier:", specifier)  ##
-            path = Path(specifier)
-            ##log("path:", repr(path))  ##
-            query = {k: v for k, v in kwargs.items() if not is_part(k)}
-            ##log("query:", query)  ##
-            if path.file:
-                ...
-            else:
-                return FormResponse("client", dict(**path), **query)
+        ##log("client route got kwargs:", kwargs)  ##
 
+        parts = [v for k, v in kwargs.items() if is_part(k)]
+        log("parts:", parts)  ##
+        query = {k: v for k, v in kwargs.items() if not is_part(k)}
+        log("query:", query)  ##
 
-    client = client()
-
-
-
+        return FormResponse("client", *args, **kwargs)
 
     route("/")(client)
     route(f"/:_1_")(client)
