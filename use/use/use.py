@@ -15,7 +15,7 @@ def main(
     typeName = use("use/type/name.js")
     scope = use("use/tools/scope.py")
 
-    log("use.meta.DEV:", use.meta.DEV)  ##
+    ##log("use.meta.DEV:", use.meta.DEV)  ##
 
     class Use(Base):
         def __init__(self, **kwargs):
@@ -102,7 +102,6 @@ def main(
     def _():
         """."""
         return  ##
-
         log("ping():", use("use/foo/ping.py")())
         log("ping():", use("use/foo/ping.py")())
 
@@ -114,7 +113,7 @@ def main(
 
     # Create new use
     use = Use(_parse=use("use/use/parse.py"), **use._)
-    log("use.meta.DEV:", use.meta.DEV)  ##
+    ##log("use.meta.DEV:", use.meta.DEV)  ##
     ##use = Use(_parse=use("use/use/parse.py"), _cache=use._cache, package=use.package, meta=use.meta)
 
     @use.creator("source", "app")
@@ -276,7 +275,7 @@ def main(
     @dev()
     def _():
         """."""
-        ##return  ##
+        return  ##
         log("foo():", use("use/foo/foo.py").foo())
 
     @dev()
