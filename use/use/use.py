@@ -128,7 +128,7 @@ def main(
 
             result = {}
             parent = use.package
-            for key in path.parents:
+            for key in path.parts:
                 _parent = getattr(parent, key, None)
                 if isinstance(_parent, ModuleType):
                     parent = _parent

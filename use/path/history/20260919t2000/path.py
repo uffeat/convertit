@@ -1,0 +1,53 @@
+def main(use, Base: type = None, **kwargs) -> type:
+    """."""
+
+    class Path(Base):
+        def __init__(self, *args, **kwargs):
+            if kwargs:
+                Base.__init__(self, **kwargs)
+            else:
+                path = next(iter(args), None)
+                if path:
+                    parts = tuple([p if p else "/" for p in path.split("/")])
+                    source = parts[0]
+                    relative = "/" + "/".join(parts[1:])
+                    parents = tuple(parts[1:-1])
+                    parent = parents[-1] if parents else ""
+                    name = parts[-1]
+                    _file = {}
+                    if "." in name:
+                        stem, sep, types = name.partition(".")
+                        _file.update(
+                            file=True,
+                            stem=stem,
+                            type=types.split(sep)[-1],
+                            types=types,
+                        )
+                    else:
+                        _file.update(file=False, stem=name)
+                    Base.__init__(
+                        self,
+                        name=name,
+                        parent=parent,
+                        parents=parents,
+                        parts=parts,
+                        path=path,
+                        relative=relative,
+                        source=source,
+                        **_file,
+                    )
+
+        def __call__(self):
+            return {**self}
+
+        def __contains__(self, part: str) -> bool:
+            """Tests membership with respect to parts."""
+            return part in self.parts
+
+        def __repr__(self) -> str:
+            return str(self._)
+
+        def __str__(self) -> str:
+            return self.path
+
+    return Path

@@ -44,53 +44,49 @@ class Base:
 
 
 class Path(Base):
+
     def __init__(self, *args, **kwargs):
         Base.__init__(self)
-
-        path = next(iter(args), "")
-
-        if "/" in path:
-            # Avoid leading '' in parts when path starts with /
-            parts = [p if i or p else "/" for i, p in enumerate(path.split("/"))]
-            *_, name = parts
-            source = _[0] if _ else ""
+        if kwargs:
+            self._.update(**kwargs)
         else:
-            parts = [path]
-            name = path
-            source = ""
-
-      
-
-        if "." in name:
-            stem, _, types = name.partition(".")
+            path = next(iter(args), "")
+            # dirs
+            if "/" in path:
+                # Avoid leading '' in parts when path starts with /
+                parts = [p if i or p else "/" for i, p in enumerate(path.split("/"))]
+                *_, name = parts
+                source = _[0] if _ else ""
+            else:
+                parts, name, source = [path], path, ""
+            # file
+            if "." in name:
+                stem, _, types = name.partition(".")
+                kwargs.update(type=types.split(".")[-1])
+            else:
+                stem, types = name, ""
+                kwargs.update(type=types)
             self._.update(
-                file=True,
+                file=bool(types),
+                name=name,
+                parts=tuple(parts),
+                path=path,
+                relative=f"/{'/'.join(parts[1:])}" if source else f"/{path}",
+                source=source,
                 stem=stem,
-                type=types.split(".")[-1],
                 types=types,
-            )
-        else:
-            self._.update(
-                file=False,
-                stem=name,
-                type="",
-                types="",
+                **kwargs,
             )
 
-        self._.update(
-            name=name,
-            parts=tuple(parts),
-            path=path,
-            relative=f"/{'/'.join(parts[1:])}" if source else f"/{path}",
-            source=source,
-        )
-
-    def __call__(self):
-        """."""
+    def __bool__(self) -> bool:
+        return bool(self._.get("path", ''))
 
     def __contains__(self, part: str) -> bool:
         """Tests membership with respect to parts."""
         return part in self._.get("parts", [])
+
+    def __len__(self) -> int:
+        return len(self._.get("parts", []))
 
     def __repr__(self) -> str:
         return str(self._)
@@ -101,4 +97,12 @@ class Path(Base):
 
 specifier = "use/bar/foo.py"
 path = Path(specifier)
+##path = Path(**path)
 print(f"{specifier} -> ", repr(path))
+
+print("path.path:", path.path)
+print("path.name:", path.name)
+print("path.parts:", path.parts)
+print("path.source:", path.source)
+print("path.type:", path.type)
+print("path.relative:", path.relative)
