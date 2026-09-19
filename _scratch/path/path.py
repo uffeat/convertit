@@ -43,80 +43,95 @@ class Base:
         return self._.values()
 
 
-
-
 class Path(Base):
+
+    @classmethod
+    def properties(cls):
+        return {k: v for k, v in cls.__dict__.items() if isinstance(v, property)}
+
     def __init__(self, *args, **kwargs):
+        Base.__init__(self)
         if kwargs:
-            Base.__init__(self, **kwargs)
+            self._.update(**kwargs)
         else:
-            specifier = next(iter(args), None)
-            if specifier:
-
-                parts = [p if p else "/" for p in specifier.split("/")]
-                if len(parts) == 1:
-                    source = ''
-                    relative = "/" + specifier
-                else:
-                    source = parts[0]
-                    relative = "/" + "/".join(parts[1:])
-
-
-
-                
-
-                
-
-
-                
-                
-
-                path = specifier
-
-
-
-                parents = tuple(parts[1:-1])
-                parent = parents[-1] if parents else ""
-
-
+            self._.update(path=next(iter(args), ""))
+            if "/" in self.path:
+                # Avoid leading '' in parts when path starts with /
+                parts = [p if i or p else "/" for i, p in enumerate(self.path.split("/"))]
+                source = parts[0]
                 name = parts[-1]
-                _file = {}
-                if "." in name:
-                    stem, sep, types = name.partition(".")
-                    _file.update(
-                        file=True,
-                        stem=stem,
-                        type=types.split(sep)[-1],
-                        types=types,
-                    )
-                else:
-                    _file.update(file=False, stem=name)
-                Base.__init__(
-                    self,
-                    name=name,
-                    parent=parent,
-                    parents=parents,
-                    parts=tuple(parts),
-                    path=path,
-                    relative=relative,
-                    source=source,
-                    **_file,
+                self._.update(name=name, parts=parts, source=source)
+                if source:
+                    self._.update(relative=f"/{'/'.join(parts[1:])}")
+            if "." in self.name:
+                stem, _, types = self.name.partition(".")
+                self._.update(
+                    stem=stem,
+                    type=types.split(".")[-1],
+                    types=types,
                 )
 
     def __call__(self):
-        return {**self}
+        """."""
 
     def __contains__(self, part: str) -> bool:
         """Tests membership with respect to parts."""
-        return part in self.parts
+        return part in self._.get("parts", [])
 
     def __repr__(self) -> str:
+
+        result = dict(**self)
+
+        for key in self.__class__.properties().keys():
+
+            if key not in result:
+
+                result[key] = getattr(self, key)
+
+        return str(result)
+
         return str(self._)
 
     def __str__(self) -> str:
-        return self.path
+        return self._.get("path", "")
+
+    @property
+    def file(self):
+        return "type" in self._
+
+    @property
+    def name(self):
+        return self._.get("name", self._.get("path", ""))
+
+    @property
+    def parts(self):
+        return tuple(self._.get("parts", [self._.get("path", "")]))
+
+    @property
+    def relative(self):
+        return self._.get("relative", f"/{self._.get('path', '')}")
+
+    @property
+    def source(self):
+        return self._.get("source", "")
+
+    @property
+    def stem(self):
+        return self._.get("stem", self.name)
+
+    @property
+    def type(self):
+        return self._.get("type", "")
 
 
-specifier = '/foo.py'
+specifier = "use/foo.py"
 path = Path(specifier)
-print(specifier, repr(path))
+path = Path(**path)
+print(f"{specifier} -> ", repr(path))
+
+print("path.path:", path.path)
+print("path.name:", path.name)
+print("path.parts:", path.parts)
+print("path.source:", path.source)
+print("path.type:", path.type)
+print("path.relative:", path.relative)

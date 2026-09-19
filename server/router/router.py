@@ -44,6 +44,7 @@ def main(
         def __call__(self, *args, **kwargs):
             try:
                 path, query = self.parse(kwargs)
+                log("path:", path)  ##
                 
                 if path.file:
                     ...
@@ -62,7 +63,7 @@ def main(
         def parse(self, kwargs: dict) -> tuple:
             parts = [v for k, v in kwargs.items() if self.is_part(k)]
             ##log("parts:", parts)  ##
-            specifier = "/" + "/".join(parts)
+            specifier = "/".join(parts)
             ##log("specifier:", specifier)  ##
             path = Path(specifier)
             ##log("path:", repr(path))  ##
