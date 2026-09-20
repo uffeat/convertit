@@ -43,11 +43,11 @@ def main(
                 ##log("path:", path)  ##
 
                 if path.type:
-                    result = get_asset(path.path)
 
-                    
-
-                    
+                    try:
+                        result = get_asset(path.path)
+                    except Exception as error:
+                        result = get_asset("error/error.js")
 
 
 
@@ -59,21 +59,12 @@ def main(
 
 
                         response = HttpResponse(headers={"access-control-allow-origin": '*'})
-
-                        if isinstance(result, Exception):
-                            response.body = get_asset("error/error.js")
-                        else:
-                            response.body = result
-
-
-
-
-                        
+                        response.body = result
                         return response
 
                        
 
-                    
+                    ##result = get_asset(path.path)
                     return result
 
                 else:

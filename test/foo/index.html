@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="shortcut icon" href="#" type="image/x-icon">
+  <title>foo</title>
+  <script type="module">
+    const module = await import('https://convertitdev.anvil.app/foo/fooX.js');
+    if ('foo' in module) {
+      console.log('foo:', module.foo)
+      
+    } else {
+      console.log('error:', module.default)
+      
+    }
+    
+  </script>
+</head>
+<body>
+  
+</body>
+</html>
