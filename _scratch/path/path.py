@@ -43,6 +43,8 @@ class Base:
         return self._.values()
 
 
+print(object)
+
 class Path(Base):
 
     def __init__(self, *args, **kwargs):
@@ -74,7 +76,6 @@ class Path(Base):
             stem, types = name, ""
             result.update(type=types)
         result.update(
-            file=bool(types),
             name=name,
             parts=tuple(parts),
             path=path,
@@ -90,16 +91,16 @@ class Path(Base):
 
     def __contains__(self, part: str) -> bool:
         """Tests membership with respect to parts."""
-        return part in self._.get("parts", [])
+        return part in self.get("parts", [])
 
     def __len__(self) -> int:
-        return len(self._.get("parts", []))
+        return len(self.get("parts", []))
 
     def __repr__(self) -> str:
         return str(self._)
 
     def __str__(self) -> str:
-        return self._.get("path", "")
+        return self.get("path", "")
 
 
 specifier = "use/bar"

@@ -1,4 +1,4 @@
-def main(use, Base: type = None, **kwargs) -> type:
+def main(use: callable, Base: type = None, **kwargs) -> type:
     """."""
 
     
@@ -33,7 +33,6 @@ def main(use, Base: type = None, **kwargs) -> type:
                 stem, types = name, ""
                 result.update(type=types)
             result.update(
-                file=bool(types),
                 name=name,
                 parts=tuple(parts),
                 path=path,
@@ -45,19 +44,19 @@ def main(use, Base: type = None, **kwargs) -> type:
             return result
 
         def __bool__(self) -> bool:
-            return bool(self._.get("path", ""))
+            return bool(self.get("path", ""))
 
         def __contains__(self, part: str) -> bool:
             """Tests membership with respect to parts."""
-            return part in self._.get("parts", [])
+            return part in self.get("parts", [])
 
         def __len__(self) -> int:
-            return len(self._.get("parts", []))
+            return len(self.get("parts", []))
 
         def __repr__(self) -> str:
             return str(self._)
 
         def __str__(self) -> str:
-            return self._.get("path", "")
+            return self.get("path", "")
 
     return Path

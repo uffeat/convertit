@@ -30,21 +30,22 @@ def main(
 
     Path = use("use/path/path.py")
 
-    
+    UTF_8 = "utf-8"
 
     ##log("Setting up routes...")  ##
 
-    Query = use("use/query/query.py")
+    
 
     class Router(Base):
         def __init__(self, **kwargs):
             Base.__init__(self, **kwargs)
 
+
         def __call__(self, *args, **kwargs):
             try:
                 path, query = self.parse(kwargs)
                 log("path:", path)  ##
-
+                
                 if path.type:
                     ...
                 else:
@@ -52,10 +53,12 @@ def main(
             except:
                 return FormResponse("client", error=traceback.format_exc(), **kwargs)
 
+
         @staticmethod
         def is_part(key: str) -> bool | None:
             if key.startswith("_") and key.endswith("_") and len(key) > 2:
                 return key[1:-1].isnumeric()
+
 
         def parse(self, kwargs: dict) -> tuple:
             parts = [v for k, v in kwargs.items() if self.is_part(k)]
@@ -64,15 +67,26 @@ def main(
             ##log("specifier:", specifier)  ##
             path = Path(specifier)
             ##log("path:", repr(path))  ##
-            query = Query(**{k: v for k, v in kwargs.items() if not self.is_part(k)})
+            query = {k: v for k, v in kwargs.items() if not self.is_part(k)}
             return path, query
 
         def setup(self, depth=5):
             route("/")(self)
             for i in range(depth):
-                signature = "".join([f"/:_{j}_" for j in range(i + 1)])
+                signature = ''.join([f'/:_{j}_' for j in range(i+1)])
                 route(signature)(self)
+                
+
+
+
 
     router = Router()
 
+    
     router.setup()
+            
+
+
+
+
+    

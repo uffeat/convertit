@@ -30,7 +30,7 @@ def main(
 
     Path = use("use/path/path.py")
 
-    
+    UTF_8 = "utf-8"
 
     ##log("Setting up routes...")  ##
 

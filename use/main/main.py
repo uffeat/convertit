@@ -1,5 +1,19 @@
 def main(use, log: callable, path: str = None, **kwargs):
     """."""
+
+
+    
+   
+   
+    asset = use("use/asset/asset.py")
+
+    print('asset:', asset('foo/foo.css'))
+    print('type:', asset('foo/foo.css').content_type)
+    print('text:', asset('foo/foo.css').get_bytes().decode('utf-8'))
+    print('name:', asset('foo/foo.css').name)
+
+
+
     Path = use("use/path/path.py")
 
     def main(*args, error: str = None, path: dict = None, query: dict = None, **kwargs):
