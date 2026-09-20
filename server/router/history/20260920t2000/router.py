@@ -30,8 +30,9 @@ def main(
 
     Path = use("use/path/path.py")
     get_asset = use("use/asset/asset.py")
-
     Query = use("use/query/query.py")
+
+    UTF_8 = "utf-8"
 
     class Router(Base):
         def __init__(self, **kwargs):
@@ -41,36 +42,34 @@ def main(
             try:
                 path, query = self.parse(kwargs)
                 ##log("path:", path)  ##
-
                 if path.type:
-
-                    try:
-                        result = get_asset(path.path)
-                    except Exception as error:
-                        result = get_asset("error/error.js")
-
-
-
-                    
+                    result = get_asset(path.path)
 
                     if path.type == "js":
+                        response = HttpResponse(
+                            headers={"access-control-allow-origin": "*"}
+                        )
+                        if isinstance(result, Exception):
+                            response.body = BlobMedia(
+                                "text/javascript",
+                                f'export const error = "{str(result)}";'.encode(UTF_8),
+                                name="error.js",
+                            )
+                        else:
+                            response.body = result
+                        result = response
+                    else:
+                        if isinstance(result, Exception):
+                            result = ''
 
-
-
-
-                        response = HttpResponse(headers={"access-control-allow-origin": '*'})
-                        response.body = result
-                        return response
-
-                       
-
-                    ##result = get_asset(path.path)
-                    return result
 
                 else:
-                    return FormResponse("client", path=dict(**path), query=query)
+                    result = FormResponse("client", path=dict(**path), query=query)
+
             except:
-                return FormResponse("client", error=traceback.format_exc(), **kwargs)
+
+                result = traceback.format_exc()
+            return result
 
         @staticmethod
         def is_part(key: str) -> bool | None:

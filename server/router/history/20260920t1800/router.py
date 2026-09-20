@@ -30,14 +30,12 @@ def main(
 
     Path = use("use/path/path.py")
     get_asset = use("use/asset/asset.py")
-    Query = use("use/query/query.py")
 
-    UTF_8 = "utf-8"
+    Query = use("use/query/query.py")
 
     class Router(Base):
         def __init__(self, **kwargs):
             Base.__init__(self, **kwargs)
-            self._.update(_responder=dict())
 
         def __call__(self, *args, **kwargs):
             try:
@@ -45,27 +43,20 @@ def main(
                 ##log("path:", path)  ##
                 if path.type:
                     result = get_asset(path.path)
-                    responder = self._responder.get(path.type, {}).get("value")
-                    if responder:
-                        result = responder(path, result, **query)
-                    else:
+                    if path.type == "js":
+                        response = HttpResponse(
+                            headers={"access-control-allow-origin": "*"}
+                        )
                         if isinstance(result, Exception):
-                            result = ""
+                            response.body = get_asset("error/error.js")
+                        else:
+                            response.body = result
+                        return response
+                    return result
                 else:
-                    result = FormResponse("client", path=dict(**path), query=query)
+                    return FormResponse("client", path=dict(**path), query=query)
             except:
-                result = traceback.format_exc()
-            return result
-
-        def responder(self, *keys):
-            def register(cls):
-                value = cls(_keys=keys, owner=self)
-                container = dict(value=value)
-                for key in keys:
-                    self._responder[key] = container
-                return value
-
-            return register
+                return FormResponse("client", error=traceback.format_exc(), **kwargs)
 
         @staticmethod
         def is_part(key: str) -> bool | None:
@@ -90,35 +81,5 @@ def main(
                 route(signature)(self)
 
     router = Router()
-
-    @router.responder("js")
-    class cls(Base):
-        def __init__(self, **kwargs):
-            Base.__init__(self, **kwargs)
-
-        def __call__(self, path, value, **query):
-            result = HttpResponse(headers={"access-control-allow-origin": "*"})
-
-            ##log("query:", query)  ##
-            data = query.get('data')
-            if isinstance(data, dict):
-                content = data.get('content')
-                if content:
-                    type_ = data.get('type')
-                    if type_ == 'json':
-                        content = json.loads(content)
-                    elif type_ == 'base64':
-                        content = b64decode(content).decode(encoding=UTF_8)
-
-
-            if isinstance(value, Exception):
-                result.body = BlobMedia(
-                    "text/javascript",
-                    f'export const error = "{str(value)}";'.encode(UTF_8),
-                    name="error.js",
-                )
-            else:
-                result.body = value
-            return result
 
     router.setup()

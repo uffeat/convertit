@@ -2,7 +2,7 @@ from tools import server
 
 from access import access
 from bundle import bundle
-from log import log
+from _log import log
 from sheet import sheet
 from _test import test
 from _use import use

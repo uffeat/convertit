@@ -1,21 +1,17 @@
 def main(use, log: callable, path: str = None, **kwargs):
     """."""
 
-
-    
     from anvil.js import import_from
-   
+
     asset = use("use/asset/asset.py")
 
-    print('asset:', asset('foo/foo.css'))
-    print('type:', asset('foo/foo.css').content_type)
-    print('text:', asset('foo/foo.css').get_bytes().decode('utf-8'))
-    print('name:', asset('foo/foo.css').name)
+    print("asset:", asset("foo/foo.css"))
+    print("type:", asset("foo/foo.css").content_type)
+    print("text:", asset("foo/foo.css").get_bytes().decode("utf-8"))
+    print("name:", asset("foo/foo.css").name)
 
-    foo = import_from(f'/foo/foo.js').foo
-    print('foo:', foo)
-
-
+    foo = import_from(f'/foo/foo.js?data={{"foo": 42}}').foo
+    print("foo:", foo)
 
     Path = use("use/path/path.py")
 
