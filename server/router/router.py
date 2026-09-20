@@ -29,10 +29,11 @@ def main(
     from tools import Log
 
     Path = use("use/path/path.py")
+    get_asset = use("use/asset/asset.py")
 
     
 
-    ##log("Setting up routes...")  ##
+   
 
     Query = use("use/query/query.py")
 
@@ -43,10 +44,14 @@ def main(
         def __call__(self, *args, **kwargs):
             try:
                 path, query = self.parse(kwargs)
-                log("path:", path)  ##
+                ##log("path:", path)  ##
 
                 if path.type:
-                    ...
+                    result = get_asset(path.path)
+                    if isinstance(result, Exception):
+                        ...
+                    else:
+                        return result
                 else:
                     return FormResponse("client", path=dict(**path), query=query)
             except:
@@ -68,6 +73,7 @@ def main(
             return path, query
 
         def setup(self, depth=5):
+            ##log("Setting up routes...")  ##
             route("/")(self)
             for i in range(depth):
                 signature = "".join([f"/:_{j}_" for j in range(i + 1)])

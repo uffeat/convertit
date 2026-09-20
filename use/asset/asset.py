@@ -13,6 +13,8 @@ def main(use, Base: type = None, log: callable = None, **kwargs):
 
         def __call__(self, path: str) -> BlobMedia:
             """."""
+            if path.startswith('/'):
+                path = path[1:]
             if use.meta.DEV:
                 try:
                     result: BlobMedia = call("_asset", path)
@@ -23,7 +25,10 @@ def main(use, Base: type = None, log: callable = None, **kwargs):
             return result
 
         def get_asset(self, path: str) -> BlobMedia:
-            blob: BlobMedia = get_asset(path)
+            try:
+                blob: BlobMedia = get_asset(path)
+            except Exception as error:
+                return error
             if "/" in path:
                 blob = BlobMedia(blob.content_type, blob.get_bytes(), name=path)
             return blob
