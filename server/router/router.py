@@ -91,15 +91,24 @@ def main(
 
     router = Router()
 
-    @router.responder("js")
+    @router.responder("css")
     class cls(Base):
         def __init__(self, **kwargs):
             Base.__init__(self, **kwargs)
 
         def __call__(self, path, value, **query):
-            result = HttpResponse(headers={"access-control-allow-origin": "*"})
+            """."""
+            if isinstance(value, Exception):
+                return BlobMedia(
+                    "text/css",
+                    f'/*error*/'.encode(UTF_8),
+                    name="error.css",
+                )
+            
 
             ##log("query:", query)  ##
+
+           
             data = query.get('data')
             if isinstance(data, dict):
                 content = data.get('content')
@@ -111,10 +120,27 @@ def main(
                         content = b64decode(content).decode(encoding=UTF_8)
 
 
+            
+            
+            return value
+
+    @router.responder("js")
+    class cls(Base):
+        def __init__(self, **kwargs):
+            Base.__init__(self, **kwargs)
+
+        def __call__(self, path, value, **query):
+            result = HttpResponse(headers={"access-control-allow-origin": "*"})
+
+            
+
+            
+
+
             if isinstance(value, Exception):
                 result.body = BlobMedia(
                     "text/javascript",
-                    f'export const error = "{str(value)}";'.encode(UTF_8),
+                    f'export const error = "{type(value).__name__}:{str(value)}";'.encode(UTF_8),
                     name="error.js",
                 )
             else:
