@@ -10,7 +10,7 @@ def main(use, log: callable, path: str = None, **kwargs):
     print("text:", asset("foo/foo.css").get_bytes().decode("utf-8"))
     print("name:", asset("foo/foo.css").name)
 
-    foo = import_from(f'/foo/foo.js?data={{"foo": 42}}').foo
+    foo = import_from(f'/foo/foo.js').foo
     print("foo:", foo)
 
     Path = use("use/path/path.py")

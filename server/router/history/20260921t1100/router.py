@@ -44,12 +44,10 @@ def main(
                 path, query = self.parse(kwargs)
                 ##log("path:", path)  ##
                 if path.type:
-                    result: Exception | BlobMedia = get_asset(path.path)
+                    result = get_asset(path.path)
                     responder = self._responder.get(path.type, {}).get("value")
                     if responder:
-                        _result = responder(path, result, **query)
-                        if _result is not None:
-                            result = _result
+                        result = responder(path, result, **query)
                     else:
                         if isinstance(result, Exception):
                             result = ""
@@ -103,44 +101,50 @@ def main(
             if isinstance(value, Exception):
                 return BlobMedia(
                     "text/css",
-                    f"/*error*/".encode(UTF_8),
+                    f'/*error*/'.encode(UTF_8),
                     name="error.css",
                 )
+            
 
             ##log("query:", query)  ##
 
-            data = query.get("data")
+           
+            data = query.get('data')
             if isinstance(data, dict):
-                content = data.get("content")
+                content = data.get('content')
                 if content:
-                    type_ = data.get("type")
-                    if type_ == "json":
+                    type_ = data.get('type')
+                    if type_ == 'json':
                         content = json.loads(content)
-                    elif type_ == "base64":
+                    elif type_ == 'base64':
                         content = b64decode(content).decode(encoding=UTF_8)
+
+
+            
+            
+            return value
 
     @router.responder("js")
     class cls(Base):
         def __init__(self, **kwargs):
             Base.__init__(self, **kwargs)
 
-        def __call__(self, path, value: Exception | BlobMedia, **query):
-            if use.meta.origin == request.origin:
-                if isinstance(value, Exception):
-                    return self.error(value)
-                return
-            return HttpResponse(
-                body=self.error(value) if isinstance(value, Exception) else value,
-                headers={"access-control-allow-origin": "*"},
-            )
+        def __call__(self, path, value, **query):
+            result = HttpResponse(headers={"access-control-allow-origin": "*"})
 
-        def error(value: Exception) -> BlobMedia:
-            return BlobMedia(
-                "text/javascript",
-                f'export const error = "{type(value).__name__}:{str(value)}";'.encode(
-                    UTF_8
-                ),
-                name="error.js",
-            )
+            
+
+            
+
+
+            if isinstance(value, Exception):
+                result.body = BlobMedia(
+                    "text/javascript",
+                    f'export const error = "{type(value).__name__}:{str(value)}";'.encode(UTF_8),
+                    name="error.js",
+                )
+            else:
+                result.body = value
+            return result
 
     router.setup()
