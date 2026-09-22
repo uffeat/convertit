@@ -1,12 +1,7 @@
-"""
-test/foo/foo.py
-"""
-
-
 def main(
     use: callable, Base: type = None, log: callable = None, path: str = None, **kwargs
 ) -> dict:
-    """."""
+    """test/foo/foo.py"""
     from anvil.js import window
 
     log("window:", window)  ##
@@ -15,6 +10,9 @@ def main(
 
     Future = use("use/future/future.py")
     log("Future:", Future)  ##
+
+    Bar = use("test/foo/bar.py")
+    log("Bar:", Bar)  ##
 
     class Foo(Base):
         def __init__(self):

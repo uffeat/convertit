@@ -36,6 +36,7 @@ def main(use, Base: type = None, log: callable = None, path: str = None, **kwarg
                                         Base=Base,
                                         log=Log(path.path),
                                         path=path.path,
+                                        text=text,
                                     )
                             except:
                                 window.console.error(f"Invalid path:", path.path)
