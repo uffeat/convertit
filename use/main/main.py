@@ -17,6 +17,7 @@ def main(use, Base: type = None, log: callable = None, path: str = None, **kwarg
                 from anvil.server import call
 
                 Log = use("app/tools/log.py").Log
+                Log = use.package.tools.log.Log
 
                 def keydown(event):
                     if event.code == "KeyU" and event.shiftKey:

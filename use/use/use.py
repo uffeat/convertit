@@ -177,7 +177,8 @@ def main(
         def __call__(self, path, text: str = None, **parcel) -> dict:
             """."""
             if isinstance(text, str):
-                Log = use("app/tools/log.py").Log
+                ##Log = use("app/tools/log.py").Log
+                Log = use.package.tools.log.Log
                 result = {}
                 locals = {}
                 exec(text, {}, locals)
