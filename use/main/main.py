@@ -1,17 +1,5 @@
-def main(use, log: callable, path: str = None, **kwargs):
+def main(use, Base: type = None, log: callable = None, path: str = None, **kwargs):
     """."""
-
-    from anvil.js import import_from
-
-    asset = use("use/asset/asset.py")
-
-    print("asset:", asset("foo/foo.css"))
-    print("type:", asset("foo/foo.css").content_type)
-    print("text:", asset("foo/foo.css").get_bytes().decode("utf-8"))
-    print("name:", asset("foo/foo.css").name)
-
-    foo = import_from(f'/foo/foo.js').foo
-    print("foo:", foo)
 
     Path = use("use/path/path.py")
 
@@ -19,9 +7,38 @@ def main(use, log: callable, path: str = None, **kwargs):
         if error:
             raise Exception(error)
         path = Path(**path)
-        log("path:", repr(path))  ##
-        log("query:", query)  ##
-        page = next(iter(path.parts[1:2]), None)
-        log("page:", page)  ##
+        ##log("path:", repr(path))  ##
+        ##log("query:", query)  ##
+        
+
+        if path.source == "test":
+            if use.meta.DEV:
+                from anvil.js import window
+                from anvil.server import call
+
+                Log = use("app/tools/log.py").Log
+
+                def keydown(event):
+                    if event.code == "KeyU" and event.shiftKey:
+                        stored = window.localStorage.getItem("__test__")
+                        path = window.prompt("Path:", stored)
+                        if path:
+                            window.localStorage.setItem("__test__", path)
+                            path = Path(path)
+                            try:
+                                text = call("_use", path.path)
+                                if path.type == 'py':
+                                    locals = {}
+                                    exec(text, {}, locals)
+                                    locals["main"](
+                                        use,
+                                        Base=Base,
+                                        log=Log(path.path),
+                                        path=path.path,
+                                    )
+                            except:
+                                window.console.error(f"Invalid path:", path.path)
+
+                window.addEventListener("keydown", keydown)
 
     return main
