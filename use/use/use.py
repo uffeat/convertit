@@ -78,7 +78,7 @@ def main(
             if path.path in self._cache:
                 parcel = self._cache[path.path]
             else:
-                parcel = {}
+                parcel = dict(state=dict())
 
                 def create(key):
                     registry: dict = self._creators.get(key)
@@ -93,6 +93,8 @@ def main(
 
                 for key in self._creators.keys():
                     create(key)
+                self._cache[path.path] = parcel
+                
 
             return parcel
 
@@ -258,7 +260,7 @@ def main(
 
                 return json.loads(result)
 
-    log("use.meta.DEV:", use.meta.DEV)  ##
+    
 
     @dev()
     def _():

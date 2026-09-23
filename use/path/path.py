@@ -1,5 +1,5 @@
 def main(use: callable, Base: type = None, **kwargs) -> type:
-    """."""
+    
 
     
     class Path(Base):

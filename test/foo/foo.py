@@ -21,4 +21,4 @@ def main(
     def foo():
         return "foo"
 
-    return dict(Foo=Foo, foo=foo)
+    return foo
