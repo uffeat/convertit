@@ -20,7 +20,7 @@ def main(
     class Use(Base):
         def __init__(self, **kwargs):
             Base.__init__(self, **kwargs)
-            self._(_creators={}, _processors={})
+            self._.update(_creators={}, _processors={})
 
         def __call__(self, specifier, *args, **kwargs):
             """Returns result from import engine."""
