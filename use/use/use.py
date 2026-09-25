@@ -95,7 +95,6 @@ def main(
                 for key in self._creators.keys():
                     create(key)
                 self._cache[path.path] = parcel
-                
 
             return parcel
 
@@ -116,29 +115,7 @@ def main(
 
     # Create new use
     use = Use(_parse=use("use/use/parse.py"), **use._)
-    ##log("use.meta.DEV:", use.meta.DEV)  ##
-    ##use = Use(_parse=use("use/use/parse.py"), _cache=use._cache, package=use.package, meta=use.meta)
-
-    @use.creator("source", "app")
-    class cls(Base):
-
-        def __init__(self, **kwargs):
-            Base.__init__(self, **kwargs)
-
-        def __call__(self, path, **parcel) -> dict:
-            """."""
-            from types import ModuleType
-
-            result = {}
-            parent = use.package
-            for key in path.parts:
-                _parent = getattr(parent, key, None)
-                if isinstance(_parent, ModuleType):
-                    parent = _parent
-            value = getattr(parent, path.stem, None)
-            if value is not None:
-                result.update(default="value", value=value)
-            return result
+    
 
     @use.creator("source", "use")
     class cls(Base):
@@ -167,7 +144,7 @@ def main(
 
         def _get_text(self, node) -> str:
             """Returns uncached text from sheet."""
-            value = window.getComputedStyle(node).getPropertyValue("--__use__").strip()
+            value = window.getComputedStyle(node).getPropertyValue("--__path__").strip()
             text = window.atob(value[1:-1])
             return text
 
@@ -180,13 +157,10 @@ def main(
         def __call__(self, path, text: str = None, **parcel) -> dict:
             """."""
             if isinstance(text, str):
-                ##Log = use("app/tools/log.py").Log
-                Log = use.package.tools.log.Log
+                Construct = use.package.tools.Construct
+                Log = use.package.client.tools.Log
                 result = {}
-                locals = {}
-                exec(text, {}, locals)
-                value = locals["main"](
-                    use,
+                value = Construct(text, use)(
                     Base=Base,
                     log=Log(path.path),
                     path=path.path,
@@ -260,8 +234,6 @@ def main(
                 import json
 
                 return json.loads(result)
-
-    
 
     @dev()
     def _():

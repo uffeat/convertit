@@ -1,21 +1,23 @@
 def main(use, Base: type = None, log: callable = None, state: dict = None, **kwargs):
     """."""
 
-    ##log("Loading...")  ##
+    log("Loading...")  ##
 
     def main(*args, **kwargs):
         if state.get("used"):
             return
         state.update(used=True)
-        ##log("Using...")  ##
+
+        log("Using...")  ##
+
         from anvil.js import window
+        from anvil.server import call
+
+        Path = use("use/path/path.py")
+        ##Log = use("app/tools/log.py").Log
+        Log = use.package.tools.log.Log
 
         def keydown(event):
-            from anvil.server import call
-
-            Construct = use.package.tools.Construct
-            Path = use("use/path/path.py")
-            Log = use.package.client.tools.Log
             if event.code == "KeyU" and event.shiftKey:
                 stored = window.localStorage.getItem("__test__")
                 path = window.prompt("Path:", stored)
@@ -26,7 +28,10 @@ def main(use, Base: type = None, log: callable = None, state: dict = None, **kwa
                         text = call("_use", path.path)
                         if path.type == "py":
 
-                            Construct(text, use)(
+                            locals = {}
+                            exec(text, {}, locals)
+                            locals["main"](
+                                use,
                                 Base=Base,
                                 log=Log(path.path),
                                 path=path.path,

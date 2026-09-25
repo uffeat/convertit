@@ -1,5 +1,5 @@
 def main(
-    use: callable, Base: type = None, log: callable = None, path: str = None, **kwargs
+    use: callable, Base: type = None, locals:dict = None, log: callable = None, path: str = None, **kwargs
 ) -> dict:
     """test/foo/foo.py"""
     from anvil.js import window
@@ -7,6 +7,9 @@ def main(
     log("window:", window)  ##
     log("use.package:", use.package)  ##
     log("use.meta.DEV:", use.meta.DEV)  ##
+
+    log("locals:", locals)  ##
+    
 
     Future = use("use/future/future.py")
     log("Future:", Future)  ##

@@ -26,7 +26,8 @@ def main(
         get_app_origin,
     )
 
-    from tools import Log
+    ##from server import Log
+    ##from tools import Dictionary
 
     Path = use("use/path/path.py")
     get_asset = use("use/asset/asset.py")

@@ -1,20 +1,21 @@
 def main(use: callable, Base: type = None, **kwargs):
-    
 
-    class construct(Base):
-        def __init__(self):
+    class Construct(Base):
+        def __init__(self, text: str, use: callable):
             Base.__init__(self)
+            self._(text=text, use=use)
 
-        def __call__(self, text: str, *args, **kwargs):
+        def __call__(self, *args, **kwargs):
             locals = {}
-            exec(text, {}, locals)
-            main = locals.get('main')
+            exec(self.text, {}, locals)
+            main = locals.pop("main", None)
             if callable(main):
+                kwargs.update(locals=locals)
                 result = main(
-                    use,
+                    self.use,
                     *args,
                     **kwargs,
                 )
                 return result
 
-    return construct()
+    return Construct
