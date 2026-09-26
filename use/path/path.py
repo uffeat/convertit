@@ -1,4 +1,6 @@
-def main(use: callable, Base: type = None, **kwargs) -> type:
+def main(use: callable, Base: type = None, log:callable=None, **kwargs) -> type:
+
+    log("Loading", kwargs.get('path'))  ##
     
 
     

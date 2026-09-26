@@ -1,7 +1,7 @@
-def main(use, Base: type = None, log: callable = None, path:str=None, state: dict = None, **kwargs):
+def main(use, Base: type = None, log: callable = None, state: dict = None, **kwargs):
     """."""
 
-    log("Loading", path)  ##
+    ##log("Loading...")  ##
 
     def main(*args, **kwargs):
         if state.get("used"):
@@ -25,7 +25,7 @@ def main(use, Base: type = None, log: callable = None, path:str=None, state: dic
                     try:
                         text = call("_use", path.path)
                         if path.type == "py":
-                            Construct(text=text, use=use)(
+                            Construct(text, use)(
                                 Base=Base,
                                 log=Log(path.path),
                                 path=path.path,

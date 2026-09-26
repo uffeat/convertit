@@ -7,15 +7,16 @@ def main(
 ) -> callable:
     """."""
 
+    log("Loading", path)  ##
+
     from anvil.js import import_from, new, window
 
     document = window.document
 
     Path = use("use/path/path.py")
     typeName = use("use/type/name.js")
-    scope = use("use/tools/scope.py")
 
-    ##log("use.meta.DEV:", use.meta.DEV)  ##
+    
 
     class Use(Base):
         def __init__(self, **kwargs):
@@ -24,20 +25,15 @@ def main(
 
         def __call__(self, specifier, *args, **kwargs):
             """Returns result from import engine."""
-            args = self._parse(args, kwargs)
+
             path = Path(specifier)
             parcel = self._create(path)
             ##log("parcel:", parcel)  ##
 
-            @scope()
-            def _() -> None:
-                """Enables boolean key specification."""
-                for key in parcel:
-                    if kwargs.pop(key, None) is True:
-                        kwargs.update(key=key)
-                        break
+            args = self._parse(args, kwargs, **parcel)
 
             result = parcel.get(kwargs.get("key", parcel.get("default", "text")))
+
             processor = self._processors.get(path.types, {}).get("value")
             if processor:
                 processed = processor(
@@ -51,6 +47,8 @@ def main(
             return result
 
         def creator(self, key: str, *keys):
+            """."""
+
             def register(cls):
                 registry = self._creators.get(key)
                 if registry is None:
@@ -65,6 +63,8 @@ def main(
             return register
 
         def processor(self, *keys):
+            """."""
+
             def register(cls):
                 value = cls(owner=self, __keys=keys)
                 container = dict(value=value)
@@ -74,10 +74,12 @@ def main(
 
             return register
 
-        def _create(self, path):
+        def _create(self, path) -> dict:
             """."""
             if path.path in self._cache:
                 parcel = self._cache[path.path]
+                if self.meta.DEV:
+                    parcel.update(cached=True)
             else:
                 parcel = dict(state=dict())
 
@@ -92,29 +94,44 @@ def main(
                                 parcel.update(**updates)
                     return create
 
+                # Run creation pipe
                 for key in self._creators.keys():
                     create(key)
+                # Cache
                 self._cache[path.path] = parcel
 
             return parcel
 
-    dev = use("use/tools/dev.py")
-
-    @dev()
-    def _():
-        """."""
-        return  ##
-        log("ping():", use("use/foo/ping.py")())
-        log("ping():", use("use/foo/ping.py")())
-
-    @dev()
-    def _():
-        """."""
-        return  ##
-        log("ping():", use("use/foo/ping.js").ping())
+        @staticmethod
+        def _parse(args: tuple, kwargs: dict, **parcel) -> tuple:
+            """Mutates kwargs and returns modified args."""
+            # Allow kwargs as positional arg
+            _kwargs = dict(
+                next(
+                    iter(
+                        [
+                            a
+                            for a in args[0:1]
+                            if typeName(a) == "Object" or isinstance(a, dict)
+                        ]
+                    ),
+                    {},
+                )
+            )
+            ##log("_kwargs:", _kwargs)  ##
+            if _kwargs:
+                args = tuple(args[1:])
+                kwargs.update(**_kwargs)
+            # Enable boolean key specification
+            for key in parcel:
+                if kwargs.pop(key, None) is True:
+                    kwargs.update(key=key)
+                    break
+            return args
 
     # Create new use
-    use = Use(_parse=use("use/use/parse.py"), **use._)
+    use = Use(**use._)
+
     
 
     @use.creator("source", "use")
@@ -160,7 +177,7 @@ def main(
                 Construct = use.package.tools.Construct
                 Log = use.package.client.tools.Log
                 result = {}
-                value = Construct(text, use)(
+                value = Construct(text=text, use=use)(
                     Base=Base,
                     log=Log(path.path),
                     path=path.path,
@@ -234,48 +251,5 @@ def main(
                 import json
 
                 return json.loads(result)
-
-    @dev()
-    def _():
-        """."""
-        return  ##
-        log("ping():", use("use/foo/ping.py")())
-        log("ping():", use("use/foo/ping.py")())
-
-    @dev()
-    def _():
-        """."""
-        return  ##
-        log("ping():", use("use/foo/ping.js").ping())
-
-    @dev()
-    def _():
-        """."""
-        return  ##
-        log("foo():", use("use/foo/foo.py").foo())
-
-    @dev()
-    def _():
-        """."""
-        return  ##
-        foo = use("use/foo/foo.json")
-        foo.update(foo=43)
-        log("foo:", foo)
-
-        foo = use("use/foo/foo.json")
-        log("foo:", foo)
-
-        log(
-            "foo:",
-            use(
-                "use/foo/foo.json",
-                dict(key="node"),
-                1,
-                2,
-                3,
-            ),
-        )
-        log("foo:", use("use/foo/foo.json", key="text"))
-        log("foo:", use("use/foo/foo.json", text=True))
 
     return use
