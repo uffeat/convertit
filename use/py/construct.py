@@ -21,14 +21,14 @@ def main(use, Base=None, log: callable = None, **kwargs) -> callable:
                     **kwargs,
                 )
 
-                meta = Base(
-                    config=main.__dict__.get("config"),
-                    doc=main.__doc__,
-                    name=main.__name__ if main.__name__ != 'main' else None,
-                    returns=main.__annotations__.get("return"),
-                    
+                return Base(
+                    value=value,
+                    meta=Base(
+                        config=main.__dict__.get("config"),
+                        doc=main.__doc__,
+                        name=main.__name__ if main.__name__ != "main" else None,
+                        returns=main.__annotations__.get("return"),
+                    ),
                 )
-
-                return Base(value=value, meta=meta)
 
     return Construct
