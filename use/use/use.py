@@ -1,5 +1,5 @@
 def main(
-    use: callable,
+    _use: callable,
     Base: type = None,
     log: callable = None,
     path: str = None,
@@ -9,16 +9,18 @@ def main(
     ##log("Loading...")  ##
     from anvil.js import import_from, new, window
 
-    element = use.package.client.tools.element
+    element = _use.package.client.tools.element
 
     ##typeName = use("use/type/name.js")
 
     document = window.document
 
-    Py = use("use/py/construct.py")
+    Log = _use("use/log/log.py")
+    Py = _use("use/use/py.py")
+
     ##log("Py:", Py)  ##
 
-    class Use(Base):
+    class use(Base):
         def __init__(self, **kwargs):
             Base.__init__(self, **kwargs)
             self._(_creators={}, _processors={})
@@ -144,7 +146,7 @@ def main(
     it reverts to the use class itself in subsequent use calls. 
     Therefore, make it a use prop.
     """
-    use = Use(Path=use("use/path/path.py"), **use)
+    use = use(Path=_use("use/path/path.py"), **_use)
 
     @use.creator("source", "use")
     class cls(Base):
@@ -186,25 +188,17 @@ def main(
         def __call__(self, path, text: str = None, **parcel) -> dict:
             """."""
             if isinstance(text, str):
-                
-                Log = use.package.client.tools.Log
-
                 result = {}
-
                 constructed = Py(use=use, text=text)(
                     Base=Base,
                     log=Log(path.path),
                     path=path.path,
                     **parcel,
                 )
-                
-
-                
                 if constructed:
-                    if constructed.value is not None:
-                        result.update(default="value", value=constructed.value)
-                    result.update(**constructed.meta)
-                
+                    if 'value' in constructed:
+                        result.update(default="value", value=constructed["value"])
+                    result.update(**constructed.get('meta', {}))
                 return result
 
     @use.creator("type", "js")
@@ -245,9 +239,6 @@ def main(
 
                 return json.loads(result)
 
-   
-    use('use/ping.py')
-    parcel = {k: v for k, v in use.get('use/ping.py').items() if k != 'text'}
-    log("parcel:", parcel )  ##
+    
 
     return use

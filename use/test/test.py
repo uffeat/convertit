@@ -9,9 +9,9 @@ def main(
     """."""
     from anvil.js import window
     from anvil.server import call
-    
-    ##Path = use("use/path/path.py")
-    Path = use.Path
+
+    Log = use("use/log/log.py")
+    Py = use("use/use/py.py")
 
     def main(*args, **kwargs):
 
@@ -21,20 +21,18 @@ def main(
             return
         state.update(used=True)
         ##log("Using...")  ##
-        
 
-        def test(specifier: str):
+        def test(specifier: str, **kwargs):
             """."""
-            path = Path(specifier)
+            path = use.Path(specifier)
             try:
                 text = call("_use", path.path)
             except:
                 return window.console.error(f"Invalid path:", path.path)
 
             if path.type == "py":
-                Construct = use.package.tools.Construct
-                Log = use.package.client.tools.Log
-                result = Construct(text=text, use=use)(
+
+                constructed = Py(text=text, use=use)(
                     Base=Base,
                     log=Log(path.path),
                     path=path.path,
@@ -42,19 +40,21 @@ def main(
                     text=text,
                 )
 
-            elif path.type == "js":
+                if kwargs.get('text'):
+                    return text
+
+                return constructed["value"]
+
+            if path.type == "js":
                 Construct = use.package.client.tools.Construct
                 result = Construct(path=path.path, text=text, use=use)(
                     path=path.path,
                     test=test,
                     text=text,
                 )
+                return result
 
-            else:
-                return text
-
-            
-            return result
+            return text
 
         def keydown(event):
 

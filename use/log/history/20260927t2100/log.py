@@ -10,10 +10,9 @@ def main(use, Base=None, **kwargs):
 
             def __call__(self, *args, **kwargs):
                 """Writes to console."""
-                out = kwargs.get('out', print)
                 if self.path:
                     args = [*args, f"\n(trace: {self.path})"]
-                out(*args)
+                print(*args)
 
     else:
 
