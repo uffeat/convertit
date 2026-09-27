@@ -8,15 +8,12 @@ def main(
     """."""
     ##log("Loading...")  ##
     from anvil.js import import_from, new, window
-
     element = use.package.client.tools.element
 
+    Path = use("use/path/path.py")
     ##typeName = use("use/type/name.js")
 
     document = window.document
-
-    Py = use("use/py/construct.py")
-    ##log("Py:", Py)  ##
 
     class Use(Base):
         def __init__(self, **kwargs):
@@ -40,7 +37,8 @@ def main(
                 )
                 if processed is not None:
                     result = processed
-
+            
+            
             return result
 
         def creator(self, key: str, *keys):
@@ -59,10 +57,6 @@ def main(
 
             return register
 
-        def get(self, key) -> dict:
-            """Returns copy of parcel."""
-            return dict(**self._cache.get(key, {}))
-
         def processor(self, *keys):
             """Decorates processor."""
 
@@ -74,20 +68,6 @@ def main(
                 return value
 
             return register
-
-        def update(self, key, **updates) -> dict:
-            """Updates parcel."""
-            parcel: dict = self._cache.get(key, {})
-            if parcel:
-                for k, v in updates.items():
-                    if v is None:
-                        parcel.pop(k, None)
-                    else:
-                        parcel[k] = v
-            else:
-                self._cache[key] = parcel
-                parcel.update(**updates)
-            return parcel
 
         def _create(self, path) -> dict:
             """Returns parcel built by creators."""
@@ -139,12 +119,9 @@ def main(
             return args
 
     # Create new use
-    """
-    HACK Something fishy is going on with the path parcel (client-side); 
-    it reverts to the use class itself in subsequent use calls. 
-    Therefore, make it a use prop.
-    """
-    use = Use(Path=use("use/path/path.py"), **use)
+    use = Use(Path=Path, **use._)
+
+    
 
     @use.creator("source", "use")
     class cls(Base):
@@ -186,25 +163,17 @@ def main(
         def __call__(self, path, text: str = None, **parcel) -> dict:
             """."""
             if isinstance(text, str):
-                
+                Construct = use.package.tools.Construct
                 Log = use.package.client.tools.Log
-
                 result = {}
-
-                constructed = Py(use=use, text=text)(
+                value = Construct(text=text, use=use)(
                     Base=Base,
                     log=Log(path.path),
                     path=path.path,
                     **parcel,
                 )
-                
-
-                
-                if constructed:
-                    if constructed.value is not None:
-                        result.update(default="value", value=constructed.value)
-                    result.update(**constructed.meta)
-                
+                if value is not None:
+                    result.update(default="value", value=value)
                 return result
 
     @use.creator("type", "js")
@@ -226,6 +195,8 @@ def main(
                     result.update(default="value", value=value)
                 return result
 
+    
+
     @use.processor("json")
     class cls(Base):
 
@@ -245,9 +216,7 @@ def main(
 
                 return json.loads(result)
 
-   
-    use('use/ping.py')
-    parcel = {k: v for k, v in use.get('use/ping.py').items() if k != 'text'}
-    log("parcel:", parcel )  ##
+    ##Path = use("use/path/path.py")
+    ##log("Path:", Path)  ##
 
     return use

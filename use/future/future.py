@@ -1,5 +1,5 @@
-def main(use: callable, **kwargs) -> type:
-    """."""
+def main(use: callable, log: callable=None, **kwargs) -> type:
+    """Returns wrapped promise with resolver."""
     from anvil.js import await_promise, window
 
     class Future:

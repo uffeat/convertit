@@ -1,6 +1,6 @@
 def main(use: callable, Base: type = None, log:callable=None, **kwargs) -> type:
 
-    log("Loading", kwargs.get('path'))  ##
+    ##log("Loading...")  ##
     
 
     
@@ -9,9 +9,9 @@ def main(use: callable, Base: type = None, log:callable=None, **kwargs) -> type:
         def __init__(self, *args, **kwargs):
             Base.__init__(self)
             if kwargs:
-                self._.update(**kwargs)
+                self._(**kwargs)
             else:
-                self._.update(**self(*args))
+                self._(**self(*args))
 
         def __call__(self, *args) -> dict:
             """."""

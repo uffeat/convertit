@@ -6,17 +6,15 @@ def main(
     **kwargs,
 ) -> callable:
     """."""
-    ##log("Loading...")  ##
+
+    ##log("Loading", path)  ##
+
     from anvil.js import import_from, new, window
-
-    element = use.package.client.tools.element
-
-    ##typeName = use("use/type/name.js")
 
     document = window.document
 
-    Py = use("use/py/construct.py")
-    ##log("Py:", Py)  ##
+    Path = use("use/path/path.py")
+    typeName = use("use/type/name.js")
 
     class Use(Base):
         def __init__(self, **kwargs):
@@ -25,9 +23,13 @@ def main(
 
         def __call__(self, specifier, *args, **kwargs):
             """Returns result from import engine."""
-            path = self.Path(specifier)
+
+            path = Path(specifier)
             parcel = self._create(path)
+            ##log("parcel:", parcel)  ##
+
             args = self._parse(args, kwargs, **parcel)
+
             result = parcel.get(kwargs.get("key", parcel.get("default", "text")))
 
             processor = self._processors.get(path.types, {}).get("value")
@@ -40,11 +42,10 @@ def main(
                 )
                 if processed is not None:
                     result = processed
-
             return result
 
         def creator(self, key: str, *keys):
-            """Decorates creator."""
+            """."""
 
             def register(cls):
                 registry = self._creators.get(key)
@@ -59,12 +60,8 @@ def main(
 
             return register
 
-        def get(self, key) -> dict:
-            """Returns copy of parcel."""
-            return dict(**self._cache.get(key, {}))
-
         def processor(self, *keys):
-            """Decorates processor."""
+            """."""
 
             def register(cls):
                 value = cls(owner=self, __keys=keys)
@@ -75,22 +72,8 @@ def main(
 
             return register
 
-        def update(self, key, **updates) -> dict:
-            """Updates parcel."""
-            parcel: dict = self._cache.get(key, {})
-            if parcel:
-                for k, v in updates.items():
-                    if v is None:
-                        parcel.pop(k, None)
-                    else:
-                        parcel[k] = v
-            else:
-                self._cache[key] = parcel
-                parcel.update(**updates)
-            return parcel
-
         def _create(self, path) -> dict:
-            """Returns parcel built by creators."""
+            """."""
             if path.path in self._cache:
                 parcel = self._cache[path.path]
                 if self.meta.DEV:
@@ -123,7 +106,13 @@ def main(
             # Allow kwargs as positional arg
             _kwargs = dict(
                 next(
-                    iter([a for a in args[0:1] if hasattr(a, "keys")]),
+                    iter(
+                        [
+                            a
+                            for a in args[0:1]
+                            if typeName(a) == "Object" or isinstance(a, dict)
+                        ]
+                    ),
                     {},
                 )
             )
@@ -139,12 +128,7 @@ def main(
             return args
 
     # Create new use
-    """
-    HACK Something fishy is going on with the path parcel (client-side); 
-    it reverts to the use class itself in subsequent use calls. 
-    Therefore, make it a use prop.
-    """
-    use = Use(Path=use("use/path/path.py"), **use)
+    use = Use(**use._)
 
     @use.creator("source", "use")
     class cls(Base):
@@ -153,7 +137,7 @@ def main(
             Base.__init__(self, **kwargs)
 
         def __call__(self, path, **parcel) -> dict:
-            """Returns node and text updates."""
+            """."""
             result = {}
             node = document.createElement("div")
             node.setAttribute("__path__", path.relative)
@@ -186,25 +170,17 @@ def main(
         def __call__(self, path, text: str = None, **parcel) -> dict:
             """."""
             if isinstance(text, str):
-                
+                Construct = use.package.tools.Construct
                 Log = use.package.client.tools.Log
-
                 result = {}
-
-                constructed = Py(use=use, text=text)(
+                value = Construct(text=text, use=use)(
                     Base=Base,
                     log=Log(path.path),
                     path=path.path,
                     **parcel,
                 )
-                
-
-                
-                if constructed:
-                    if constructed.value is not None:
-                        result.update(default="value", value=constructed.value)
-                    result.update(**constructed.meta)
-                
+                if value is not None:
+                    result.update(default="value", value=value)
                 return result
 
     @use.creator("type", "js")
@@ -212,7 +188,7 @@ def main(
 
         def __init__(self, **kwargs):
             Base.__init__(self, **kwargs)
-            self._(meta=window.Object.freeze(dict(use.meta)))
+            self._.update(meta=window.Object.freeze(dict(use.meta)))
 
         def __call__(self, path, text: str = None, **parcel) -> dict:
             """."""
@@ -225,6 +201,24 @@ def main(
                 if value is not None:
                     result.update(default="value", value=value)
                 return result
+
+    @use.processor("js", "py")
+    class cls(Base):
+
+        def __init__(self, **kwargs):
+            Base.__init__(self, **kwargs)
+
+        def __call__(
+            self,
+            args=None,
+            kwargs=None,
+            path=None,
+            result=None,
+        ):
+            """."""
+
+            if isinstance(result, dict) or typeName(result) == "Object":
+                return window.Object.freeze(result)
 
     @use.processor("json")
     class cls(Base):
@@ -244,10 +238,5 @@ def main(
                 import json
 
                 return json.loads(result)
-
-   
-    use('use/ping.py')
-    parcel = {k: v for k, v in use.get('use/ping.py').items() if k != 'text'}
-    log("parcel:", parcel )  ##
 
     return use
