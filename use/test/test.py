@@ -43,7 +43,7 @@ def main(
                 if kwargs.get('text'):
                     return text
 
-                return constructed["value"]
+                return constructed.get("value")
 
             if path.type == "js":
                 Construct = use.package.client.tools.Construct

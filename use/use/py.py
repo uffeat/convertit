@@ -29,9 +29,9 @@ def main(use, Base=None, log: callable = None, **kwargs) -> callable:
 
 
 
-                return Base(
+                return Base.Dictionary(
                     value=value,
-                    meta=Base(
+                    meta=Base.Dictionary(
                         config=main.__dict__.get("config"),
                         doc=self.parse(main.__doc__),
                         name=(
