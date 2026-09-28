@@ -10,9 +10,6 @@ def main(use, Base=None, log: callable = None, **kwargs) -> callable:
             main = locals.pop("main", None)
 
             if callable(main):
-                spec = next(
-                    (v for v in main.__defaults__ if v and isinstance(v, dict)), None
-                )
                 # Make the function itself available to function body
                 kwargs.update(self=main)
                 # Make locals available to function body
@@ -21,17 +18,11 @@ def main(use, Base=None, log: callable = None, **kwargs) -> callable:
                 if not isinstance(locals.get("config"), dict):
                     main.__dict__.update(config=dict)
 
-                
-
                 value = main(
                     self.use,
                     *args,
                     **kwargs,
                 )
-
-                ##log("defaults:", main.__defaults__)  ##
-                ##log("annotations:", main.__annotations__)  ##
-                log("spec:", spec)  ##
 
                 return Base.Dictionary(
                     value=value,
@@ -44,7 +35,6 @@ def main(use, Base=None, log: callable = None, **kwargs) -> callable:
                             else None
                         ),
                         returns=main.__annotations__.get("return"),
-                        spec=spec,
                     ),
                 )
 
