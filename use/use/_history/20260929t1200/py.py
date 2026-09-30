@@ -2,11 +2,9 @@ def main(use, Base=None, log: callable = None, **kwargs) -> callable:
     class Py(Base):
         def __init__(self, text: str = None, use: callable = use, **kwargs):
             Base.__init__(self)
-            self._(text=text, use=use, kwargs=kwargs)
+            self._(text=text, use=use)
 
         def __call__(self, *args, **kwargs):
-            self.kwargs.update(**kwargs)
-            kwargs = self.kwargs
             locals = {}
             exec(self.text, {}, locals)
             main = locals.pop("main", None)
@@ -22,6 +20,8 @@ def main(use, Base=None, log: callable = None, **kwargs) -> callable:
                 # Ensure that locals contains a config dict
                 if not isinstance(locals.get("config"), dict):
                     main.__dict__.update(config=dict)
+
+                
 
                 value = main(
                     self.use,

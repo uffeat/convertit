@@ -88,7 +88,6 @@ def main(
                     parcel.update(cached=True)
             else:
                 parcel = dict(state=dict())
-                options = dict()
 
                 def create(key):
                     registry: dict = self._creators.get(key)
@@ -96,7 +95,7 @@ def main(
                         container = registry.get(path[key])
                         if container:
                             hook = container["value"]
-                            updates: dict = hook(path, options=options, **parcel)
+                            updates: dict = hook(path, **parcel)
                             if updates:
                                 parcel.update(**updates)
                     return create
@@ -105,8 +104,7 @@ def main(
                 for key in self._creators.keys():
                     create(key)
                 # Cache
-                if options.get('cache', True):
-                    self._cache[path.path] = parcel
+                self._cache[path.path] = parcel
 
             return parcel
 
@@ -160,7 +158,7 @@ def main(
         def __init__(self, **kwargs):
             Base.__init__(self, **kwargs)
 
-        def __call__(self, path, options: dict=None, **parcel) -> dict:
+        def __call__(self, path, **parcel) -> dict:
             """Returns node and text updates."""
             result = {}
             node = document.createElement("div")
@@ -191,7 +189,7 @@ def main(
         def __init__(self, **kwargs):
             Base.__init__(self, **kwargs)
 
-        def __call__(self, path, options: dict=None, text: str = None, **parcel) -> dict:
+        def __call__(self, path, text: str = None, **parcel) -> dict:
             """."""
             if isinstance(text, str):
                 result = {}
@@ -214,7 +212,7 @@ def main(
             Base.__init__(self, **kwargs)
             self._(meta=window.Object.freeze(dict(use.meta)))
 
-        def __call__(self, path, options: dict=None, text: str = None, **parcel) -> dict:
+        def __call__(self, path, text: str = None, **parcel) -> dict:
             """."""
             if isinstance(text, str):
                 Construct = use.package.client.tools.Construct
