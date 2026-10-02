@@ -7,10 +7,10 @@ def main(
     test: bool = None,
     spec: dict = dict(pong='PONG'),
     **kwargs,
-) -> 'main':
-    """{"stuff": 42}"""
+):
+    """Returns ping function."""
 
-    log("self.config:", self.config)  ##
+   
 
     self.config.update(ding="DING")
 
@@ -18,7 +18,7 @@ def main(
 
     self.__annotations__['return'] = dict(bar=8)
 
-    self.__name__ = '{"stuff": 42}'
+    self.__name__ = 'ping'
 
     spec.update(boom='BOOM')
 

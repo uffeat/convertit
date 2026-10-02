@@ -6,6 +6,7 @@ def main(
     **kwargs,
 ) -> None:
     """."""
+
     from base64 import b64decode, b64encode
     from datetime import datetime, timezone
     import json
@@ -29,11 +30,26 @@ def main(
     ##from server import Log
     ##from tools import Dictionary
 
+    log('dir(app):', dir(app))
+    log('dir(app.environment):', dir(app.environment))
+   
+    log('app.environment.tags:', app.environment.tags)
+
+    log('app.get_server_config():', app.get_server_config())
+
+    log('dir(session):', dir(session))
+    session.session = {}
+    log('session.session:', session.session)
+    log('session.call_id:', session.call_id)
+    log('session.session_id:', session.session_id)
+    log('session.stack_id:', session.stack_id)
+    
+
+    
+
     Path = use("use/path/path.py")
     get_asset = use("use/asset/asset.py")
     Query = use("use/query/query.py")
-
-    
 
     UTF_8 = "utf-8"
 
@@ -43,6 +59,7 @@ def main(
             self._.update(_responder=dict())
 
         def __call__(self, *args, **kwargs):
+            ##log("kwargs:", kwargs)  ##
             try:
                 path, query = self.parse(kwargs)
                 ##log("path:", path)  ##
@@ -147,3 +164,21 @@ def main(
             )
 
     router.setup()
+
+    @server_function
+    def main(*args, **kwargs):
+        """."""
+        if '_state' in session:
+            _state = session['_state']
+        else:
+            _state = dict(id=session.session_id, count=0)
+            session['_state'] = _state
+
+        _state['count'] += 1
+        
+
+        
+
+        return _state
+
+

@@ -13,7 +13,7 @@ def main(use, Base: type = None, log: callable = None, **kwargs):
             """."""
             if path.startswith('/'):
                 path = path[1:]
-            if use.meta.DEV:
+            if not use.meta.PROD:
                 try:
                     result: BlobMedia = call("_asset", path)
                 except:

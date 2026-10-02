@@ -14,6 +14,8 @@ def main(
     ##log("text:", text)  ##
    
 
-    use("use/_test/ping.test.py")
-    parcel = {k: v for k, v in use.get("use/_test/ping.test.py").items() if k != "text"}
-    log("parcel:", parcel)  ##
+    ##use("use/_test/ping.test.py")
+    parcel = use.get("use/_test/ping.test.py")
+    ##parcel = {k: v for k, v in use.get("use/_test/ping.test.py").items() if k != "text"}
+    ##log("parcel:", parcel)  ##
+    log("meta:", parcel.get('meta'))  ##

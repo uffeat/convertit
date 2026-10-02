@@ -21,7 +21,7 @@ def main(use, Base=None, log: callable = None, **kwargs) -> callable:
                 main.__dict__.update(locals)
                 # Ensure that locals contains a config dict
                 if not isinstance(locals.get("config"), dict):
-                    main.__dict__.update(config=dict())
+                    main.__dict__.update(config=dict)
 
                 value = main(
                     self.use,
@@ -32,37 +32,6 @@ def main(use, Base=None, log: callable = None, **kwargs) -> callable:
                 ##log("defaults:", main.__defaults__)  ##
                 ##log("annotations:", main.__annotations__)  ##
                 ##log("spec:", spec)  ##
-
-                result = dict()
-                if value is not None:
-                    result.update(value=value)
-
-                meta = dict()
-
-                name = main.__name__
-                if name != "main":
-                    meta.update(name=name)
-
-                config = main.__dict__.get("config")
-                if config:
-                    meta.update(config=config)
-
-                doc = main.__doc__
-                if doc:
-                    meta.update(doc=doc)
-
-                returns = main.__annotations__.get("return")
-                if returns is not None:
-                    meta.update(returns=returns)
-
-                if spec:
-                    meta.update(spec=spec)
-
-                if meta:
-                    result.update(meta=meta)
-
-                return result
-
 
                 return Base.Dictionary(
                     value=value,
