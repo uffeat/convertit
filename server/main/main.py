@@ -43,10 +43,6 @@ def main(
     ##log("session.call_id:", session.call_id)  ##
     ##log("session.session_id:", session.session_id)  ##
     ##log("session.stack_id:", session.stack_id)  ##
-    
-    
-
-    
 
     Path = use("use/path/path.py")
     get_asset = use("use/asset/asset.py")
@@ -169,22 +165,17 @@ def main(
     @server_function
     def main(*args, **kwargs):
         """."""
-        if '_state' in session:
-            _state = session['_state']
+        if "_state" in session:
+            _state = session["_state"]
             if isinstance(_state, dict):
-                if 'id' not in _state and 'count' not in _state:
+                if "id" not in _state and "count" not in _state:
                     _state.update(id=session.session_id, count=0)
             else:
                 _state = dict(id=session.session_id, count=0)
         else:
             _state = dict(id=session.session_id, count=0)
-            session['_state'] = _state
+            session["_state"] = _state
 
-        _state['count'] += 1
-        
-
-        
+        _state["count"] += 1
 
         return _state
-
-
