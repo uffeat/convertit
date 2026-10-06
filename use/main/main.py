@@ -8,10 +8,10 @@ def main(use, Base: type = None, log: callable = None, **kwargs) -> callable:
 
     log("session:", use.session)
 
-    result = call("main", 'foo', )
+    result = call("main", 'echo', session=use.session)
     log("result:", result)  ##
 
-    result = call("main")
+    result = call("main", 'echo', args=[1, 2, 3], kwargs=dict(foo=42))
     log("result:", result)  ##
     ##
     ##

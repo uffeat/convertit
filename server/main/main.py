@@ -32,17 +32,54 @@ def main(
     State = use("server/state/state.py")
 
     @server_function
-    def main(*args, **kwargs):
+    def main(
+        name: str,
+        submission: int = None,
+        **rest,
+    ):
         """."""
+        args = rest.get('args', [])
+        kwargs = rest.get('kwargs', {})
+
+
+        
+        
         # XXX TODO Wrap in try-except
         state = State()
         ##log("state:", state)  ##
 
-        if "count" in state:
-            ##count = state["count"] + 1
-            ##state(count=count)
-            state["count"] += 1
-        else:
-            state(count=0)
+        browser_session = rest.get("session")
+        if browser_session:
+            if (
+                "_browser_session" not in session
+                or session["_browser_session"] != browser_session
+            ):
+                session["_browser_session"] = browser_session
+                state.browser.clear()
 
-        return dict(id=session.session_id, **state)
+        state.server(count=state.server.count + 1 if "count" in state.server else 0)
+        state.browser(count=state.browser.count + 1 if "count" in state.browser else 0)
+
+        _main = use(f"server/functions/{name}/{name}.py")
+
+        meta = Base(
+            session_id=session.session_id,
+            browser_session=browser_session,
+            name=name,
+            state=state,
+        )
+
+
+
+        result = _main(meta, *args, **kwargs)
+
+        return dict(
+            result=result,
+            meta=dict(
+                session_id=session.session_id,
+                browser_session=browser_session,
+                name=name,
+                server=dict(**state.server),
+                browser=dict(**state.browser),
+            )
+        )

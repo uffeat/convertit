@@ -3,7 +3,7 @@ def main(
     Base: type = None,
     log: callable = None,
     path: str = None,
-    state: dict = None,
+    state:dict=None,
     **kwargs,
 ):
     from anvil.server import session
@@ -27,17 +27,20 @@ def main(
     ##log("session.session_id:", session.session_id)  ##
     ##log("session.stack_id:", session.stack_id)  ##
 
-    class StateSlice(Base):
-        def __init__(self, name: str):
-            if name in session:
-                data = session[name]
-                if not isinstance(data, dict):
-                    data = dict()
-                    session[name] = data
+    class State(Base):
+        def __init__(self):
+            if "_state" in session:
+                _state = session["_state"]
+                if isinstance(_state, dict):
+                    ...
+                else:
+                    _state = dict()
+                    session["_state"] = _state
             else:
-                data = dict()
-                session[name] = data
-            self.__dict__.update(__=data)
+                _state = dict()
+                session["_state"] = _state
+
+            self.__dict__.update(__=_state)
 
         def __call__(self, **kwargs):
             for key, value in kwargs.items():
@@ -50,6 +53,7 @@ def main(
         def __setitem__(self, key, value):
             self(**{key: value})
 
+        
         def clear(self):
             keys = list(self.keys())
             for key in keys:
@@ -63,15 +67,19 @@ def main(
                 return value
             return default
 
-    class State(Base):
-        def __init__(self):
-            Base.__init__(self)
-            self._(server=StateSlice('_server'), browser=StateSlice('_browser'))
 
+            
 
-           
-        
-
-    return State
 
     
+    
+    return State
+
+
+
+            
+
+
+    
+    
+    return State
