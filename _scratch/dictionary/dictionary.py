@@ -1,4 +1,9 @@
 class Dictionary(dict):
+    def __init__(self, **kwargs):
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+        dict.__init__(self, **kwargs)
+
+
     def __call__(self, *args, **kwargs) -> "Dictionary":
         self.update(*args, **kwargs)
         return self
@@ -27,6 +32,7 @@ class Dictionary(dict):
 
 data = Dictionary(foo="FOO", bar="BAR")
 data(ding="DING")
+print("data:", data)
 
 print("index:", data.index("ding"))
 
@@ -35,7 +41,7 @@ for n in [1, 2]:
 
 print("1:", data[1])
 
-print("data:", data)
+
 
 print("foo:", data.get("foo"))
 

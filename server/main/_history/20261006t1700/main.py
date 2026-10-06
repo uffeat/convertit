@@ -28,15 +28,26 @@ def main(
     )
     from tools import Dictionary
 
+    
+
     use("server/router/router.py")
     State = use("server/state/state.py")
+   
 
+ 
+
+    
     @server_function
     def main(*args, **kwargs):
         """."""
         # XXX TODO Wrap in try-except
+        
+
         state = State()
-        ##log("state:", state)  ##
+        
+        log('state:', state)##
+
+
 
         if "count" in state:
             ##count = state["count"] + 1
@@ -44,5 +55,8 @@ def main(
             state["count"] += 1
         else:
             state(count=0)
+            
 
-        return dict(id=session.session_id, **state)
+        
+
+        return dict(id=state.id, **state)

@@ -23,7 +23,7 @@ def main(
     class use(Base):
         def __init__(self, **kwargs):
             Base.__init__(self, **kwargs)
-            self._(_creators={}, _processors={})
+            self._(_creators={}, _processors={}, session=window.crypto.randomUUID())
 
         def __call__(self, specifier, *args, **kwargs):
             """Returns result from import engine."""
@@ -56,11 +56,8 @@ def main(
             """Returns copy of parcel."""
             if key not in self._cache:
                 self(key)
-            
-                
-            return  dict(**self._cache.get(key, {}))
-        
-           
+
+            return dict(**self._cache.get(key, {}))
 
         def processor(self, *keys):
             """Decorates processor."""
@@ -204,9 +201,7 @@ def main(
         def __init__(self, **kwargs):
             Base.__init__(self, **kwargs)
 
-        def __call__(
-            self, path, text: str = None, **parcel
-        ) -> dict:
+        def __call__(self, path, text: str = None, **parcel) -> dict:
             """."""
             if isinstance(text, str):
                 result = {}
@@ -230,9 +225,7 @@ def main(
             Base.__init__(self, **kwargs)
             self._(meta=window.Object.freeze(dict(use.meta)))
 
-        def __call__(
-            self, path, text: str = None, **parcel
-        ) -> dict:
+        def __call__(self, path, text: str = None, **parcel) -> dict:
             """."""
             if isinstance(text, str):
                 Construct = use.package.client.tools.Construct

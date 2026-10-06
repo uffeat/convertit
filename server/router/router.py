@@ -27,27 +27,6 @@ def main(
         get_app_origin,
     )
 
-    ##from server import Log
-    ##from tools import Dictionary
-
-    ##log("dir(app):", dir(app))  ##
-    ##log("dir(app.environment):", dir(app.environment))  ##
-
-    ##log("app.environment.tags:", app.environment.tags)  ##
-
-    ##log("app.get_server_config():", app.get_server_config())  ##
-
-    ##log("dir(session):", dir(session))  ##
-
-    ##log("session.session:", session.session)  ##
-    ##log("session.call_id:", session.call_id)  ##
-    ##log("session.session_id:", session.session_id)  ##
-    ##log("session.stack_id:", session.stack_id)  ##
-    
-    
-
-    
-
     Path = use("use/path/path.py")
     get_asset = use("use/asset/asset.py")
     Query = use("use/query/query.py")
@@ -75,7 +54,7 @@ def main(
                         if isinstance(result, Exception):
                             result = ""
                 else:
-                    result = FormResponse("client", path=dict(**path), query=query)
+                    result = FormResponse("client", path=dict(**path), query=query, session=session.session_id)
             except:
                 result = traceback.format_exc()
             return result
@@ -166,25 +145,5 @@ def main(
 
     router.setup()
 
-    @server_function
-    def main(*args, **kwargs):
-        """."""
-        if '_state' in session:
-            _state = session['_state']
-            if isinstance(_state, dict):
-                if 'id' not in _state and 'count' not in _state:
-                    _state.update(id=session.session_id, count=0)
-            else:
-                _state = dict(id=session.session_id, count=0)
-        else:
-            _state = dict(id=session.session_id, count=0)
-            session['_state'] = _state
-
-        _state['count'] += 1
-        
-
-        
-
-        return _state
-
+    
 
