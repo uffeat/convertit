@@ -11,6 +11,8 @@ def main(
 
     element = _use.package.client.tools.element
 
+   
+
     ##typeName = use("use/type/name.js")
 
     document = window.document
@@ -20,10 +22,11 @@ def main(
 
     ##log("Py:", Py)  ##
 
-    class use(Base):
+    class use(_use.Base):
         def __init__(self, **kwargs):
-            Base.__init__(self, **kwargs)
-            self._(_creators={}, _processors={}, session=window.crypto.randomUUID())
+            self._(**kwargs)(
+                _creators={}, _processors={}, session=window.crypto.randomUUID()
+            )
 
         def __call__(self, specifier, *args, **kwargs):
             """Returns result from import engine."""

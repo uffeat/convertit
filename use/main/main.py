@@ -11,7 +11,7 @@ def main(use, Base: type = None, log: callable = None, **kwargs) -> callable:
     result = call("main", 'echo', session=use.session)
     log("result:", result)  ##
 
-    result = call("main", 'echo', args=[1, 2, 3], kwargs=dict(foo=42))
+    result = call("main", 'echo', args=[1, 2, 3, use.dict(foo=42)], kwargs=dict(foo=42))
     log("result:", result)  ##
     ##
     ##

@@ -38,15 +38,14 @@ def main(
         **rest,
     ):
         """."""
-        args = rest.get('args', [])
-        kwargs = rest.get('kwargs', {})
+        args = rest.get("args", [])
+        kwargs = rest.get("kwargs", {})
 
-
-        
-        
         # XXX TODO Wrap in try-except
         state = State()
         ##log("state:", state)  ##
+
+        # XXX TODO Use store browser session for sf, if not passed in
 
         browser_session = rest.get("session")
         if browser_session:
@@ -69,8 +68,6 @@ def main(
             state=state,
         )
 
-
-
         result = _main(meta, *args, **kwargs)
 
         return dict(
@@ -81,5 +78,5 @@ def main(
                 name=name,
                 server=dict(**state.server),
                 browser=dict(**state.browser),
-            )
+            ),
         )

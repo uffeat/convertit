@@ -11,7 +11,7 @@ def main(
     ##log("state:", state)  ##
 
     ##from server import Log
-    from tools import Dictionary
+    
 
     ##log("dir(app):", dir(app))  ##
     ##log("dir(app.environment):", dir(app.environment))  ##
@@ -65,7 +65,6 @@ def main(
 
     class State(Base):
         def __init__(self):
-            Base.__init__(self)
             self._(server=StateSlice('_server'), browser=StateSlice('_browser'))
 
 

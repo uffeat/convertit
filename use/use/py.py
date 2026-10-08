@@ -1,7 +1,6 @@
-def main(use, Base=None, log: callable = None, **kwargs) -> callable:
-    class Py(Base):
+def main(use, log: callable = None, **kwargs) -> callable:
+    class Py(use.Base):
         def __init__(self, text: str = None, use: callable = use, **kwargs):
-            Base.__init__(self)
             self._(text=text, use=use, kwargs=kwargs)
 
         def __call__(self, *args, **kwargs):
