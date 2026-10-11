@@ -41,6 +41,9 @@ def main(
         args = rest.get("args", [])
         kwargs = rest.get("kwargs", {})
 
+        # XXX TODO client-server pairs; exploit build step
+        # XXX TODO Consider i/o types
+
         # XXX TODO Wrap in try-except
         state = State()
         ##log("state:", state)  ##

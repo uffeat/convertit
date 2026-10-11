@@ -5,21 +5,28 @@ def main(
     path: str = None,
     state: dict = None,
     **kwargs,
-):
-    """."""
+) ->callable:
+    """Returns test route."""
     from anvil.js import window
     from anvil.server import call
 
     Log = use("use/log/log.py")
     Py = use("use/use/py.py")
 
+    # XXX TODO Refactor to non-caching use-source
+    # XXX TODO Integrate once-config into use/.py-creator
+
     def main(*args, **kwargs):
 
         ##log("Loading", path) ##
 
+        # Implement once pattern
         if state.get("used"):
             return
         state.update(used=True)
+        
+        
+        
         ##log("Using...")  ##
 
         def test(specifier: str, **kwargs):

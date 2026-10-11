@@ -11,7 +11,7 @@ def main(
 
     element = _use.package.client.tools.element
 
-   
+    # XXX TODO self-extending pipe based on original use
 
     ##typeName = use("use/type/name.js")
 
@@ -55,12 +55,15 @@ def main(
 
             return register
 
-        def get(self, key) -> dict:
-            """Returns copy of parcel."""
-            if key not in self._cache:
-                self(key)
+        def get(self, specifier, *keys):
+            """Returns parcel or parcelmember."""
+            if specifier not in self._cache:
+                self(specifier)
+            parcel: dict = self._cache[specifier]
+            if keys:
+                return {k: v for k, v in parcel.items() is k in keys}
 
-            return dict(**self._cache.get(key, {}))
+            return parcel
 
         def processor(self, *keys):
             """Decorates processor."""
@@ -74,9 +77,9 @@ def main(
 
             return register
 
-        def update(self, key, **updates) -> dict:
+        def update(self, specifier, **updates) -> dict:
             """Creates or updates and returns parcel."""
-            parcel: dict = self._cache.get(key, {})
+            parcel: dict = self._cache.get(specifier, {})
             if parcel:
                 for k, v in updates.items():
                     if v is None:
@@ -84,8 +87,8 @@ def main(
                     else:
                         parcel[k] = v
             else:
-                self._cache[key] = parcel
-                parcel.update(**updates)
+                self._cache[specifier] = parcel
+                parcel.update(**{k: v for k, v in updates.items() if v is not None})
             return parcel
 
         def _create(self, path) -> dict:
