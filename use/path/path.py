@@ -34,6 +34,8 @@ def main(use: callable, Base: type = None, log:callable=None, **kwargs) -> type:
             else:
                 stem, types = name, ""
                 result.update(type=types)
+            
+            
             result.update(
                 name=name,
                 parts=tuple(parts),

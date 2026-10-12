@@ -61,7 +61,7 @@ def main(
                 self(specifier)
             parcel: dict = self._cache[specifier]
             if keys:
-                return {k: v for k, v in parcel.items() is k in keys}
+                return {k: v for k, v in parcel.items() if k in keys}
 
             return parcel
 

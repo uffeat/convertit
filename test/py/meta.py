@@ -3,6 +3,6 @@ def main(
 ) -> callable:
     """test/py/meta.py"""
 
-    parcel = use.get("use/test/ping.test.py")
+    meta = use.get("use/test/ping.test.py", "meta")
 
-    log("meta:", parcel.get("meta"))  ##
+    log("meta:", meta)  ##
