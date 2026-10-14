@@ -51,10 +51,7 @@ class Dictionary(dict):
         return dict.__getitem__(self, key)
     
     def index(self, key, default=None):
-
         lookup = {k: i for i, k in enumerate(self.keys())}
-
-
         return lookup.get(key, default)
 
 
