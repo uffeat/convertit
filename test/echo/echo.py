@@ -7,5 +7,5 @@ def main(use: callable, log: callable = None, **kwargs):
     result = call("main", "echo", session=use.session)
     log("result:", result)  ##
 
-    result = call("main", "echo", args=[1, 2, 3, use.dict(foo=42)], kwargs=dict(foo=42))
+    result = call("main", "echo", args=[1, 2, 3, use.dict(foo=42)], kwargs=use.dict(foo=42))
     log("result:", result)  ##
