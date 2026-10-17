@@ -72,14 +72,16 @@ class Dictionary(dict):
             for k, (own, other) in difference.items()
         ]
 
-        result = (
-            MappingProxyType({k: v for k, (_, v) in difference.items()}),
-            MappingProxyType({k: v for k, (v, _) in difference.items()}),
-        )
+        
 
-        getattr(self, "onchange", lambda *args: None)(*result)
+        onchange = getattr(self, "onchange", None)
+        if callable(onchange):
+            onchange(
+                MappingProxyType({k: v for k, (_, v) in difference.items()}),
+                MappingProxyType({k: v for k, (v, _) in difference.items()}),
+            )
 
-        return result
+        return difference
 
     def at(self, index: int, default=None):
         """Returns key at index. Supports positive and negative indices. Returns default if out of range."""
@@ -120,10 +122,7 @@ class Dictionary(dict):
             if not key:
                 key = value.__name__
 
-
             print("type:", type(value).__name__)
-
-
 
             self._.update({key: MethodType(value, self)})
 
