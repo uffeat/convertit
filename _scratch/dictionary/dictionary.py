@@ -3,8 +3,6 @@ from types import MappingProxyType, MethodType
 
 class Dictionary(dict):
 
-    
-
     def __init__(self, *args, **kwargs):
         self.__dict__.update(__={})
         self.update(*args, **kwargs)
@@ -16,6 +14,28 @@ class Dictionary(dict):
     def __call__(self, *args, **kwargs) -> "Dictionary":
         self.update(*args, **kwargs)
         return self
+
+    def __getattr__(self, key: str):
+        # Ensure that getattr and hasattr works
+        if key not in self._:
+            raise AttributeError(key)
+        value = self._[key]
+
+        print(type(value).__name__)
+
+        return value
+
+    def __getitem__(self, key):
+        if isinstance(key, slice):
+            return Dictionary({k: self[k] for k in list(self.keys())[key]})
+        return dict.__getitem__(self, key)
+
+    def __setitem__(self, key, value):
+        """."""
+        self.update({key: value})
+
+    def __sub__(self, other):
+        return self.difference(other)
 
     def pop(self, key, default=None):
         if isinstance(key, list):
@@ -52,24 +72,14 @@ class Dictionary(dict):
             for k, (own, other) in difference.items()
         ]
 
-        if hasattr(self,'onchange'):
-            current = {k:v for k, (_, v) in difference.items()}
-            previous = {k:v for k, (v, _) in difference.items()}
-            self.onchange(previous, **current)
+        result = (
+            MappingProxyType({k: v for k, (_, v) in difference.items()}),
+            MappingProxyType({k: v for k, (v, _) in difference.items()}),
+        )
 
-        return difference
+        getattr(self, "onchange", lambda *args: None)(*result)
 
-    def __getitem__(self, key):
-        if isinstance(key, slice):
-            return Dictionary({k: self[k] for k in list(self.keys())[key]})
-        return dict.__getitem__(self, key)
-
-    def __setitem__(self, key, value):
-        """."""
-        self.update({key: value})
-
-    def __sub__(self, other):
-        return self.difference(other)
+        return result
 
     def at(self, index: int, default=None):
         """Returns key at index. Supports positive and negative indices. Returns default if out of range."""
@@ -82,14 +92,6 @@ class Dictionary(dict):
         self.update({k: None for k in keys})
         return self
 
-    def enumerate(self):
-        """."""
-        return enumerate(self.items())
-
-    def index(self, key, default=None):
-        """Returns positive index for key. Returns default, if key missing."""
-        return list(self.keys()).index(key) if key in self else default
-
     def difference(self, other: dict) -> dict:
         """."""
         return MappingProxyType(
@@ -100,6 +102,32 @@ class Dictionary(dict):
                 or (k in self and v != self[k] or (k not in self and v is not None))
             }
         )
+
+    def enumerate(self):
+        """."""
+        return enumerate(self.items())
+
+    def index(self, key, default=None):
+        """Returns positive index for key. Returns default, if key missing."""
+        return list(self.keys()).index(key) if key in self else default
+
+    def method(self, *args):
+        """."""
+
+        def register(value: callable):
+            """."""
+            key = next((a for a in args if isinstance(a, str)), None)
+            if not key:
+                key = value.__name__
+
+
+            print("type:", type(value).__name__)
+
+
+
+            self._.update({key: MethodType(value, self)})
+
+        return register
 
     def transform(self, *args):
         """Decorates transformer."""
@@ -112,13 +140,6 @@ class Dictionary(dict):
             return self
         # Return function for later transformation
         return lambda transformer: lambda: self.transform(transformer)
-
-
-    def __getattr__(self, key: str):
-        # Ensure that getattr and hasattr works
-        if key not in self._:
-            raise AttributeError(key)
-        return self._[key]
 
 
 if __name__ == "__main__":
@@ -157,16 +178,17 @@ if __name__ == "__main__":
     ##print("data.enumerate():", [*data.enumerate()])
     ##print("data.enumerate():", [(index, item[0], item[1]) for index, item in data.enumerate()],)
 
-    def onchange(self, previous, **current):
+    @data.method()
+    def onchange(self, current, previous):
         """."""
-        print('previous:', previous)
-        
-        print('current:', current)
+        print("previous:", previous)
+        print("current:", current)
 
+    ##data.__dict__.update(onchange=MethodType(onchange, data))
 
-    data.__dict__.update(onchange=MethodType(onchange, data))
+    ##data._.update(onchange=MethodType(onchange, data))
 
-    ##@data.transform()
+    @data.transform  ##()
     def transform(index, key, value):
         if key == "pong":
             return
@@ -174,12 +196,12 @@ if __name__ == "__main__":
             return value.lower()
         return value
 
-    data.transform(transform)
+    ##data.transform(transform)
 
     ##print("transform:", transform)
     ##transform()
 
-    ##data[(1, 2, 3)] = True
+    data[(1, 2, 3)] = True
     ##print("data:", data)
 
     ##data.clear()
@@ -192,15 +214,3 @@ if __name__ == "__main__":
     difference = data.difference(other)
     difference = data - other
     ##print("difference:", difference)
-
-    
-
-    
-
-   
-
-    
-
-    
-
-    
