@@ -57,22 +57,8 @@ class Dictionary(dict):
         
 
     def at(self, index: int, default=None):
-        if index < 0:
-            sliced = [default, *list(self.keys())[index-1:index]]
-            return sliced[-1]
-        else:
-            sliced = [default, *list(self.keys())[index:index+1]]
-            return sliced[-1]
-
-
-
-
-
-        if index < 0:
-            lookup = {-(i+1): k for i, k in enumerate(reversed(data.keys()))}
-        else:
-            lookup = {i: k for i, k in enumerate(self.keys())}
-        return lookup.get(index, default)
+        return next(iter(list(self.keys())[index:]), default)
+        
 
 
         
@@ -102,20 +88,22 @@ if __name__ == "__main__":
     ##print("index of bar:", data.index("bar"))
     ##print("index of bad:", data.index("bad"))
 
+    
+
 
     print("key at 0:", data.at(0))
-    ##print("key at 1:", data.at(1))
+    print("key at 1:", data.at(1))
     ##print("key at 2:", data.at(2))
     print("key at 10:", data.at(10))
 
-    ##print("key at -1:", data.at(-1))
+    print("key at -1:", data.at(-1))
     ##print("key at -2:", data.at(-2))
-    ##print("key at -3:", data.at(-3))
+    print("key at -3:", data.at(-3))
 
-    print('data[0:1]:', data[0:1])
-    print('data[0:2]:', data[0:2])
-    print('data[0:4]:', data[0:4])
-    print('data[1:-1]:', data[1:-1])
+    ##print('data[0:1]:', data[0:1])
+    ##print('data[0:2]:', data[0:2])
+    ##print('data[0:4]:', data[0:4])
+    ##print('data[1:-1]:', data[1:-1])
     
 
 
