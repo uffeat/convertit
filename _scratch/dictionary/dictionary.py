@@ -1,76 +1,133 @@
+from types import MappingProxyType, MethodType
+
+
 class Dictionary(dict):
 
-    # XXX TODO Calc additions etc. via algebraic ops
-    # XXX TODO Option to update from items and items-like
+    
 
     def __init__(self, *args, **kwargs):
-        self(*args, **kwargs)
+        self.__dict__.update(__={})
+        self.update(*args, **kwargs)
+
+    @property
+    def _(self) -> dict:
+        return self.__
 
     def __call__(self, *args, **kwargs) -> "Dictionary":
-        updates = Dictionary.update({}, *args, **kwargs)
-        if self:
-            additions = {
-                k: v for k, v in updates.items() if k not in self and v is not None
-            }
-            changes = {
-                k: v
-                for k, v in updates.items()
-                if k in self and v is not None and v != self[k]
-            }
-            removals = [k for k, v in updates.items() if k in self and v is None]
-            self.update(additions, changes)
-            self.pop(removals)
-
-        else:
-            # Update with None-values filtered out
-            dict.update(self, {k: v for k, v in updates.items() if v is not None})
+        self.update(*args, **kwargs)
         return self
 
     def pop(self, key, default=None):
         if isinstance(key, list):
-            return [self.pop(k, default) for k in key]
-        return dict.pop(self, key, default)
+            values = [self.get(k, default) for k in key]
+            self.update({k: None for k in key})
+            return values
+        value = self.get(key, default)
+        self.update({key: None})
+        return value
+
+    def popitem(self, index=-1) -> tuple:
+        """."""
+        key = self.at(index)
+        value = self.pop(key)
+        return key, value
+
+    def setdefault(self, key, default=True):
+        """."""
+        if key not in self:
+            self.update(**{key: default})
+        # NOTE Use get since None-values are never written
+        return self.get(key)
 
     def update(self, *args, **kwargs):
         # Create intermediary to control update order
         updates = dict()
         # Update intermediary from args
-        for a in args:
-            # NOTE unpack to accomodate non-dicts
-            updates.update(**a)
+        [updates.update(a) for a in args]
         # Update intermediary from kwargs
         updates.update(kwargs)
-        dict.update(self, updates)
-        return self
+        difference = self.difference(updates)
+        [
+            dict.pop(self, k, None) if other is None else dict.update(self, {k: other})
+            for k, (own, other) in difference.items()
+        ]
+
+        if hasattr(self,'onchange'):
+            current = {k:v for k, (_, v) in difference.items()}
+            previous = {k:v for k, (v, _) in difference.items()}
+            self.onchange(previous, **current)
+
+        return difference
 
     def __getitem__(self, key):
         if isinstance(key, slice):
             return Dictionary({k: self[k] for k in list(self.keys())[key]})
         return dict.__getitem__(self, key)
-    
-    def index(self, key, default=None):
-        lookup = {k: i for i, k in enumerate(self.keys())}
-        return lookup.get(key, default)
 
+    def __setitem__(self, key, value):
+        """."""
+        self.update({key: value})
 
-
-        
+    def __sub__(self, other):
+        return self.difference(other)
 
     def at(self, index: int, default=None):
+        """Returns key at index. Supports positive and negative indices. Returns default if out of range."""
         return next(iter(list(self.keys())[index:]), default)
-        
+
+    def clear(self, *keys) -> "Dictionary":
+        """."""
+        if not keys:
+            keys = self.keys()
+        self.update({k: None for k in keys})
+        return self
+
+    def enumerate(self):
+        """."""
+        return enumerate(self.items())
+
+    def index(self, key, default=None):
+        """Returns positive index for key. Returns default, if key missing."""
+        return list(self.keys()).index(key) if key in self else default
+
+    def difference(self, other: dict) -> dict:
+        """."""
+        return MappingProxyType(
+            {
+                k: (self.get(k), v)
+                for k, v in other.items()
+                if (k in self and v is None)
+                or (k in self and v != self[k] or (k not in self and v is not None))
+            }
+        )
+
+    def transform(self, *args):
+        """Decorates transformer."""
+        transformer = next((a for a in args if callable(a)), None)
+        if transformer:
+            # Transform immediately
+            self.update(
+                {k: transformer(i, k, v) for i, (k, v) in enumerate(self.items())}
+            )
+            return self
+        # Return function for later transformation
+        return lambda transformer: lambda: self.transform(transformer)
 
 
-        
+    def __getattr__(self, key: str):
+        # Ensure that getattr and hasattr works
+        if key not in self._:
+            raise AttributeError(key)
+        return self._[key]
 
 
 if __name__ == "__main__":
-    data = Dictionary(foo=42, bad=None)
+    data = Dictionary(foo=42, bad=None, stuff=7)
     data(boom="BOOM")
     data(boom=None, bar="BAR")
+    data.clear("stuff")
     data(dict(ping="PING"), dict(pong="PONG"))
-
-   
+    data["ding"] = "DING"
 
     ##print("popped:", data.pop(["pong", "pang"]))
 
@@ -78,33 +135,72 @@ if __name__ == "__main__":
 
     ##print("foo:", data['foo'])
 
-
-    
-
-
-
-
     ##print("index of foo:", data.index("foo"))
     ##print("index of bar:", data.index("bar"))
     ##print("index of bad:", data.index("bad"))
 
-    
-
-
-    print("key at 0:", data.at(0))
-    print("key at 1:", data.at(1))
+    ##print("key at 0:", data.at(0))
+    ##print("key at 1:", data.at(1))
     ##print("key at 2:", data.at(2))
-    print("key at 10:", data.at(10))
+    ##print("key at 10:", data.at(10))
 
-    print("key at -1:", data.at(-1))
+    ##print("key at -1:", data.at(-1))
     ##print("key at -2:", data.at(-2))
-    print("key at -3:", data.at(-3))
+    ##print("key at -3:", data.at(-3))
 
     ##print('data[0:1]:', data[0:1])
     ##print('data[0:2]:', data[0:2])
     ##print('data[0:4]:', data[0:4])
     ##print('data[1:-1]:', data[1:-1])
+
+    ##print("data.enumerate():", data.enumerate())
+    ##print("data.enumerate():", [*data.enumerate()])
+    ##print("data.enumerate():", [(index, item[0], item[1]) for index, item in data.enumerate()],)
+
+    def onchange(self, previous, **current):
+        """."""
+        print('previous:', previous)
+        
+        print('current:', current)
+
+
+    data.__dict__.update(onchange=MethodType(onchange, data))
+
+    ##@data.transform()
+    def transform(index, key, value):
+        if key == "pong":
+            return
+        if isinstance(value, str):
+            return value.lower()
+        return value
+
+    data.transform(transform)
+
+    ##print("transform:", transform)
+    ##transform()
+
+    ##data[(1, 2, 3)] = True
+    ##print("data:", data)
+
+    ##data.clear()
+
+    ##print("popped:", data.popitem())
+
+    print("data:", data)
+
+    other = dict(foo=42, bar=8, kapow=True, no=None, ding=None)
+    difference = data.difference(other)
+    difference = data - other
+    ##print("difference:", difference)
+
     
 
+    
+
+   
+
+    
+
+    
 
     
