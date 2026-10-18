@@ -15,18 +15,11 @@ class Uid:
 Uid = Uid()
 
 
-
 class Private(dict):
-
-
 
     def __init__(self, *args, **kwargs):
         self.__dict__.update(_=dict(id=Uid()))
         self(*args, **kwargs)
-
-    
-
-    
 
     def __call__(self, *args, **kwargs) -> "Private":
         # Create intermediary to control update order
@@ -50,48 +43,58 @@ class Private(dict):
         return self._[key]
 
     def __getitem__(self, key):
+        """Returns item value by key or item sesion by slice."""
         if isinstance(key, slice):
             return Private({k: self[k] for k in list(self.keys())[key]})
-        return dict.__getitem__(self, key)
+        # NOTE Never key error; missing keys return None
+        return dict.get(self, key)
+        
 
     def __setitem__(self, key, value):
-        """."""
+        """Sets item. None-value removes."""
         (
             dict.pop(self, key, None)
             if value is None
             else dict.__setitem__(self, key, value)
         )
 
-    def at(self, index: int, default=None):
+    def at(self, index: int, *args):
         """Returns key at index. Supports positive and negative indices. Returns default if out of range."""
+        default = next(iter(args), None)
         return next(iter(list(self.keys())[index:]), default)
 
     def clear(self, *keys) -> "Private":
-        """."""
+        """Removes all items or items with specific keys."""
         [dict.pop(self, k, None) for k in keys] if keys else dict.clear(self)
         return self
+
+    def get(self, key, *args, patch=False):
+        """Returns item value by key or index."""
+        # NOTE patch controls setdefault vs. get
+        default = next(iter(args), True if patch else None)
+        if isinstance(key, list) and key:
+            key = self.at(key[0])
+        return dict.setdefault(self, key, default) if patch else dict.get(self, key, default)
 
     def index(self, key, default=None):
         """Returns positive index for key. Returns default, if key missing."""
         return list(self.keys()).index(key) if key in self else default
 
-
-    def pop(self, key, default=None):
+    def pop(self, key, *args):
+        """Pops item by key or index (optional default)."""
+        default = next(iter(args), None)
         if isinstance(key, list) and key:
-            index = key[0]
-            key = self.at(index)
-
-            
-        
+            key = self.at(key[0])
         return dict.pop(self, key, default)
 
-
-
-
-    
+    def set(self, key, value):
+        """Sets item. None-value removes."""
+        self[key] = value
+        return self
 
     def transform(self, *args, **kwargs):
-        """Decorates transformer."""
+        """Decorates transformer for in-place mutation."""
+        # NOTE Inspired by JS map and filter array methods.
         transformer = next((a for a in args if callable(a)), None)
         if transformer:
             # Transform immediately
@@ -103,6 +106,7 @@ class Private(dict):
             self({k: transformer(i, k, v) for i, (k, v) in enumerate(self.items())})
             return transformer
         # Return function for later transformation
+        # (applies when declared as 'parameter decorator')
         return lambda transformer: lambda: self.transform(transformer, **kwargs)
 
 
@@ -180,4 +184,9 @@ if __name__ == "__main__":
 
     data(Sim(a="A", b="B"))
 
+    data.pop([-2])
+
     print("data:", data)
+
+    print("'a' in data:", 'a' in data)
+    print("'b' in data:", 'b' in data)
