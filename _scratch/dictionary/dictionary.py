@@ -68,10 +68,16 @@ class Dictionary(dict):
         return self
 
     def find(self, *args, **kwargs):
-
-        # XXX TODO Refactor to accomodate kwargs; see transform
+        """."""
         predicate = next((a for a in args if callable(a)), None)
         if predicate:
+
+            if isinstance(predicate, type):
+                predicate = (
+                    predicate(self, **kwargs)
+                    if "__init__" in predicate.__dict__
+                    else predicate()
+                )
 
             def result():
                 for i, (k, v) in enumerate(dict.items(self)):
@@ -81,9 +87,11 @@ class Dictionary(dict):
                         return result
 
             return result
-        else:
-            return self.find
-            
+
+        return self.find
+
+    def search(self, *args, **kwargs):
+        """."""
 
     @staticmethod
     def from_items(*args):
@@ -136,12 +144,15 @@ class Dictionary(dict):
                 )
             self({k: transformer(i, k, v) for i, (k, v) in enumerate(dict.items(self))})
             return transformer
+
         # Return function for later transformation
         # (applies when declared as 'parameter decorator')
         def Transform(transformer):
             def transform():
                 return self.transform(transformer, **kwargs)
+
             return transform
+
         return Transform
         return lambda transformer: lambda: self.transform(transformer, **kwargs)
 
@@ -234,6 +245,19 @@ if __name__ == "__main__":
     def find(index, key, value):
         if index == 0:
             return {key: value}
+
+    found = find()
+    print("found:", found)
+
+    @data.find()
+    class find:
+        def __init__(self, owner, **kwargs):
+            """."""
+            ##print("kwargs:", kwargs)##
+
+        def __call__(self, index, key, value):
+            if index == 0:
+                return {key: value}
 
     found = find()
     print("found:", found)
