@@ -48,7 +48,6 @@ class Dictionary(dict):
             return Dictionary({k: self[k] for k in list(dict.keys(self))[key]})
         # NOTE Never key error; missing keys return None
         return dict.get(self, key)
-        
 
     def __setitem__(self, key, value):
         """Sets item. None-value removes."""
@@ -68,7 +67,9 @@ class Dictionary(dict):
         [dict.pop(self, k, None) for k in keys] if keys else dict.clear(self)
         return self
 
-    def find(self, *args):
+    def find(self, *args, **kwargs):
+
+        # XXX TODO Refactor to accomodate kwargs; see transform
         predicate = next((a for a in args if callable(a)), None)
         if predicate:
 
@@ -81,12 +82,8 @@ class Dictionary(dict):
 
             return result
         else:
-            return lambda *args : lambda: self.find(*args)
-
-
-                    
-
-
+            return self.find
+            
 
     @staticmethod
     def from_items(*args):
@@ -97,18 +94,17 @@ class Dictionary(dict):
                 result.set(k, v)
         return result
 
-
-
-
-       
-
     def get(self, key, *args, patch=False):
         """Returns item value by key or index."""
         # NOTE patch controls setdefault vs. get
         default = next(iter(args), True if patch else None)
         if isinstance(key, list) and key:
             key = self.at(key[0])
-        return dict.setdefault(self, key, default) if patch else dict.get(self, key, default)
+        return (
+            dict.setdefault(self, key, default)
+            if patch
+            else dict.get(self, key, default)
+        )
 
     def index(self, key, default=None):
         """Returns positive index for key. Returns default, if key missing."""
@@ -133,11 +129,20 @@ class Dictionary(dict):
         if transformer:
             # Transform immediately
             if isinstance(transformer, type):
-                transformer = transformer(self, **kwargs) if "__init__" in transformer.__dict__ else transformer()
+                transformer = (
+                    transformer(self, **kwargs)
+                    if "__init__" in transformer.__dict__
+                    else transformer()
+                )
             self({k: transformer(i, k, v) for i, (k, v) in enumerate(dict.items(self))})
             return transformer
         # Return function for later transformation
         # (applies when declared as 'parameter decorator')
+        def Transform(transformer):
+            def transform():
+                return self.transform(transformer, **kwargs)
+            return transform
+        return Transform
         return lambda transformer: lambda: self.transform(transformer, **kwargs)
 
 
@@ -219,17 +224,16 @@ if __name__ == "__main__":
 
     print("data:", data)
 
-    print("'a' in data:", 'a' in data)
-    print("'b' in data:", 'b' in data)
+    print("'a' in data:", "a" in data)
+    print("'b' in data:", "b" in data)
 
-    data = Dictionary.from_items(data.items(), [['name', 'uffe']])
+    data = Dictionary.from_items(data.items(), [["name", "uffe"]])
     print("data:", data)
 
-    
-    @data.find
+    @data.find()
     def find(index, key, value):
         if index == 0:
             return {key: value}
-    
+
     found = find()
     print("found:", found)
