@@ -67,9 +67,17 @@ class Dictionary(dict):
         [dict.pop(self, k, None) for k in keys] if keys else dict.clear(self)
         return self
 
-    def find(self, *args):
+    def find(self, *args, **kwargs):
+        """."""
         predicate = next((a for a in args if callable(a)), None)
         if predicate:
+
+            if isinstance(predicate, type):
+                predicate = (
+                    predicate(self, **kwargs)
+                    if "__init__" in predicate.__dict__
+                    else predicate()
+                )
 
             def result():
                 for i, (k, v) in enumerate(dict.items(self)):
@@ -79,8 +87,11 @@ class Dictionary(dict):
                         return result
 
             return result
-        else:
-            return lambda *args: lambda: self.find(*args)
+
+        return self.find
+
+    def search(self, *args, **kwargs):
+        """."""
 
     @staticmethod
     def from_items(*args):
@@ -133,8 +144,16 @@ class Dictionary(dict):
                 )
             self({k: transformer(i, k, v) for i, (k, v) in enumerate(dict.items(self))})
             return transformer
+
         # Return function for later transformation
         # (applies when declared as 'parameter decorator')
+        def Transform(transformer):
+            def transform():
+                return self.transform(transformer, **kwargs)
+
+            return transform
+
+        return Transform
         return lambda transformer: lambda: self.transform(transformer, **kwargs)
 
 
@@ -222,10 +241,23 @@ if __name__ == "__main__":
     data = Dictionary.from_items(data.items(), [["name", "uffe"]])
     print("data:", data)
 
-    @data.find
+    @data.find()
     def find(index, key, value):
         if index == 0:
             return {key: value}
+
+    found = find()
+    print("found:", found)
+
+    @data.find()
+    class find:
+        def __init__(self, owner, **kwargs):
+            """."""
+            ##print("kwargs:", kwargs)##
+
+        def __call__(self, index, key, value):
+            if index == 0:
+                return {key: value}
 
     found = find()
     print("found:", found)

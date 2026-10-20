@@ -1,10 +1,48 @@
-class Uid:
+def scope(context: dict=None):
+
+    def run(target: callable):
+        target(context)
+
+    return run
+
+
+class CallableDict(dict):
+    def __init__(self, *args, **kwargs):
+        self(*args, **kwargs)
+
+    def __call__(self, *args, **kwargs):
+        [kwargs.update(dict(a)) for a in args]
+        # Update
+        [
+            dict.pop(self, k, None) if v is None else dict.update(self, {k: v})
+            for k, v in kwargs.items()
+        ]
+        return self
+
+
+class Attributes:
+    @property
+    def _(self) -> dict:
+        if "__" not in self.__dict__:
+            self.__dict__.update(__=CallableDict())
+        return self.__
+
+    def __getattr__(self, key: str):
+        # Ensure that getattr and hasattr works
+        if key not in self._:
+            raise AttributeError(key)
+        return self._[key]
+
+
+class Uid(Attributes):
 
     def __init__(self):
-        self.__dict__.update(_=dict(value=-1))
+        self._(value=-1)
+
+        
 
     def __call__(self) -> int:
-        self._["value"] += 1
+        self._(value=self.value+1)
         return self.value
 
     @property
@@ -15,6 +53,16 @@ class Uid:
 Uid = Uid()
 
 
+class Items:
+    def __init__(self, items):
+        """."""
+        self.__dict__.update(_=items)
+
+    def __call__(self, *args, **kwargs):
+        """."""
+        return self._items
+
+
 class Dictionary(dict):
 
     def __init__(self, *args, **kwargs):
@@ -22,6 +70,9 @@ class Dictionary(dict):
         self(*args, **kwargs)
 
     def __call__(self, *args, **kwargs) -> "Dictionary":
+
+        # XXX TODO Integrate get/set; branch out to custom update and other methods
+
         # Create intermediary to control update order
         updates = dict()
         # Update intermediary from args
@@ -92,6 +143,7 @@ class Dictionary(dict):
 
     def search(self, *args, **kwargs):
         """."""
+        # XXX TODO
 
     @staticmethod
     def from_items(*args):
@@ -104,6 +156,9 @@ class Dictionary(dict):
 
     def get(self, key, *args, patch=False):
         """Returns item value by key or index."""
+
+        # XXX TODO Consider a more elegant signature
+
         # NOTE patch controls setdefault vs. get
         default = next(iter(args), True if patch else None)
         if isinstance(key, list) and key:
@@ -154,7 +209,6 @@ class Dictionary(dict):
             return transform
 
         return Transform
-        return lambda transformer: lambda: self.transform(transformer, **kwargs)
 
 
 if __name__ == "__main__":
