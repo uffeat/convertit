@@ -1,16 +1,26 @@
-def scope(context: dict=None):
-
-    def run(target: callable):
-        target(context)
-
-    return run
-
-
-class CallableDict(dict):
+class MiniDict(dict):
     def __init__(self, *args, **kwargs):
-        self(*args, **kwargs)
+        self.update(*args, **kwargs)
 
     def __call__(self, *args, **kwargs):
+        self.update(*args, **kwargs)
+        return self
+
+    def __getitem__(self, key):
+        """Returns item value by key."""
+        return self.get(key)
+
+    def __setitem__(self, key, value):
+        """Sets item."""
+        self.update({key: value})
+
+    def pop(self, key, *args):
+        """Pops item by key (optional default)."""
+        default = next(iter(args), None)
+        return dict.pop(self, key, default)
+
+    def update(self, *args, **kwargs):
+        """."""
         [kwargs.update(dict(a)) for a in args]
         # Update
         [
@@ -19,12 +29,33 @@ class CallableDict(dict):
         ]
         return self
 
+    @staticmethod
+    def fromkeys(*args, **kwargs):
+        """."""
+        if len(args) == 2 and not kwargs:
+            # XXX Require list?
+            return MiniDict(dict.fromkeys(*args))
+
+        if 'value' in kwargs:
+            value = kwargs['value']
+            return MiniDict({k: value for k in args})
+
+        
+        
+        return MiniDict({k: MiniDict(kwargs) for k in args})
+        
+
+
+
+test = MiniDict.fromkeys([1, 2, 3], True)
+print('test:', test)
+
 
 class Attributes:
     @property
     def _(self) -> dict:
         if "__" not in self.__dict__:
-            self.__dict__.update(__=CallableDict())
+            self.__dict__.update(__=MiniDict())
         return self.__
 
     def __getattr__(self, key: str):
@@ -39,10 +70,8 @@ class Uid(Attributes):
     def __init__(self):
         self._(value=-1)
 
-        
-
     def __call__(self) -> int:
-        self._(value=self.value+1)
+        self._(value=self.value + 1)
         return self.value
 
     @property
@@ -287,12 +316,14 @@ if __name__ == "__main__":
 
     data.pop([-2])
 
+    print("data.id:", data.id)
     print("data:", data)
 
     print("'a' in data:", "a" in data)
     print("'b' in data:", "b" in data)
 
     data = Dictionary.from_items(data.items(), [["name", "uffe"]])
+    print("data.id:", data.id)
     print("data:", data)
 
     @data.find()
