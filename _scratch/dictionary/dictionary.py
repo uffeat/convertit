@@ -3,8 +3,10 @@ class MiniDict(dict):
         self.update(*args, **kwargs)
 
     def __call__(self, *args, **kwargs):
-        self.update(*args, **kwargs)
-        return self
+        key = next(iter((a for a in args if isinstance(a, str))), None)
+        return self.get(*args) if key else self.update(*args, **kwargs)
+
+       
 
     def __getitem__(self, key):
         """Returns item value by key."""
@@ -14,6 +16,16 @@ class MiniDict(dict):
         """Sets item."""
         self.update({key: value})
 
+    def get(self, key, *args):
+        """."""
+        args = iter(args)
+        default = next(args, None)
+        return dict.setdefault(self, key, default) if next(args, False) else dict.get(self, key, default)
+
+        
+
+
+
     def pop(self, key, *args):
         """Pops item by key (optional default)."""
         default = next(iter(args), None)
@@ -21,8 +33,9 @@ class MiniDict(dict):
 
     def update(self, *args, **kwargs):
         """."""
+        # Update kwargs from args
         [kwargs.update(dict(a)) for a in args]
-        # Update
+        # Update self
         [
             dict.pop(self, k, None) if v is None else dict.update(self, {k: v})
             for k, v in kwargs.items()
@@ -30,25 +43,18 @@ class MiniDict(dict):
         return self
 
     @staticmethod
-    def fromkeys(*args, **kwargs):
+    def fromkeys(keys, value):
         """."""
-        if len(args) == 2 and not kwargs:
-            # XXX Require list?
-            return MiniDict(dict.fromkeys(*args))
-
-        if 'value' in kwargs:
-            value = kwargs['value']
-            return MiniDict({k: value for k in args})
-
-        
-        
-        return MiniDict({k: MiniDict(kwargs) for k in args})
-        
+        return MiniDict(dict.fromkeys(keys, value))
 
 
-
-test = MiniDict.fromkeys([1, 2, 3], True)
-print('test:', test)
+mini = MiniDict(foo=42)
+print('foo:', mini('foo'))
+print('bar:', mini('bar', 8))
+print('mini:', mini)
+print('bar:', mini('bar', 'BAR', True))
+print('mini:', mini)
+            
 
 
 class Attributes:
