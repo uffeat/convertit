@@ -1,21 +1,6 @@
 _ = dict()
 
 
-class List(list):
-
-    def __getitem__(self, key):
-        if isinstance(key, int):
-            if -len(self) <= key < len(self):
-                return list.__getitem__(self, key)
-
-    def index(self, *args):
-        try:
-            return list.index(self, *args)
-        except:
-            pass
-
-    def pop(self, index=-1):
-            return list.pop(self, index)
 
 
 class Dictionary(dict):

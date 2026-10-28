@@ -23,13 +23,36 @@ class List(list):
                 list.append(self, value)
         return self
 
+    def extend(self, *args, **kwargs):
+        """."""
+        for extension in args:
+            # Never add None
+            list.extend(self, [v for v in extension if v is not None])
+        return self
+
     def index(self, *args, **kwargs):
         """Returns index for first occurance of a given value."""
         value, *args = args
         if value in self:
             return list.index(self, value, *args)
 
-    def pop(self, index=-1, default=None):
+    def insert(self, *args, **kwargs):
+        """."""
+        args = iter(args)
+        index, value = next(args, -1), next(args, True)
+        if value is not None:
+            list.insert(self, index, value)
+        return self
+
+    def pop(self, *args, **kwargs):
+        """."""
+        if args:
+            index, *args = args
+            default = args[0] if args else None
+        else:
+            index = -1
+            default = kwargs.get('default')
+
         if not (-len(self) <= index < len(self)):
             return default
         return list.pop(self, index)
