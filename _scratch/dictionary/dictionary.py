@@ -1,19 +1,43 @@
+_ = dict()
+
+
+class List(list):
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            if -len(self) <= key < len(self):
+                return list.__getitem__(self, key)
+
+    def index(self, *args):
+        try:
+            return list.index(self, *args)
+        except:
+            pass
+
+    def pop(self, index=-1):
+            return list.pop(self, index)
+
+
 class Dictionary(dict):
     @classmethod
     def create(cls, *args, **kwargs):
         """."""
-        if args:
-            instance, *_args = args
-            if isinstance(instance, cls):
-                return instance.update(*_args, **kwargs)
+        if args and isinstance(args[0], cls):
+            instance, *args = args
+            return instance.update(*args, **kwargs)
         return cls(*args, **kwargs)
 
     def __init__(self, *args, **kwargs):
+        # Create internal state with id
+        self._.update(id=_.setdefault("id", 0))
+        # Update global id
+        _["id"] += 1
         self.update(*args, **kwargs)
 
     def __call__(self, *args, **kwargs):
         """Hybrid update/get."""
-        key = next(iter((a for a in args if isinstance(a, str))), None)
+        # NOTE get role only works for string keys
+        key = next((a for a in args if isinstance(a, str)), None)
         return self.get(*args) if key else self.update(*args, **kwargs)
 
     def __getitem__(self, key):
@@ -27,19 +51,38 @@ class Dictionary(dict):
         self.update({key: value})
 
     @property
-    def id(self):
+    def _(self) -> dict:
         """."""
+        return self.__dict__.setdefault("__", {})
+
+    def __getattr__(self, key: str):
+        # Ensure that getattr and hasattr works
+        if key not in self._:
+            raise AttributeError(key)
+        return self._[key]
+
+    @property
+    def id(self) -> int:
+        """."""
+        return self._.get("id")
 
     def at(self, *args, **kwargs):
         """Returns key at index. Supports positive and negative indices. Returns default if out of range."""
         args = iter(args)
         index, default = next(args, 0), next(args, None)
+
+        ## BUG Likely for e.g. -100
+
         return next(iter(list(self.keys())[index:]), default)
 
     def clear(self, *args, **kwargs):
         """Removes all items or items with specific keys."""
         [self.pop(k) for k in args] if args else dict.clear(self)
         return self
+
+    def copy(self):
+        """TODO option for deep."""
+        return Dictionary(dict.copy(self))
 
     def find(self, *args, **kwargs):
         """."""
@@ -69,12 +112,12 @@ class Dictionary(dict):
         Updates items with default, if key not in items and a third truthy arg provided.
         """
         args = iter(args)
-        key, default = next(args, None), next(args, None)
-        return (
-            self.setdefault(key, default)
-            if next(args, False)
-            else dict.get(self, key, default)
-        )
+        key, default, patch = next(args, None), next(args, None), next(args, False)
+
+        if isinstance(key, list) and len(key) == 1:
+            key = self.at(key[0])
+
+        return self.setdefault(key, default) if patch else dict.get(self, key, default)
 
     def index(self, *args, **kwargs):
         """Returns positive index for key. Returns default, if key missing."""
@@ -86,19 +129,20 @@ class Dictionary(dict):
         """Pops item by key (optional default)."""
         args = iter(args)
         key, default = next(args, None), next(args, None)
-        if key and isinstance(key, list):
-            key = self.at(key[0])
 
+        if isinstance(key, list) and len(key) == 1:
+            key = self.at(key[0])
 
         return dict.pop(self, key, default)
 
     def setdefault(self, *args, **kwargs):
-        """Native setdefault with support for None-value removes."""
+        """Native setdefault with support for special None-paradigm."""
         args = iter(args)
         key, value = next(args, None), next(args, None)
-        if value is None:
-            return self.pop(key)
-        return dict.setdefault(self, key, value)
+        if key is not None:
+            if value is None:
+                return self.pop(key)
+            return dict.setdefault(self, key, value)
 
     def transform(self, *args, **kwargs):
         """Decorates transformer for in-place mutation."""
@@ -112,7 +156,9 @@ class Dictionary(dict):
                     if "__init__" in transformer.__dict__
                     else transformer()
                 )
-            self.update({k: transformer(i, k, v) for i, (k, v) in enumerate(self.items())})
+            self.update(
+                {k: transformer(i, k, v) for i, (k, v) in enumerate(self.items())}
+            )
             return transformer
 
         # Return function for later transformation
@@ -126,140 +172,169 @@ class Dictionary(dict):
         return Transform
 
     def update(self, *args, **kwargs):
-        """Updates items. None-values remove. Supports multiple pos args. Chainable"""
+        """Updates items. None-values remove. None-keys ignored. Supports multiple pos args. Chainable"""
+
         # Update kwargs from args
-        [kwargs.update(dict(a)) for a in args]
+        [
+            kwargs.update(a)
+            for a in (self.dict(a) for a in (a for a in args if a is not None))
+        ]
         # Update self
         [
             self.pop(k) if v is None else dict.update(self, {k: v})
             for k, v in kwargs.items()
+            if k is not None
         ]
         return self
+
+    @staticmethod
+    def dict(value) -> dict:
+        """Returns dict-cast non-dict values if possible.
+        Returns None, if casting is not possible.
+        Returns dict values as-is (no-copying)."""
+        if isinstance(value, dict):
+            return value
+        try:
+            return dict(value)
+        except:
+            pass
 
     @staticmethod
     def fromkeys(keys, value):
         return Dictionary(dict.fromkeys(keys, value))
 
 
-mini = Dictionary(foo=42)
-print("foo:", mini("foo"))
-print("bar:", mini("bar", 8))
-print("mini:", mini)
-print("bar:", mini("bar", "BAR", True))
-print("mini:", mini)
-
-_mini = Dictionary.create(mini)
-
-Dictionary.create()
-
-mini(bar="new bar")
-print("_mini:", _mini)
-
-
-
 if __name__ == "__main__":
-    data = Dictionary(foo=42, bad=None, stuff=7)
-    data(boom="BOOM")
-    data(boom=None, bar="BAR")
-    data.clear("stuff")
-    data(dict(ping="PING"), dict(pong="PONG"))
-    data["ding"] = "DING"
-    data[(1, 2, 3)] = True
 
-    print("data.id:", data.id)
+    data = Dictionary(foo=42)
+    print("data._:", data._)
 
-    print("data:", data)
+    print("data._:", data.__dict__["__"])
 
-    ##print("foo:", data['foo'])
+    def test(data: Dictionary = None):
 
-    ##print("index of foo:", data.index("foo"))
-    print("index of bar:", data.index("bar"))
-    ##print("index of bad:", data.index("bad"))
+        data = Dictionary(foo=42)
+        print("data.id:", data.id)
+        print("foo:", data("foo"))
+        print("bar:", data("bar", 8))
+        print("data:", data)
+        print("bar:", data("bar", "BAR", True))
+        print("data:", data)
 
-    ##print("key at 0:", data.at(0))
-    ##print("key at 1:", data.at(1))
-    print("key at 2:", data.at(2))
-    print("key at 10:", data.at(10))
+        _data = Dictionary.create(data)
 
-    ##print("key at -1:", data.at(-1))
-    ##print("key at -2:", data.at(-2))
-    print("key at -3:", data.at(-3))
+        Dictionary.create()
 
-    ##print('data[0:1]:', data[0:1])
-    ##print('data[0:2]:', data[0:2])
-    ##print('data[0:4]:', data[0:4])
-    print("data[3:10]:", data[3:10])
-    print("data[1:-1]:", data[1:-1])
+        data(bar="new bar")
+        print("_data.id:", _data.id)
+        print("_data:", _data)
 
-    @data.transform
-    def transform(index, key, value, **kwargs):
-        if isinstance(value, str):
-            return value.lower()
-        return value
+        data = Dictionary(foo=42, bad=None, stuff=7)
+        data(boom="BOOM")
+        data(boom=None, bar="BAR")
+        data.clear("stuff")
+        data(dict(ping="PING"), dict(pong="PONG"))
+        data["ding"] = "DING"
+        data[(1, 2, 3)] = True
 
-    @data.transform(test=42)
-    class transform:
-        def __init__(self, owner, **kwargs):
-            """."""
-            ##print("kwargs:", kwargs)##
+        print("data.id:", data.id)
 
-        def __call__(self, index, key, value):
-            if key == "pong":
-                return
+        print("data:", data)
+
+        ##print("foo:", data['foo'])
+
+        ##print("index of foo:", data.index("foo"))
+        print("index of bar:", data.index("bar"))
+        ##print("index of bad:", data.index("bad"))
+
+        ##print("key at 0:", data.at(0))
+        ##print("key at 1:", data.at(1))
+        print("key at 2:", data.at(2))
+        print("key at 10:", data.at(10))
+
+        ##print("key at -1:", data.at(-1))
+        ##print("key at -2:", data.at(-2))
+        print("key at -3:", data.at(-3))
+
+        ##print('data[0:1]:', data[0:1])
+        ##print('data[0:2]:', data[0:2])
+        ##print('data[0:4]:', data[0:4])
+        print("data[3:10]:", data[3:10])
+        print("data[1:-1]:", data[1:-1])
+
+        @data.transform
+        def transform(index, key, value, **kwargs):
+            if isinstance(value, str):
+                return value.lower()
             return value
 
-    transform()
+        @data.transform(test=42)
+        class transform:
+            def __init__(self, owner, **kwargs):
+                """."""
+                ##print("kwargs:", kwargs)##
 
-    ##print("data:", data)
+            def __call__(self, index, key, value):
+                if key == "pong":
+                    return
+                return value
 
-    ##data.clear()
+        transform()
 
-    print("data:", data)
+        ##print("data:", data)
 
-    class Sim:
+        ##data.clear()
 
-        def __init__(self, **kwargs):
-            self.__dict__.update(_=kwargs)
+        print("data:", data)
 
-        def __getitem__(self, key):
-            # Facilitate **-unpacking
-            return self._.get(key)
+        class Sim:
 
-        def keys(self):
-            # Facilitate **-unpacking
-            return self._.keys()
+            def __init__(self, **kwargs):
+                self.__dict__.update(_=kwargs)
 
-    data(Sim(a="A", b="B"))
+            def __getitem__(self, key):
+                # Facilitate **-unpacking
+                return self._.get(key)
 
-    data.pop([-2])
+            def keys(self):
+                # Facilitate **-unpacking
+                return self._.keys()
 
-    print("data.id:", data.id)
-    print("data:", data)
+        data(Sim(a="A", b="B"))
 
-    print("'a' in data:", "a" in data)
-    print("'b' in data:", "b" in data)
+        data.pop([-2])
 
-    
-    print("data.id:", data.id)
-    print("data:", data)
+        print("data.id:", data.id)
+        print("data:", data)
 
-    @data.find()
-    def find(index, key, value):
-        if index == 0:
-            return {key: value}
+        print("'a' in data:", "a" in data)
+        print("'b' in data:", "b" in data)
 
-    found = find()
-    print("found:", found)
+        print("data.id:", data.id)
 
-    @data.find()
-    class find:
-        def __init__(self, owner, **kwargs):
-            """."""
-            ##print("kwargs:", kwargs)##
+        data[None] = True  ###
 
-        def __call__(self, index, key, value):
+        print("data:", data)
+
+        @data.find()
+        def find(index, key, value):
             if index == 0:
                 return {key: value}
 
-    found = find()
-    print("found:", found)
+        found = find()
+        print("found:", found)
+
+        @data.find()
+        class find:
+            def __init__(self, owner, **kwargs):
+                """."""
+                ##print("kwargs:", kwargs)##
+
+            def __call__(self, index, key, value):
+                if index == 0:
+                    return {key: value}
+
+        found = find()
+        print("found:", found)
+
+    test()
