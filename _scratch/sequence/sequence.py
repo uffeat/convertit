@@ -6,7 +6,13 @@ class List(list):
     def __getitem__(self, index):
         if isinstance(index, int):
             return self.get(index)
-        return list.__getitem__(self, index)
+        if isinstance(index, slice):
+            slices = (index.start, index.stop, index.step,)
+            if all([s is None or isinstance(s, int) for s in slices]):
+                return self.slice(*slices)
+
+           
+                return list.__getitem__(self, index)
 
     def __setitem__(self, index, value):
         # Never add None
@@ -46,55 +52,55 @@ class List(list):
 
     def pop(self, *args, **kwargs):
         """."""
-        if args:
-            index, *args = args
-            default = args[0] if args else None
-        else:
-            index = -1
-            default = kwargs.get('default')
-
-        if not (-len(self) <= index < len(self)):
-            return default
-        return list.pop(self, index)
+        defaults = [-1, None]
+        index, default = [*args, *defaults[len(args) :]]
+        return list.pop(self, index) if (-len(self) <= index < len(self)) else default
 
     def get(self, *args, **kwargs):
         """."""
+        defaults = [-1, None]
+        index, default = [*args, *defaults[len(args) :]]
+        return (
+            list.__getitem__(self, index)
+            if (-len(self) <= index < len(self))
+            else default
+        )
+
+    def slice(self, *args, **kwargs):
+        defaults = [None, None, None]
+        slices = [*args, *defaults[len(args) :]]
+        return list.__getitem__(self, slice(*slices))
         
-        index, default = [*args, *[0, None][len(args):]]
-       
 
-        
-
-        return list.__getitem__(self, index) if (-len(self) <= index < len(self)) else default
-
-        
-        
-
-
-       
-       
 
 
 if __name__ == "__main__":
 
     def test_get():
 
-        sequence = List(1, 2, 3)
+        data = List(1, 2, 3)
 
-        print(":", sequence[-4:])
 
-        print("sequence:", sequence)
-        print("first:", sequence[0])
-        print("first:", sequence.get(0))
+       
+        print("data[0:1]:", data[0:1])
+        print("data[0:1]:", data.slice(0, 1))
 
-        print("last:", sequence[-1])
-        print("last:", sequence.get(-1))
 
-        print("over:", sequence[3])
-        print("over:", sequence.get(3, False))
-        print("under:", sequence[-4])
-        print("under:", sequence.get(-4, False))
 
         
+
+        print("data:", data)
+        print("first:", data[0])
+        print("first:", data.get(0))
+
+        print("last:", data[-1])
+       
+        print("last:", data.get(-1))
+        print("last:", data.get())
+
+        print("over:", data[3])
+        print("over:", data.get(3, False))
+        print("under:", data[-4])
+        print("under:", data.get(-4, False))
 
     test_get()
