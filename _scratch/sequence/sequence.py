@@ -59,8 +59,12 @@ class List(list):
 
     def get(self, *args, **kwargs):
         """."""
-        index, *args = args
-        default = args[0] if args else None
+        
+        index, default = [*args, *[0, None][len(args):]]
+       
+
+        
+
         return list.__getitem__(self, index) if (-len(self) <= index < len(self)) else default
 
         
@@ -73,7 +77,7 @@ class List(list):
 
 if __name__ == "__main__":
 
-    def test():
+    def test_get():
 
         sequence = List(1, 2, 3)
 
@@ -86,16 +90,11 @@ if __name__ == "__main__":
         print("last:", sequence[-1])
         print("last:", sequence.get(-1))
 
-        print("bad:", sequence[3])
-        print("bad:", sequence[-4])
-        print("bad:", sequence.get(-4, False))
+        print("over:", sequence[3])
+        print("over:", sequence.get(3, False))
+        print("under:", sequence[-4])
+        print("under:", sequence.get(-4, False))
 
-        ##sequence[0] = 10
-        ##print("first:", sequence[0])
+        
 
-        ##print("popped:", sequence.pop(-4))
-        ##print("sequence:", sequence)
-
-        ##numbers = List(1, 2, 3, 4, 5, 6, 7)
-
-    test()
+    test_get()
