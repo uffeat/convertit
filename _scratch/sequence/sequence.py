@@ -1,26 +1,59 @@
+def Uid():
+
+    _ = dict()
+
+    class Uid:
+
+        def __call__(self, *args, **kwargs):
+            """."""
+            value = _.get("value", -1) + 1
+            _.update(value=value)
+            return value
+
+        @property
+        def value(self):
+            """."""
+            return _.get("value")
+
+    return Uid()
+
+
+Uid = Uid()
+
+
 class List(list):
     def __init__(self, *args, **kwargs):
         """."""
+        self.__dict__.update(_=dict(id=Uid()))
         self.append(*args)
 
     def __getitem__(self, index):
         if isinstance(index, int):
             return self.get(index)
         if isinstance(index, slice):
-            slices = (index.start, index.stop, index.step,)
+            slices = (
+                index.start,
+                index.stop,
+                index.step,
+            )
             if all([s is None or isinstance(s, int) for s in slices]):
                 return self.slice(*slices)
 
-           
-                return list.__getitem__(self, index)
+            print("slices:", slices)  ##
 
     def __setitem__(self, index, value):
         # Never add None
         if value is not None:
             if not (-len(self) <= index < len(self)):
-                # append if out of range
+                # Append if out of range
                 index = len(self)
             return list.__setitem__(self, index, value)
+
+    @property
+    def id(self):
+        """."""
+        return self._.get('id')
+
 
     def append(self, *args, **kwargs):
         for value in args:
@@ -70,8 +103,6 @@ class List(list):
         defaults = [None, None, None]
         slices = [*args, *defaults[len(args) :]]
         return list.__getitem__(self, slice(*slices))
-        
-
 
 
 if __name__ == "__main__":
@@ -80,21 +111,22 @@ if __name__ == "__main__":
 
         data = List(1, 2, 3)
 
+        print("data.id:", data.id)
 
-       
         print("data[0:1]:", data[0:1])
         print("data[0:1]:", data.slice(0, 1))
 
+        print("data[False:True]:", data[False:True])
 
-
-        
+        ##print("data[0:str]:", data[0:str])
+        ##print("data[0:str]:", data[0::lambda v: 2*v])
 
         print("data:", data)
         print("first:", data[0])
         print("first:", data.get(0))
 
         print("last:", data[-1])
-       
+
         print("last:", data.get(-1))
         print("last:", data.get())
 
