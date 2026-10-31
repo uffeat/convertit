@@ -1,24 +1,31 @@
-def Uid():
+def Uid(*args, **kwargs) -> callable:
+    """Returns callable for generating integer uid. Accepts optional seed value."""
 
-    _ = dict()
+    _ = {
+        "value": v - 1
+        for i, v in enumerate(args)
+        if isinstance(v, int) and not isinstance(v, bool) and not i
+    }
 
     class Uid:
 
-        def __call__(self, *args, **kwargs):
-            """."""
+        def __call__(self, *args, **kwargs) -> int:
+            """Returns new uid."""
             value = _.get("value", -1) + 1
-            _.update(value=value)
+            _.update(used=True, value=value)
             return value
 
         @property
-        def value(self):
-            """."""
-            return _.get("value")
+        def value(self) -> int:
+            """Returns most recently uid."""
+            return _["value"] if _.get("used") else False
+            ##return _.get("value", False)
 
     return Uid()
 
 
-Uid = Uid()
+Uid = Uid(2)
+print("Uid.value:", Uid.value)
 
 
 class List(list):
@@ -52,8 +59,7 @@ class List(list):
     @property
     def id(self):
         """."""
-        return self._.get('id')
-
+        return self._.get("id")
 
     def append(self, *args, **kwargs):
         for value in args:
