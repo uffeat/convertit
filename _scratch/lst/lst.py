@@ -1,37 +1,8 @@
-def Uid(*args, **kwargs) -> callable:
-    """Returns callable for generating integer uid. Accepts optional seed value."""
-
-    _ = {
-        "value": v - 1
-        for i, v in enumerate(args)
-        if isinstance(v, int) and not isinstance(v, bool) and not i
-    }
-
-    class Uid:
-
-        def __call__(self, *args, **kwargs) -> int:
-            """Returns new uid."""
-            value = _.get("value", -1) + 1
-            _.update(used=True, value=value)
-            return value
-
-        @property
-        def value(self) -> int:
-            """Returns most recently uid."""
-            return _["value"] if _.get("used") else False
-            ##return _.get("value", False)
-
-    return Uid()
-
-
-Uid = Uid(2)
-print("Uid.value:", Uid.value)
 
 
 class List(list):
     def __init__(self, *args, **kwargs):
         """."""
-        self.__dict__.update(_=dict(id=Uid()))
         self.append(*args)
 
     def __getitem__(self, index):
@@ -45,8 +16,10 @@ class List(list):
             )
             if all([s is None or isinstance(s, int) for s in slices]):
                 return self.slice(*slices)
+            else:
+                ...
 
-            print("slices:", slices)  ##
+           
 
     def __setitem__(self, index, value):
         # Never add None
@@ -57,9 +30,17 @@ class List(list):
             return list.__setitem__(self, index, value)
 
     @property
-    def id(self):
+    def _(self) -> dict:
         """."""
-        return self._.get("id")
+        return self.__dict__.setdefault("__", {})
+
+    def __getattr__(self, key: str):
+        # Ensure that getattr and hasattr works
+        if key not in self._:
+            raise AttributeError(key)
+        return self._[key]
+
+   
 
     def append(self, *args, **kwargs):
         for value in args:
@@ -117,7 +98,7 @@ if __name__ == "__main__":
 
         data = List(1, 2, 3)
 
-        print("data.id:", data.id)
+        
 
         print("data[0:1]:", data[0:1])
         print("data[0:1]:", data.slice(0, 1))

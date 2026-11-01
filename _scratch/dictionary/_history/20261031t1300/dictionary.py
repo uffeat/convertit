@@ -56,7 +56,7 @@ class Dictionary(dict):
         args = iter(args)
         index, default = next(args, 0), next(args, None)
 
-        ## BUG Likely for e.g. -100
+       
 
         return next(iter(list(self.keys())[index:]), default)
 
