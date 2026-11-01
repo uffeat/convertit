@@ -74,21 +74,22 @@ class Dictionary(dict):
         return Dictionary(dict.copy(self))
 
     def find(self, *args, **kwargs):
-        """."""
+        """Decorates find callable for first-occurrence search."""
+
         predicate = next((a for a in args if callable(a)), None)
         if predicate:
+            predicate, *args = args
 
             if isinstance(predicate, type):
                 predicate = (
-                    predicate(self, **kwargs)
+                    predicate(self, *args, **kwargs)
                     if "__init__" in predicate.__dict__
                     else predicate()
                 )
 
             def result():
-                for i, (k, v) in enumerate(self.items()):
-                    entry = (i, k, v)
-                    result = predicate(*entry)
+                for index, item in enumerate(dict.items(self)):
+                    result = predicate(index, *item)
                     if result is not None:
                         return result
 
@@ -123,7 +124,7 @@ class Dictionary(dict):
         args = iter(args)
         key, value = next(args, None), next(args, None)
         if key is not None and value is not None:
-            
+
             return dict.setdefault(self, key, value)
 
     def slice(self, *args, **kwargs) -> "Dictionary":
@@ -155,17 +156,13 @@ class Dictionary(dict):
             self.update(
                 {k: transformer(i, k, v) for i, (k, v) in enumerate(dict.items(self))}
             )
-            return transformer
 
-        # Return function for later transformation
-        # (applies when declared as 'parameter decorator')
-        def Transform(transformer):
-            def transform(*_args, **_kwargs):
-                return self.transform(transformer, *[*args, *_args], **{**kwargs, **_kwargs})
+        return self.transform
 
-            return transform
+        def capture(transformer):
+            self.transform(transformer, *args, **kwargs)
 
-        return Transform
+        return capture
 
     def update(self, *args, **kwargs):
         """Updates items. None-values remove. None-keys ignored. Supports multiple pos args. Chainable"""
@@ -183,10 +180,12 @@ class Dictionary(dict):
                         self, key, value
                     )
         else:
-            dict.update(self, {k: v for k, v in updates.items() if k is not None and v is not None})
+            dict.update(
+                self,
+                {k: v for k, v in updates.items() if k is not None and v is not None},
+            )
         return self
 
-    
     @staticmethod
     def fromkeys(keys, value):
         return Dictionary(dict.fromkeys(keys, value))
@@ -270,8 +269,6 @@ if __name__ == "__main__":
         ##print("data[3:10]:", data[3:10])
         ##print("data[-4:10]:", data[-4:10])
 
-
-
     ##@run()
     def test():
         """Tests index method."""
@@ -279,8 +276,7 @@ if __name__ == "__main__":
         print("data:", data)
         print("index of a:", data.index("a"))
         print("index of c:", data.index("c"))
-        print("index of e:", data.index("e", 'missing'))
-
+        print("index of e:", data.index("e", "missing"))
 
     @run()
     def test():
@@ -296,29 +292,36 @@ if __name__ == "__main__":
 
         print("data:", data)
 
-
         @data.transform(42, foo=42)
         class transform:
             def __init__(self, owner, *args, **kwargs):
                 """."""
-                print("owner:", owner)##
-                print("args:", args)##
-                print("kwargs:", kwargs)##
+                print("owner:", owner)  ##
+                print("args:", args)  ##
+                print("kwargs:", kwargs)  ##
 
             def __call__(self, index, key, value):
                 if isinstance(value, int):
                     return value + 2
                 return value
-        
-
-        transform(8, bar=8)
-
 
         print("data:", data)
 
+    @run()
+    def test():
+        """Tests find decorator."""
+        data = Dictionary(a=1, b=2, c=3)
+        print("data:", data)
+
+        @data.find
+        def find(index, key, value):
+            if index == 2:
+                return 2 * value
+            
+
+        print("found:", find())
+
         
-
-
 
     ##@run()
     def test():
