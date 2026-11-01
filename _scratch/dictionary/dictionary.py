@@ -29,19 +29,19 @@ class Dictionary(dict):
         return cls(*args, **kwargs)
 
     def __init__(self, *args, **kwargs):
+
         self.update(*args, **kwargs)
 
     def __call__(self, *args, **kwargs):
         """Hybrid update/get."""
-        # NOTE get role only works for string keys
-        key = next((a for a in args if isinstance(a, str)), None)
+        # NOTE get role only works for string keys and index lists
+        key = next((a for a in args if isinstance(a, (list, str))), None)
         return self.get(*args) if key else self.update(*args, **kwargs)
 
     def __getitem__(self, key):
         """Returns item value by key."""
         if isinstance(key, slice):
             return self.slice(key)
-
         return self.get(key)
 
     def __setitem__(self, key, value):
@@ -97,32 +97,24 @@ class Dictionary(dict):
         return self.find
 
     def get(self, *args, **kwargs):
-        """
-        Returns value by key or index.
-        Mimics native 'setdefault' if truthy third arg (no index support).
-        """
+        """Returns value by key or index."""
         args = iter(args)
-        key, default, patch = next(args, None), next(args, None), next(args, False)
-        if patch:
-            if default is not None:
-                return dict.setdefault(self, key, default)
-        else:
-
-            if isinstance(key, list) and len(key) == 1:
-                key = self.at(key[0])
-            return dict.get(self, key, default)
+        key = next(args, None)
+        if isinstance(key, list) and key:
+            key = self.at(key[0])
+        return dict.__getitem__(self, key) if key in self else next(args, None)
 
     def index(self, *args, **kwargs):
         """Returns positive index for key. Returns default, if key missing."""
         args = iter(args)
-        key, default = next(args, None), next(args, None)
-        return list(dict.keys(self)).index(key) if key in self else default
+        key = next(args, None)
+        return list(dict.keys(self)).index(key) if key in self else next(args, None)
 
     def pop(self, *args, **kwargs):
         """Pops item by key (optional default)."""
         args = iter(args)
         key, default = next(args, None), next(args, None)
-        if isinstance(key, list) and len(key) == 1:
+        if isinstance(key, list) and key:
             key = self.at(key[0])
         return dict.pop(self, key, default)
 
@@ -130,22 +122,18 @@ class Dictionary(dict):
         """Native setdefault with support for special None-paradigm."""
         args = iter(args)
         key, value = next(args, None), next(args, None)
-        if key is not None:
-            if value is None:
-                return self.pop(key)
+        if key is not None and value is not None:
+            
             return dict.setdefault(self, key, value)
 
     def slice(self, *args, **kwargs) -> "Dictionary":
         """Returns sliced data."""
-        _ = {0: None, 1: None, 2: None, **{i: v for i, v in enumerate(args)}}
-
-
-      
-
-        spec = (
-            _[0] if isinstance(_[0], slice) else slice(*list(_.values())[0:3])
-        )
-
+        defaults = dict.fromkeys(range(3), None)
+        args = {
+            **defaults,
+            **{i: v for i, v in enumerate(args) if i < len(defaults)},
+        }
+        spec = args[0] if isinstance(args[0], slice) else slice(*args.values())
         return self.__class__(
             {k: dict.__getitem__(self, k) for k in list(dict.keys(self))[spec]}
         )
@@ -156,22 +144,24 @@ class Dictionary(dict):
         transformer = next((a for a in args if callable(a)), None)
         if transformer:
             # Transform immediately
+            transformer, *args = args
+
             if isinstance(transformer, type):
                 transformer = (
-                    transformer(self, **kwargs)
+                    transformer(self, *args, **kwargs)
                     if "__init__" in transformer.__dict__
                     else transformer()
                 )
             self.update(
-                {k: transformer(i, k, v) for i, (k, v) in enumerate(self.items())}
+                {k: transformer(i, k, v) for i, (k, v) in enumerate(dict.items(self))}
             )
             return transformer
 
         # Return function for later transformation
         # (applies when declared as 'parameter decorator')
         def Transform(transformer):
-            def transform():
-                return self.transform(transformer, **kwargs)
+            def transform(*_args, **_kwargs):
+                return self.transform(transformer, *[*args, *_args], **{**kwargs, **_kwargs})
 
             return transform
 
@@ -179,32 +169,24 @@ class Dictionary(dict):
 
     def update(self, *args, **kwargs):
         """Updates items. None-values remove. None-keys ignored. Supports multiple pos args. Chainable"""
-
-        # Update kwargs from args
-        [
-            kwargs.update(a)
-            for a in (self.dict(a) for a in (a for a in args if a is not None))
-        ]
-        # Update self
-        [
-            self.pop(k) if v is None else dict.update(self, {k: v})
-            for k, v in kwargs.items()
-            if k is not None
-        ]
+        updates = {}
+        for a in args:
+            try:
+                updates.update(dict(a))
+            except:
+                continue
+        updates.update(kwargs)
+        if self:
+            for key, value in updates.items():
+                if key is not None:
+                    getattr(dict, "pop" if value is None else "__setitem__")(
+                        self, key, value
+                    )
+        else:
+            dict.update(self, {k: v for k, v in updates.items() if k is not None and v is not None})
         return self
 
-    @staticmethod
-    def dict(value) -> dict:
-        """Returns dict-cast non-dict values if possible.
-        Returns None, if casting is not possible.
-        Returns dict values as-is (no-copying)."""
-        if isinstance(value, dict):
-            return value
-        try:
-            return dict(value)
-        except:
-            pass
-
+    
     @staticmethod
     def fromkeys(keys, value):
         return Dictionary(dict.fromkeys(keys, value))
@@ -219,7 +201,33 @@ if __name__ == "__main__":
         return run
 
     ##@run()
-    def test_at():
+    def test():
+        """Tests init and update."""
+
+        data = Dictionary(foo=42)
+        print("data:", data)
+
+        class Sim:
+
+            def __init__(self, **kwargs):
+                self.__dict__.update(_=kwargs)
+
+            def __getitem__(self, key):
+                # Facilitate **-unpacking
+                return self._.get(key)
+
+            def keys(self):
+                # Facilitate **-unpacking
+                return self._.keys()
+
+        data = Dictionary(Sim(a="A", b="B", c=None))
+        data(Sim(d="D", b=None), foo=42)
+
+        print("data:", data)
+
+    ##@run()
+    def test():
+        """Tests at method."""
         data = Dictionary(a=1, b=2, c=3)
         print("data:", data)
         print("first key:", data.at(0))
@@ -230,7 +238,8 @@ if __name__ == "__main__":
         print("key at -4:", data.at(-4))
 
     ##@run()
-    def test_get():
+    def test():
+        """Tests get method."""
 
         data = Dictionary(a=1, b=2, c=3)
         print("data:", data)
@@ -244,11 +253,9 @@ if __name__ == "__main__":
         print("missing value:", data.get("d", False))
         print("missing value:", data.get([3], False))
 
-        print("added value:", data.get("d", 4, True))  # 4
-        print("data:", data)
-
-    @run()
-    def test_slice():
+    ##@run()
+    def test():
+        """Tests slicing features."""
 
         data = Dictionary(a=1, b=2, c=3, d=4)
         print("data:", data)
@@ -262,6 +269,56 @@ if __name__ == "__main__":
 
         ##print("data[3:10]:", data[3:10])
         ##print("data[-4:10]:", data[-4:10])
+
+
+
+    ##@run()
+    def test():
+        """Tests index method."""
+        data = Dictionary(a=1, b=2, c=3)
+        print("data:", data)
+        print("index of a:", data.index("a"))
+        print("index of c:", data.index("c"))
+        print("index of e:", data.index("e", 'missing'))
+
+
+    @run()
+    def test():
+        """Tests transform decorator."""
+        data = Dictionary(a=1, b=2, c=3)
+        print("data:", data)
+
+        @data.transform
+        def transform(index, key, value):
+            if isinstance(value, int):
+                return 2 * value
+            return value
+
+        print("data:", data)
+
+
+        @data.transform(42, foo=42)
+        class transform:
+            def __init__(self, owner, *args, **kwargs):
+                """."""
+                print("owner:", owner)##
+                print("args:", args)##
+                print("kwargs:", kwargs)##
+
+            def __call__(self, index, key, value):
+                if isinstance(value, int):
+                    return value + 2
+                return value
+        
+
+        transform(8, bar=8)
+
+
+        print("data:", data)
+
+        
+
+
 
     ##@run()
     def test():
