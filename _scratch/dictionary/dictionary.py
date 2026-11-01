@@ -29,8 +29,18 @@ class Dictionary(dict):
         return cls(*args, **kwargs)
 
     def __init__(self, *args, **kwargs):
-
         self.update(*args, **kwargs)
+
+    @property
+    def _(self) -> dict:
+        """."""
+        return self.__dict__.setdefault("__", {})
+
+    def __getattr__(self, key: str):
+        # Ensure that getattr and hasattr works
+        if key not in self._:
+            raise AttributeError(key)
+        return self._[key]
 
     def __call__(self, *args, **kwargs):
         """Hybrid update/get."""
@@ -47,12 +57,6 @@ class Dictionary(dict):
     def __setitem__(self, key, value):
         """Sets item."""
         self.update({key: value})
-
-    def __getattr__(self, key: str):
-        # Ensure that getattr and hasattr works
-        if key not in self._:
-            raise AttributeError(key)
-        return self._[key]
 
     def at(self, *args, **kwargs):
         """Returns key at index. Supports positive and negative indices. Returns default if out of range."""
@@ -75,26 +79,23 @@ class Dictionary(dict):
 
     def find(self, *args, **kwargs):
         """Decorates find callable for first-occurrence search."""
-
-        predicate = next((a for a in args if callable(a)), None)
-        if predicate:
-            predicate, *args = args
-
-            if isinstance(predicate, type):
-                predicate = (
-                    predicate(self, *args, **kwargs)
-                    if "__init__" in predicate.__dict__
-                    else predicate()
+        find = next((a for a in args if callable(a)), None)
+        if find:
+            find, *args = args
+            if isinstance(find, type):
+                find = (
+                    find(self, *args, **kwargs)
+                    if "__init__" in find.__dict__
+                    else find()
                 )
 
-            def result():
+            def result(*args, **kwargs):
                 for index, item in enumerate(dict.items(self)):
-                    result = predicate(index, *item)
+                    result = find(index, *item)
                     if result is not None:
                         return result
 
             return result
-
         return self.find
 
     def get(self, *args, **kwargs):
@@ -144,25 +145,21 @@ class Dictionary(dict):
         # NOTE Inspired by JS map and filter array methods.
         transformer = next((a for a in args if callable(a)), None)
         if transformer:
-            # Transform immediately
+            # Transform
             transformer, *args = args
-
             if isinstance(transformer, type):
-                transformer = (
+                transform = (
                     transformer(self, *args, **kwargs)
                     if "__init__" in transformer.__dict__
                     else transformer()
                 )
+            else:
+                transform = transformer
             self.update(
-                {k: transformer(i, k, v) for i, (k, v) in enumerate(dict.items(self))}
+                {k: transform(i, k, v) for i, (k, v) in enumerate(dict.items(self))}
             )
-
+            return transformer
         return self.transform
-
-        def capture(transformer):
-            self.transform(transformer, *args, **kwargs)
-
-        return capture
 
     def update(self, *args, **kwargs):
         """Updates items. None-values remove. None-keys ignored. Supports multiple pos args. Chainable"""
@@ -278,9 +275,9 @@ if __name__ == "__main__":
         print("index of c:", data.index("c"))
         print("index of e:", data.index("e", "missing"))
 
-    @run()
+    ##@run()
     def test():
-        """Tests transform decorator."""
+        """Tests transform."""
         data = Dictionary(a=1, b=2, c=3)
         print("data:", data)
 
@@ -307,21 +304,94 @@ if __name__ == "__main__":
 
         print("data:", data)
 
-    @run()
+    ##@run()
     def test():
-        """Tests find decorator."""
+        """Tests find."""
         data = Dictionary(a=1, b=2, c=3)
         print("data:", data)
 
+        # Decorated function
         @data.find
         def find(index, key, value):
             if index == 2:
                 return 2 * value
-            
 
         print("found:", find())
 
-        
+        # Decorated class
+        @data.find()
+        class find:
+            def __init__(self, owner, *args, **kwargs):
+                self._.update(owner=owner)
+
+            @property
+            def _(self) -> dict:
+                return self.__dict__.setdefault("__", {})
+
+            def __getattr__(self, key: str):
+                if key not in self._:
+                    raise AttributeError(key)
+                return self._[key]
+
+            def __call__(self, index, key, value):
+                if index == 0:
+                    return {key: value}, str(self.owner)
+
+        print("found:", find())
+
+        # External class
+        class find:
+            def __init__(self, owner, *args, **kwargs):
+                self._.update(owner=owner, foo=kwargs.pop("foo", None))
+
+            @property
+            def _(self) -> dict:
+                return self.__dict__.setdefault("__", {})
+
+            def __getattr__(self, key: str):
+                if key not in self._:
+                    raise AttributeError(key)
+                return self._[key]
+
+            def __call__(self, index, key, value):
+                return self.owner.get("a"), self.foo
+
+        print("found:", data.find(find, foo=42)())
+
+        # External function
+        def find(index, key, value):
+            if index == 2:
+                return index, key, value
+
+        print("found:", data.find(find)())
+
+    ##@run()
+    def test():
+        """Tests pop."""
+
+        data = Dictionary(a=1, b=2, c=3, d=4, e=5, f=6, g=7, h=9, i=10)
+        print("data:", data)
+
+        popped = data.pop([-1])
+        print("popped:", popped)
+        print("data:", data)
+
+        popped = data.pop([20], 42)
+        print("popped:", popped)
+        print("data:", data)
+
+        popped = data.pop("b")
+        print("popped:", popped)
+        print("data:", data)
+
+        data["c"] = None
+        print("data:", data)
+
+        data.update(e=None)
+        print("data:", data)
+
+        data(d=None, f=None)
+        print("data:", data)
 
     ##@run()
     def test():
