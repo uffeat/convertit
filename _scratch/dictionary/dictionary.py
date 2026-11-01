@@ -58,6 +58,20 @@ class Dictionary(dict):
         """Sets item."""
         self.update({key: value})
 
+    def __floordiv__(self, other):
+        """TODO Use sets."""
+        # //: Div med nedrund
+
+    def __mod__(self, other):
+        """TODO Use sets."""
+        # %: Rest
+
+    def __sub__(self, other):
+        """TODO Use sets."""
+
+    def __truediv__(self, other):
+        """TODO Use sets."""
+
     def at(self, *args, **kwargs):
         """Returns key at index. Supports positive and negative indices. Returns default if out of range."""
         defaults = [0, None]
