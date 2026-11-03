@@ -1,59 +1,68 @@
-import json
-from mimetypes import guess_type
 from pathlib import Path
-import traceback
-
-SOURCE = Path.cwd() / "parcels"
-UTF_8 = "utf-8"
 
 
-class Use:
-    """Local import engine."""
-    def __init__(self):
-        """."""
-        self.__dict__.update(__={})
-        self._.update(cache={})
+class use:
+
+    def __init__(self, *args, **kwargs):
+        self._.update(_cache={})
 
     @property
     def _(self) -> dict:
-        return self.__
+        return self.__dict__.setdefault("__", {})
 
-    def __call__(self, path: str):
-        """."""
-        cache = self._["cache"]
-        if path in cache:
-            return cache[path]
+    def __getattr__(self, key: str):
+        # Ensure that getattr and hasattr works
+        if key not in self._:
+            raise AttributeError(key)
+        return self._[key]
 
-        path = path[3:]
+    def __getitem__(self, key):
+        # Facilitate **-unpacking
+        return self._.get(key)
 
-        file = SOURCE / path
-        key = f"@@/{file.relative_to(SOURCE).as_posix()}"
-        ##print("key:", key)  ##
-        text = file.read_text(encoding=UTF_8).strip()
-        ##print("text:", text)  ##
-        locals = {}
-        exec(text, {}, locals)
-        main = locals["main"]
-        result = main(self)
+    def keys(self, *args, **kwargs):
+        # Facilitate **-unpacking
+        return self._.keys()
 
-        if isinstance(result, dict):
-            exports: dict = result
+    def __call__(self, *args, **kwargs):
+        # Parse args
+        specifier = next((a for a in args if isinstance(a, str)), None)
+        if specifier:
+            specifier, *args = args
+        # Get parcel
+        if specifier in self._cache:
+            parcel = self._cache[specifier]
+        else:
+            parcel = {}
+            path = Path.cwd() / specifier
+            locals = {}
+            text = path.read_text(encoding="utf-8").strip()
+            parcel.update(text=text)
 
-            class parcel:
-                def __call__(self, key):
-                    return exports.get(key)
+            file_type = path.suffix[1:]
+            file_types = tuple([t[1:] for t in path.suffixes])
+            ##print("file_type", file_type)  ##
+            ##print("file_types", file_types)  ##
 
-                def __getattr__(self, key):
-                    return exports.get(key)
+            # .py
+            exec(text, {}, locals)
+            main = locals.pop("main", None)
+            if callable(main):
+                value = main(self)
+                if value is not None:
+                    parcel.update(value=value, default="value")
 
-                def __geitem__(self, key):
-                    return exports.get(key)
+        # Get key
+        options = {"key": k for k, v in kwargs.items() if k in parcel and v is True}
+        key = options.get("key", parcel.get("default", "text"))
 
-            result = parcel()
-
-        cache[key] = result
+        # Get result
+        result = parcel.get(key)
 
         return result
 
 
-use = Use()
+use = use()
+
+if __name__ == "__main__":
+    foo = use("test/foo.foo.py")
