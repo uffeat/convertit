@@ -1,5 +1,44 @@
 from pathlib import Path
 
+class Hooks:
+    def __init__(self, *args, **kwargs):
+        """."""
+       
+    
+    @property
+    def _(self) -> dict:
+        return self.__dict__.setdefault("__", {})
+
+    def __getattr__(self, key: str):
+        if key not in self._:
+            raise AttributeError(key)
+        return self._[key]
+
+    def __getitem__(self, key):
+        return self._.get(key)
+
+    def keys(self, *args, **kwargs):
+        return self._.keys()
+
+    def set(self, key, value, *args, **kwargs):
+        """."""
+        self._[key] = dict(value=value)
+
+    def remove(self, key, *args, **kwargs):
+        """."""
+        self._.pop(key, None)
+
+hooks = Hooks()
+
+class Test:
+    """."""
+
+hooks.set('py', Test)
+hooks.set('py',Test())
+
+print("hooks._", hooks._)  ##
+
+
 
 class use:
 
