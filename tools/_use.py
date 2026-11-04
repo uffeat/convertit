@@ -1,10 +1,33 @@
-from pathlib import Path
+import pathlib
+
+
+class Path(pathlib.Path):
+
+    def __getitem__(self, key):
+        return getattr(self, key, None)
+
+    @property
+    def parts(self):
+        return tuple(pathlib.Path.parts.fget(self)[3:])
+
+    @property
+    def source(self):
+        parts = self.parts
+        return parts[0] if len(parts) > 1 else "/"
+
+    @property
+    def type(self):
+        return self.suffix[1:]
+
+    @property
+    def types(self):
+        return tuple([t[1:] for t in self.suffixes])
+
 
 class Hooks:
     def __init__(self, *args, **kwargs):
         """."""
-       
-    
+
     @property
     def _(self) -> dict:
         return self.__dict__.setdefault("__", {})
@@ -20,24 +43,43 @@ class Hooks:
     def keys(self, *args, **kwargs):
         return self._.keys()
 
-    def set(self, key, value, *args, **kwargs):
+    def set(self, *args, **kwargs):
         """."""
+        value = next((a for i, a in enumerate(args) if i < 2 and callable(a)), None)
+        key = next(
+            (a for i, a in enumerate(args) if i < 2 and isinstance(a, str)),
+            getattr(value, "__name__", value.__class__.__name__),
+        )
+        args = [a for a in args if a is not value and a is not key]
+
+        if isinstance(value, type):
+            value = value(*args, **kwargs) if hasattr(value, "__init__") else value()
+
         self._[key] = dict(value=value)
 
-    def remove(self, key, *args, **kwargs):
+    def remove(self, *args, **kwargs):
         """."""
+        key = next((a for a in args if isinstance(a, str)), '')
         self._.pop(key, None)
+
 
 hooks = Hooks()
 
-class Test:
+
+class py:
     """."""
 
-hooks.set('py', Test)
-hooks.set('py',Test())
+    def __init__(self, *args, **kwargs):
+        """."""
+
+    def __call__(self, *args, **kwargs):
+        """."""
+
+
+hooks.set(py)
+
 
 print("hooks._", hooks._)  ##
-
 
 
 class use:
@@ -73,15 +115,20 @@ class use:
             parcel = self._cache[specifier]
         else:
             parcel = {}
+
             path = Path.cwd() / specifier
+
             locals = {}
             text = path.read_text(encoding="utf-8").strip()
             parcel.update(text=text)
 
-            file_type = path.suffix[1:]
-            file_types = tuple([t[1:] for t in path.suffixes])
-            ##print("file_type", file_type)  ##
-            ##print("file_types", file_types)  ##
+            print("type", path.type)  ##
+            print("types", path.types)  ##
+            print("source", path.source)  ##
+            print("parent", path.parent)  ##
+
+            print("parts", path.parts)  ##
+            print("name", path.name)  ##
 
             # .py
             exec(text, {}, locals)
