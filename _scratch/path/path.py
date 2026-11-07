@@ -23,7 +23,6 @@ class Base:
             return self._.get(key)
 
     def __iter__(self) -> iter:
-        # Facilitate **-unpacking
         return iter(self._)
 
     def __len__(self) -> int:

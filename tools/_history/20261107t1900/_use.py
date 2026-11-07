@@ -1,0 +1,296 @@
+import pathlib
+
+
+class Path:
+    def __init__(self, *args, **kwargs):
+
+        specifier = next(iter(args), None)
+        if isinstance(specifier, str):
+            _path = pathlib.Path.cwd() / specifier
+            parts = tuple(_path.parts[3:])
+            self._.update(
+                path=specifier,
+                parts=parts,
+                type=_path.suffix[1:],
+                types=".".join([t[1:] for t in _path.suffixes]),
+            )
+            if len(parts) > 1:
+                self._.update(
+                    parent=parts[-2],
+                    source=parts[0],
+                )
+        elif isinstance(specifier, self.__class__):
+            self._.update(dict(specifier))
+        elif isinstance(specifier, dict):
+            self._.update(dict(specifier))
+
+    @property
+    def _(self) -> dict:
+        return self.__dict__.setdefault("__", {})
+
+    def __getattr__(self, key: str):
+        # Ensure that getattr and hasattr works
+        if key not in self._:
+            raise AttributeError(key)
+        return self._[key]
+
+    def __getitem__(self, key):
+        return self._.get(key)
+
+    def __str__(self):
+        return self._.get("path", "")
+
+    def keys(self, *args, **kwargs):
+        return self._.keys()
+
+
+class Hooks:
+    def __init__(self, *args, **kwargs):
+        """."""
+
+    @property
+    def _(self) -> dict:
+        return self.__dict__.setdefault("__", {})
+
+    def __call__(self, *args, **kwargs):
+        """Decorates hook."""
+        key = next((a for a in args if isinstance(a, str)), None)
+        keys = [a for a in args if a is not key and isinstance(a, str)]
+
+        def register(target: type):
+            hook = target(*args, **kwargs) if hasattr(target, "__init__") else target()
+            hook = hook, kwargs
+            self._.setdefault(key, {}).update({a: hook for a in keys})
+            return target
+
+        return register
+
+    def __getitem__(self, key) -> dict:
+        return self._.get(key, {})
+
+    def __iter__(self) -> iter:
+        return iter(self._)
+
+
+def cast(*args, **kwargs):
+    """."""
+    _ = iter(args)
+    value, type = next(_, None),next(_, dict)
+
+    try:
+        return type(value)
+    except:
+        return
+
+
+
+class use:
+
+    def __init__(self, *args, **kwargs):
+        self._.update(_cache={}, hooks=Hooks(), processors=Hooks())
+
+    @property
+    def _(self) -> dict:
+        return self.__dict__.setdefault("__", {})
+
+    def __getattr__(self, key: str):
+        # Ensure that getattr and hasattr works
+        if key not in self._:
+            raise AttributeError(key)
+        return self._[key]
+
+    def __getitem__(self, key):
+        # Facilitate **-unpacking
+        return self._.get(key)
+
+    def keys(self, *args, **kwargs):
+        # Facilitate **-unpacking
+        return self._.keys()
+
+    def __call__(self, *args, **kwargs):
+        # Parse args
+        _args = {i: v for i, v in enumerate(args)}
+
+        _specifier = {'specifier': _args.pop(i, None) for i, v in list(_args.items()) if not i and isinstance(v, str)}.get('specifier')
+
+        print("_specifier:", _specifier)
+        print("_args:", _args)
+
+
+
+
+       
+
+
+
+      
+       
+        
+        specifier = next((a for a in args if isinstance(a, str)), None)
+        if specifier:
+            specifier, *args = args
+
+            _kwargs = next((a for a in (cast(a) for a in args) if a is not None), None)
+            if isinstance(_kwargs, dict):
+                _kwargs, *args = args
+                kwargs.update(_kwargs)
+
+
+
+
+
+            path = Path(specifier)
+            # Get parcel
+            if specifier in self._cache:
+                parcel = self._cache[specifier]
+            else:
+                parcel = dict(_={})
+
+                for k in self.hooks:
+                    hook = self.hooks[k].get(path[k])
+                    if isinstance(hook, (tuple, list)):
+                        hook, detail = hook
+                        if callable(hook):
+                            updates = hook(path, **parcel)
+                            if isinstance(updates, dict):
+                                parcel.update(updates)
+
+                if parcel.get("cache", True):
+                    self._cache[specifier] = parcel
+
+            # Get key
+            options = {"key": k for k, v in kwargs.items() if k in parcel and v is True}
+            key = options.get("key", parcel.get("default", "text"))
+
+            # Get result
+            result = parcel.get(key)
+
+            if parcel.get("process", True):
+                for k in self.processors:
+                    processor = self.processors[k].get(path[k])
+                    if isinstance(processor, (tuple, list)):
+                        processor, detail = processor
+
+                        def test():
+                            for key, values in detail.items():
+                                value = path[key]
+                                if value not in values:
+                                    return False
+
+                        if test() is False:
+                            break
+
+                        if callable(processor):
+                            _result = processor(path, result, *args, **kwargs)
+                            if _result is not None:
+                                result = _result
+
+            return result
+
+    def hook(self, *args, **kwargs):
+        return self.hooks(*args, **kwargs)
+
+    def processor(self, *args, **kwargs):
+        return self.processors(*args, **kwargs)
+
+
+use = use()
+
+
+@use.hook("source", "_scratch", "test", type=["json", "py"])
+class Source:
+    """."""
+
+    def __init__(self, *args, **kwargs):
+        """."""
+
+    def __call__(self, *args, **kwargs):
+        """."""
+        path = next((a for a in args if isinstance(a, Path)), None)
+        if path:
+            text = (pathlib.Path.cwd() / path.path).read_text(encoding="utf-8").strip()
+            return dict(text=text)
+        return {}
+
+
+@use.hook("type", "py")
+class Py:
+    """."""
+
+    def __init__(self, *args, **kwargs):
+        """."""
+
+    def __call__(self, *args, **kwargs):
+        """."""
+        path = next((a for a in args if isinstance(a, Path)), None)
+        text = kwargs.get("text")
+        if isinstance(text, str):
+            locals = {}
+            exec(text, {}, locals)
+            main = locals.get("main", None)
+            if callable(main):
+                kwargs.update(locals=locals, path=path)
+                value = main(use, **kwargs)
+                if value is not None:
+                    return dict(value=value, default="value")
+        return {}
+
+
+@use.hook("type", "json")
+class cls:
+    """."""
+
+    def __init__(self, *args, **kwargs):
+        """."""
+
+    def __call__(self, *args, **kwargs):
+        """."""
+        from json import loads
+
+        def load():
+            return loads(kwargs.get("text"))
+
+        value = loads(kwargs.get("text"))
+
+        return dict(value=value, default="value", cache=False)
+
+
+@use.processor("types", "foo.py", source=["test"])
+class cls:
+    """."""
+
+    def __init__(self, *args, **kwargs):
+        """."""
+
+    def __call__(self, *args, **kwargs):
+        """."""
+        path, result, *args = args
+
+        print("result:", result)
+
+        def result():
+            return args, kwargs
+
+        return result
+
+
+if __name__ == "__main__":
+    Bar = use("test/foo/bar.py")
+    print("Bar:", Bar)
+
+    foo = use("test/foo.foo.py")
+    foo = use("test/foo.foo.py", foo=42)
+    print("foo():", foo())
+
+    foo_json = use("test/foo/foo.json", text=True)
+    print("foo_json:", foo_json)
+
+    foo_json = use("test/foo/foo.json", dict(text=True))
+    print("foo_json:", foo_json)
+
+    foo = use("test/foo/foo.json")
+    foo["name"] = "changed.."
+    print("foo:", foo)
+
+    foo = use("test/foo/foo.json")
+    print("foo:", foo)

@@ -1,10 +1,17 @@
-def main(use, Base: type = None, log=None, node=None, text=None, **kwargs) -> dict:
+def main(use, *args, **kwargs) -> dict:
 
-    class Bar(Base):
+    
+
+    class Bar:
         def __init__(self):
-            Base.__init__(self, bar="BAR")
+            """."""
+
+        @property
+        def bar(self):
+            return 'BAR'
+            
 
     def bar():
         return 42
 
-    return dict(Bar=Bar)
+    return Bar
