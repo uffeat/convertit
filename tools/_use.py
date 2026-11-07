@@ -54,16 +54,33 @@ class Hooks:
 
     def __call__(self, *args, **kwargs):
         """Decorates hook."""
-        key = next((a for a in args if isinstance(a, str)), None)
-        keys = [a for a in args if a is not key and isinstance(a, str)]
+        # Convert args
+        args = {i: v for i, v in enumerate(args)}
+        # Update kwargs from args
+        kwargs.update(
+            {
+                "_": args.pop(i)
+                for i, v in [(i, cast(v)) for i, v in args.items()]
+                if v is not None
+            }.get("_", {})
+        )
+        # Re-convert args
+        args = tuple(args.values())
 
-        def register(target: type):
-            hook = target(*args, **kwargs) if hasattr(target, "__init__") else target()
-            hook = hook, kwargs
-            self._.setdefault(key, {}).update({a: hook for a in keys})
-            return target
+        if kwargs:
+            key, values = next(iter(kwargs.items()), None)
+            if isinstance(values, str):
+                values = [values]
 
-        return register
+            def register(target: type):
+                hook = (
+                    target(*args, **kwargs) if hasattr(target, "__init__") else target()
+                )
+                container = [hook,[args, kwargs]]
+                self._.setdefault(key, {}).update({a: container for a in values})
+                return target
+
+            return register
 
     def __getitem__(self, key) -> dict:
         return self._.get(key, {})
@@ -111,31 +128,26 @@ class use:
         args = {i: v for i, v in enumerate(args)}
         # Extract specifier
         specifier = {
-            "specifier": args.pop(i, None)
-            for i, v in list(args.items())
-            if isinstance(v, str)
-        }.get("specifier")
-
-        
-
-       
+            "_": args.pop(i) for i, v in [*args.items()] if isinstance(v, str)
+        }.get("_")
         # Update kwargs from args
-        kwargs.update({
-            "updates": dict(args.pop(i))
-            for i, v in list(args.items())
-            if cast(v) is not None
-        }.get("updates", {}))
+        kwargs.update(
+            {
+                "_": args.pop(i)
+                for i, v in [(i, cast(v)) for i, v in args.items()]
+                if v is not None
+            }.get("_", {})
+        )
 
-       
         # Re-convert args
         args = tuple(args.values())
 
-       
+        print("specifier:", specifier)##
+
+
+
         if specifier:
-           
-
-            
-
+            # Parse specifier
             path = Path(specifier)
             # Get parcel
             if specifier in self._cache:
@@ -144,43 +156,41 @@ class use:
                 parcel = dict(_={})
 
                 for k in self.hooks:
-                    hook = self.hooks[k].get(path[k])
-                    if isinstance(hook, (tuple, list)):
-                        hook, detail = hook
-                        if callable(hook):
-                            updates = hook(path, **parcel)
-                            if isinstance(updates, dict):
-                                parcel.update(updates)
+                    container = self.hooks[k].get(path[k])
+                    if isinstance(container, (tuple, list)):
+                        hook, detail = container
+                    else:
+                        hook, detail = container, None
+                    if callable(hook):
+                        updates = hook(path, **parcel)
+                        if isinstance(updates, dict):
+                            parcel.update(updates)
 
                 if parcel.get("cache", True):
                     self._cache[specifier] = parcel
 
             # Get key
-            options = {"key": k for k, v in kwargs.items() if k in parcel and v is True}
-            key = options.get("key", parcel.get("default", "text"))
+
+            key = {
+                "key": k for k, v in kwargs.items() if k in parcel and v is True
+            }.get("key", parcel.get("default", "text"))
 
             # Get result
             result = parcel.get(key)
 
             if parcel.get("process", True):
                 for k in self.processors:
-                    processor = self.processors[k].get(path[k])
-                    if isinstance(processor, (tuple, list)):
-                        processor, detail = processor
+                    container = self.processors[k].get(path[k])
+                    if isinstance(container, (tuple, list)):
+                        processor, detail = container
+                    else:
+                        processor, detail = container, None
 
-                        def test():
-                            for key, values in detail.items():
-                                value = path[key]
-                                if value not in values:
-                                    return False
 
-                        if test() is False:
-                            break
-
-                        if callable(processor):
-                            _result = processor(path, result, *args, **kwargs)
-                            if _result is not None:
-                                result = _result
+                    if callable(processor):
+                        _result = processor(path, result, *args, **kwargs)
+                        if _result is not None:
+                            result = _result
 
             return result
 
@@ -194,7 +204,7 @@ class use:
 use = use()
 
 
-@use.hook("source", "_scratch", "test", type=["json", "py"])
+@use.hook(source=["_scratch", "test"])
 class Source:
     """."""
 
@@ -210,7 +220,7 @@ class Source:
         return {}
 
 
-@use.hook("type", "py")
+@use.hook(type=["py"])
 class Py:
     """."""
 
@@ -233,7 +243,7 @@ class Py:
         return {}
 
 
-@use.hook("type", "json")
+@use.hook(dict(type="json"))
 class cls:
     """."""
 
@@ -252,7 +262,7 @@ class cls:
         return dict(value=value, default="value", cache=False)
 
 
-@use.processor("types", "foo.py", source=["test"])
+@use.processor(types=["foo.py"])
 class cls:
     """."""
 
@@ -272,6 +282,13 @@ class cls:
 
 
 if __name__ == "__main__":
+
+    print("hooks:", use.hooks._)
+
+
+
+
+
     Bar = use("test/foo/bar.py")
     print("Bar:", Bar)
 
