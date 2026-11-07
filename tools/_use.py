@@ -66,7 +66,7 @@ class Hooks:
         )
         # Re-convert args
         args = tuple(args.values())
-
+        # Get registration keys
         if kwargs:
             key, values = next(iter(kwargs.items()), None)
             if isinstance(values, str):
