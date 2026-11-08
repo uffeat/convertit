@@ -9,9 +9,11 @@ def main(use, *args, **kwargs) -> dict:
         @property
         def bar(self):
             return 'BAR'
+
+    bar = Bar()
             
 
-    def bar():
+    def stuff():
         return 42
 
-    return Bar
+    return Bar, stuff, dict(bar=bar)
