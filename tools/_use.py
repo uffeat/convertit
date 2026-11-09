@@ -1,4 +1,6 @@
-# XXX TODO module import, inject parcels, perhaps patch, perhaps effects, perhaps tools for args parsing, perhaps uid, perhaps caller etc.
+# XXX TODO module import, inject parcels,
+# mini-racer
+# perhaps patch, perhaps effects, perhaps tools for args parsing, perhaps uid, perhaps caller etc.
 
 import tools
 
@@ -16,12 +18,12 @@ def run(*args, **kwargs):
     return lambda target: run(target, *args, **kwargs)
 
 
-
-
 def cast(*args, **kwargs):
     """."""
     value = next((v for i, v in enumerate(args) if not i), None)
-    cls = next((v for i, v in enumerate(args) if all([i == 1, isinstance(v, type)])), dict)
+    cls = next(
+        (v for i, v in enumerate(args) if all([i == 1, isinstance(v, type)])), dict
+    )
     if isinstance(value, cls):
         success = True
     else:
@@ -38,11 +40,45 @@ def cast(*args, **kwargs):
     return value, success
 
 
+class Private(dict):
+
+    def __call__(self, *args, **kwargs):
+        return self.update(*args, **kwargs)
+
+    def __getitem__(self, key):
+        return dict.get(self, key)
+
+    def __setitem__(self, key, value):
+        if value is None:
+            dict.pop(self, key, None)
+        else:
+            dict.__setitem__(self, key, value)
+
+    def pop(self, *args, **kwargs):
+        return dict.pop(self, *[*args, *[None, None][len(args) :]][0:2])
+
+    def setdefault(self, *args, **kwargs):
+        key, value = [*args, *[None, True][len(args) :]][0:2]
+        if value is not None:
+            return dict.setdefault(self, key, value)
+
+    def update(self, *args, **kwargs):
+        for value in args:
+            if isinstance(value, dict):
+                kwargs.update(value)
+        for key, value in kwargs.items():
+            if value is None:
+                dict.pop(self, key, None)
+            else:
+                dict.__setitem__(self, key, value)
+        return self
+
+
 class Base:
 
     @property
     def _(self) -> dict:
-        return self.__dict__.setdefault("__", {})
+        return self.__dict__.setdefault("__", Private())
 
     def __bool__(self) -> bool:
         return bool(self._)
@@ -83,14 +119,13 @@ class Base:
         return self._.values()
 
 
-
 class View(Base):
     def __init__(self, *args, **kwargs):
         for value in args:
             value, success = cast(value)
             if success:
                 kwargs.update(value)
-        self._.update({k: v for k, v in kwargs.items() if v is not None})
+        self._(kwargs)
 
 
 class Arguments(Base):
@@ -99,7 +134,7 @@ class Arguments(Base):
         converted = [cast(v) for v in args]
         for value, success in converted:
             success and kwargs.update(value)
-        self._.update(
+        self._(
             args=tuple([v for v, s in converted if not s and v is not None]),
             kwargs={k: v for k, v in kwargs.items() if v is not None},
         )
@@ -107,14 +142,18 @@ class Arguments(Base):
     def __call__(self, *args, **kwargs):
         """."""
         if args:
-            predicate = next(
-                (v for i, v in enumerate(args) if not i and callable(v)), None
-            )
+            predicates = [v for v in args if callable(v)]
 
-            if predicate:
-                default = next((v for i, v in enumerate(args) if i == 1), None)
+            if predicates:
+                default = next((v for v in args if v not in predicates), None)
+
                 return next(
-                    (v for i, v in enumerate(self.args) if predicate(i, v)), default
+                    (
+                        v
+                        for i, v in enumerate(self.args)
+                        if all([p(i, v) for p in predicates])
+                    ),
+                    default,
                 )
 
         return tuple(self.values())
@@ -149,7 +188,7 @@ class PathType(Base):
         if isinstance(specifier, str):
             _ = pathlib.Path.cwd() / specifier
             parts = tuple(_.parts[3:])
-            self._.update(
+            self._(
                 name=_.name,
                 path=specifier,
                 parts=parts,
@@ -163,24 +202,26 @@ class PathType(Base):
                     source=parts[0],
                 )
         elif isinstance(specifier, self.__class__):
-            self._.update(dict(specifier))
-        elif isinstance(specifier, dict):
-            self._.update(dict(specifier))
+            self._(dict(specifier))
+        else:
+            self._(specifier)
 
     def __str__(self):
         return self._.get("path", "")
 
     @property
     def source(self):
-        return self._.get("source")
+        return self._["source"]
 
     @property
     def type(self):
-        return self._.get("type")
+        return self._["type"]
+        
 
     @property
     def types(self):
-        return self._.get("types")
+        return self._["types"]
+        
 
 
 @run
@@ -234,11 +275,13 @@ class Hooks(Base):
 class use(Base):
 
     def __init__(self, *args, **kwargs):
-        self._.update(_cache={}, hooks=Hooks(), processors=Hooks())
+        self._(_cache={}, hooks=Hooks(), processors=Hooks())
 
     def __call__(self, *args, **kwargs):
         arguments = Arguments(*args, **kwargs)
+
         specifier = arguments(lambda i, v: isinstance(v, str))
+
         # specifier -> parcel -> result
         if specifier:
             # Parse specifier
