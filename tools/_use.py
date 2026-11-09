@@ -1,12 +1,41 @@
+# XXX TODO module import, inject parcels, perhaps patch, perhaps effects, perhaps tools for args parsing, perhaps uid, perhaps caller etc.
+
+import tools
+
+print("tools:", tools)
+
+
+print(getattr(tools, "foo", None))
+
+
+def run(*args, **kwargs):
+    """Tool for creating variable isolation."""
+    if callable(args[0] if args else None):
+        target, *args = args
+        return target(*args, **kwargs)
+    return lambda target: run(target, *args, **kwargs)
+
+
+
+
 def cast(*args, **kwargs):
     """."""
-    _ = iter(args)
-    value, type = next(_, None), next(_, dict)
-
-    try:
-        return type(value)
-    except:
-        pass
+    value = next((v for i, v in enumerate(args) if not i), None)
+    cls = next((v for i, v in enumerate(args) if all([i == 1, isinstance(v, type)])), dict)
+    if isinstance(value, cls):
+        success = True
+    else:
+        try:
+            value = cls(value)
+            success = True
+        except:
+            default = next(
+                (v for v in args[0:] if all([v is not value, v is not cls])),
+                value,
+            )
+            value = default(value) if callable(default) else default
+            success = False
+    return value, success
 
 
 class Base:
@@ -14,6 +43,9 @@ class Base:
     @property
     def _(self) -> dict:
         return self.__dict__.setdefault("__", {})
+
+    def __bool__(self) -> bool:
+        return bool(self._)
 
     def __contains__(self, key: str) -> bool:
         return key in self._
@@ -31,26 +63,84 @@ class Base:
     def __iter__(self):
         return iter(self._)
 
+    def __len__(self) -> int:
+        return len(self._)
+
     def __repr__(self) -> str:
         return str(self._)
 
     def get(self, *args, **kwargs):
-        _ = iter(args)
-        key, default = next(_, None), next(_, None)
-        return self._.get(key, default)
+        return self._.get(*[*args, *[None, None][len(args) :]][0:2])
+
+    def items(self, *args, **kwargs):
+        return self._.items()
 
     def keys(self, *args, **kwargs):
         # Facilitate **-unpacking
         return self._.keys()
 
+    def values(self, *args, **kwargs):
+        return self._.values()
+
+
 
 class View(Base):
     def __init__(self, *args, **kwargs):
-        [self._.update(a) for a in [cast(a) for a in args] if a]
-        self._.update(kwargs)
+        for value in args:
+            value, success = cast(value)
+            if success:
+                kwargs.update(value)
+        self._.update({k: v for k, v in kwargs.items() if v is not None})
 
 
-class Path(Base):
+class Arguments(Base):
+    def __init__(self, *args, **kwargs):
+        """Updates kwargs from args."""
+        converted = [cast(v) for v in args]
+        for value, success in converted:
+            success and kwargs.update(value)
+        self._.update(
+            args=tuple([v for v, s in converted if not s and v is not None]),
+            kwargs={k: v for k, v in kwargs.items() if v is not None},
+        )
+
+    def __call__(self, *args, **kwargs):
+        """."""
+        if args:
+            predicate = next(
+                (v for i, v in enumerate(args) if not i and callable(v)), None
+            )
+
+            if predicate:
+                default = next((v for i, v in enumerate(args) if i == 1), None)
+                return next(
+                    (v for i, v in enumerate(self.args) if predicate(i, v)), default
+                )
+
+        return tuple(self.values())
+
+
+##
+arguments = Arguments(42, {"foo": 42}, bar=8)
+print("arguments.args:", arguments.args)
+print("arguments.kwargs:", arguments.kwargs)
+
+##
+
+
+class PathType(Base):
+
+    @classmethod
+    def properties(cls, *args, **kwargs):
+        return View(
+            {
+                k: v
+                for k, v in cls.__dict__.items()
+                if isinstance(k, str)
+                and not k.startswith("_")
+                and isinstance(v, property)
+            }
+        )
 
     def __init__(self, *args, **kwargs):
         import pathlib
@@ -80,26 +170,51 @@ class Path(Base):
     def __str__(self):
         return self._.get("path", "")
 
+    @property
+    def source(self):
+        return self._.get("source")
+
+    @property
+    def type(self):
+        return self._.get("type")
+
+    @property
+    def types(self):
+        return self._.get("types")
+
+
+@run
+def Path() -> PathType:
+    """Creates class-level state."""
+
+    class Path(PathType):
+        """Thin sub-class to preserve type-hinting."""
+
+        @classmethod
+        def properties(cls, *args, **kwargs):
+            return _["properties"]
+
+        def __init__(self, *args, **kwargs):
+            PathType.__init__(self, *args, **kwargs)
+
+    _ = dict(properties=PathType.properties())
+
+    return Path
+
 
 class Hooks(Base):
 
     def __call__(self, *args, **kwargs):
         """Decorates hook."""
-        # Convert args
-        args = {i: v for i, v in enumerate(args)}
-        # Update kwargs from args
-        kwargs.update(
-            {
-                "_": args.pop(i)
-                for i, v in [(i, cast(v)) for i, v in args.items()]
-                if v is not None
-            }.get("_", {})
-        )
-        # Re-convert args
-        args = tuple(args.values())
+
+        args, kwargs = Arguments(*args, **kwargs)()
+
         # Get registration keys
-        if kwargs:
-            key, values = next(iter(kwargs.items()))
+        registration = {
+            k: kwargs.pop(k) for k, v in list(kwargs.items()) if k in Path.properties()
+        }
+        if registration:
+            key, values = next(iter(registration.items()))
             if isinstance(values, str):
                 values = [values]
 
@@ -122,23 +237,9 @@ class use(Base):
         self._.update(_cache={}, hooks=Hooks(), processors=Hooks())
 
     def __call__(self, *args, **kwargs):
-        # Convert args
-        args = {i: v for i, v in enumerate(args)}
-        # Extract specifier
-        specifier = {
-            "_": args.pop(i) for i, v in [*args.items()] if isinstance(v, str)
-        }.get("_")
-        # Update kwargs from args
-        kwargs.update(
-            {
-                "_": args.pop(i)
-                for i, v in [(i, cast(v)) for i, v in args.items()]
-                if v is not None
-            }.get("_", {})
-        )
-        # Re-convert args
-        args = tuple(args.values())
-
+        arguments = Arguments(*args, **kwargs)
+        specifier = arguments(lambda i, v: isinstance(v, str))
+        # specifier -> parcel -> result
         if specifier:
             # Parse specifier
             path = Path(specifier)
@@ -147,35 +248,46 @@ class use(Base):
                 parcel = self._cache[specifier]
             else:
                 parcel = dict(_={})
-                for k in self.hooks:
-                    container: dict = self.hooks.get(k, {}).get(path[k], {})
-                    hook = container.get("value")
-                    if callable(hook):
-                        updates = hook(path, **parcel)
-                        if isinstance(updates, dict):
-                            parcel.update(updates)
 
-                if parcel.get("cache", True):
-                    self._cache[specifier] = parcel
+                @run
+                def create():
+                    for k in self.hooks:
+                        container: dict = self.hooks.get(k, {}).get(path[k], {})
+                        hook = container.get("value")
+                        if callable(hook):
+                            updates = hook(path, **parcel)
+                            if isinstance(updates, dict):
+                                parcel.update(updates)
+                    if parcel.get("cache", True):
+                        self._cache[specifier] = parcel
+
             # Get key
-            key = {"_": k for k, v in kwargs.items() if k in parcel and v is True}.get(
-                "_", parcel.get("default", "text")
-            )
+            key = {
+                True: k
+                for k, v in arguments.kwargs.items()
+                if k in parcel and v is True
+            }.get(True, parcel.get("default", "text"))
 
-            # Get result
-            result = parcel.get(key)
+            # Get result (wrap for clean access from functions)
+            result = dict(value=parcel.get(key))
 
-            # Process
-            if parcel.get("process", True):
-                for k in self.processors:
-                    container: dict = self.processors.get(k, {}).get(path[k], {})
-                    hook = container.get("value")
-                    if callable(hook):
-                        _result = hook(path, result, *args, **kwargs)
-                        if _result is not None:
-                            result = _result
+            @run
+            def process():
+                if parcel.get("process", True):
+                    for k in self.processors:
+                        container: dict = self.processors.get(k, {}).get(path[k], {})
+                        hook = container.get("value")
+                        if callable(hook):
+                            _result = hook(
+                                path,
+                                result["value"],
+                                *arguments.args,
+                                **arguments.kwargs
+                            )
+                            if _result is not None:
+                                result.update(value=_result)
 
-            return result
+            return result["value"]
 
     def hook(self, *args, **kwargs):
         return self.hooks(*args, **kwargs)
@@ -193,7 +305,7 @@ class cls:
     def __init__(self, *args, **kwargs):
         """."""
 
-    def __call__(self, path: Path, **parcel):
+    def __call__(self, path: PathType, **parcel):
         """."""
         import pathlib
 
@@ -204,7 +316,7 @@ class cls:
 @use.hook(type=["py"])
 class cls:
 
-    def __call__(self, path: Path, **parcel):
+    def __call__(self, path: PathType, **parcel):
         """."""
         text = parcel.get("text")
         locals = {}
@@ -218,12 +330,11 @@ class cls:
         return {}
 
 
-##@use.processor(type=["json"])
 @use.processor(dict(type="json"))
 class cls:
     """."""
 
-    def __call__(self, path: Path, result: str, *args, **kwargs):
+    def __call__(self, path: PathType, result: str, *args, **kwargs):
         """."""
         if "text" not in kwargs:
             from json import loads
@@ -235,7 +346,7 @@ class cls:
 class cls:
     """."""
 
-    def __call__(self, path: Path, result, *args, **kwargs):
+    def __call__(self, path: PathType, result, *args, **kwargs):
         """."""
         if "text" not in kwargs:
             if isinstance(result, (list, tuple)):
