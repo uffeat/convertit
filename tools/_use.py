@@ -10,34 +10,53 @@ print("tools:", tools)
 print(getattr(tools, "foo", None))
 
 
+
+
+
 def run(*args, **kwargs):
-    """Tool for creating variable isolation."""
+    """Decorator for controlling (encapsulating) lexical scope."""
     if callable(args[0] if args else None):
         target, *args = args
         return target(*args, **kwargs)
     return lambda target: run(target, *args, **kwargs)
 
 
-def cast(*args, **kwargs):
-    """."""
-    value = next((v for i, v in enumerate(args) if not i), None)
-    cls = next(
-        (v for i, v in enumerate(args) if all([i == 1, isinstance(v, type)])), dict
-    )
-    if isinstance(value, cls):
-        success = True
-    else:
-        try:
-            value = cls(value)
+
+
+class cast:
+    def __call__(self, *args, **kwargs):
+        value = next((v for i, v in enumerate(args) if i in [0, 1]), None)
+        cls = next((v for v in args if all([isinstance(v, type)])), dict)
+        if isinstance(value, cls):
             success = True
-        except:
-            default = next(
-                (v for v in args[0:] if all([v is not value, v is not cls])),
-                value,
-            )
-            value = default(value) if callable(default) else default
-            success = False
-    return value, success
+        else:
+            try:
+                value = cls(value)
+                success = True
+            except:
+                default = next(
+                    (v for v in args[0:] if all([v is not value, v is not cls])),
+                    value,
+                )
+                value = default(value) if callable(default) else default
+                success = False
+        return value, success
+
+    def batch(self, *args, **kwargs):
+        cls = kwargs.get("type", dict)
+
+
+
+        succeeded, failed = [], []
+        
+        for value in args:
+            value, success = self(value, cls)
+            container = succeeded if success else failed
+            container.append(value)
+        return succeeded, failed
+
+
+cast = cast()
 
 
 class Private(dict):
@@ -49,10 +68,8 @@ class Private(dict):
         return dict.get(self, key)
 
     def __setitem__(self, key, value):
-        if value is None:
-            dict.pop(self, key, None)
-        else:
-            dict.__setitem__(self, key, value)
+        getattr(dict, "pop" if value is None else "__setitem__")(self, key, value)
+        return self
 
     def pop(self, *args, **kwargs):
         return dict.pop(self, *[*args, *[None, None][len(args) :]][0:2])
@@ -64,13 +81,11 @@ class Private(dict):
 
     def update(self, *args, **kwargs):
         for value in args:
-            if isinstance(value, dict):
+            value, success = cast(value)
+            if success:
                 kwargs.update(value)
         for key, value in kwargs.items():
-            if value is None:
-                dict.pop(self, key, None)
-            else:
-                dict.__setitem__(self, key, value)
+            getattr(dict, "pop" if value is None else "__setitem__")(self, key, value)
         return self
 
 
@@ -216,12 +231,10 @@ class PathType(Base):
     @property
     def type(self):
         return self._["type"]
-        
 
     @property
     def types(self):
         return self._["types"]
-        
 
 
 @run
