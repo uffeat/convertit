@@ -10,9 +10,6 @@ print("tools:", tools)
 print(getattr(tools, "foo", None))
 
 
-
-
-
 def run(*args, **kwargs):
     """Decorator for controlling (encapsulating) lexical scope."""
     if callable(args[0] if args else None):
@@ -21,42 +18,72 @@ def run(*args, **kwargs):
     return lambda target: run(target, *args, **kwargs)
 
 
-
-
+@run
 class cast:
     def __call__(self, *args, **kwargs):
-        value = next((v for i, v in enumerate(args) if i in [0, 1]), None)
-        cls = next((v for v in args if all([isinstance(v, type)])), dict)
-        if isinstance(value, cls):
-            success = True
-        else:
+        args = list(args)
+        cls = kwargs.get(
+            "type",
+            next(
+                iter([args.pop(i) for i, v in enumerate(args) if isinstance(v, type)]),
+                dict,
+            ),
+        )
+        value = kwargs.get("value", next((v for v in args if v is not cls), None))
+        result = [value, True]
+        if not isinstance(value, cls):
             try:
-                value = cls(value)
-                success = True
+                result[0] = cls(value)
             except:
-                default = next(
-                    (v for v in args[0:] if all([v is not value, v is not cls])),
-                    value,
+                default = kwargs.get(
+                    "default",
+                    next(
+                        (v for v in args[0:] if all([v is not value, v is not cls])),
+                        value,
+                    ),
                 )
-                value = default(value) if callable(default) else default
-                success = False
-        return value, success
+                result = [default(value) if callable(default) else default, False]
+        return result
 
     def batch(self, *args, **kwargs):
-        cls = kwargs.get("type", dict)
-
-
-
-        succeeded, failed = [], []
-        
+        args = list(args)
+        cls = kwargs.get(
+            "type",
+            next(
+                iter([args.pop(i) for i, v in enumerate(args) if isinstance(v, type)]),
+                dict,
+            ),
+        )
+        result = [], []
         for value in args:
-            value, success = self(value, cls)
-            container = succeeded if success else failed
-            container.append(value)
-        return succeeded, failed
+            value, success = self(value, default=kwargs.get("default", value), type=cls)
+            result[success].append(value)
+        return result
+
+    def castable(self, *args, **kwargs):
+        args = list(args)
+        cls = kwargs.get(
+            "type",
+            next(
+                iter([args.pop(i) for i, v in enumerate(args) if isinstance(v, type)]),
+                dict,
+            ),
+        )
+        value = kwargs.get("value", next((v for v in args if v is not cls), None))
+        if isinstance(value, cls):
+            return True
+        try:
+            cls(value)
+            return True
+        except:
+            return False
 
 
-cast = cast()
+##
+converted = cast.batch(0, 1, 2, dict, 3, dict(foo=42))
+print("converted:", converted)
+
+##
 
 
 class Private(dict):
@@ -142,7 +169,7 @@ class View(Base):
                 kwargs.update(value)
         self._(kwargs)
 
-
+# XXX TODO Refactor
 class Arguments(Base):
     def __init__(self, *args, **kwargs):
         """Updates kwargs from args."""
