@@ -20,22 +20,24 @@ def run(*args, **kwargs):
 
 @run
 class cast:
+    """."""
+
     def __call__(self, *args, **kwargs):
         args = list(args)
-        cls = kwargs.get(
+        cls = kwargs.pop(
             "type",
             next(
                 iter([args.pop(i) for i, v in enumerate(args) if isinstance(v, type)]),
                 dict,
             ),
         )
-        value = kwargs.get("value", next((v for v in args if v is not cls), None))
+        value = kwargs.pop("value", next((v for v in args if v is not cls), None))
         result = [value, True]
         if not isinstance(value, cls):
             try:
                 result[0] = cls(value)
             except:
-                default = kwargs.get(
+                default = kwargs.pop(
                     "default",
                     next(
                         (v for v in args[0:] if all([v is not value, v is not cls])),
@@ -47,18 +49,20 @@ class cast:
 
     def batch(self, *args, **kwargs):
         args = list(args)
-        cls = kwargs.get(
+        cls = kwargs.pop(
             "type",
             next(
                 iter([args.pop(i) for i, v in enumerate(args) if isinstance(v, type)]),
                 dict,
             ),
         )
-        result = [], []
-        for value in args:
-            value, success = self(value, default=kwargs.get("default", value), type=cls)
-            result[success].append(value)
-        return result
+        processed = [self(v, default=kwargs.get("default", v), type=cls) for v in args]
+        return [v for v, s in processed if s], [v for v, s in processed if not s]
+
+
+
+
+        
 
     def castable(self, *args, **kwargs):
         args = list(args)
@@ -169,18 +173,20 @@ class View(Base):
                 kwargs.update(value)
         self._(kwargs)
 
-# XXX TODO Refactor
+
+
 class Arguments(Base):
     def __init__(self, *args, **kwargs):
         """Updates kwargs from args."""
-        converted = [cast(v) for v in args]
-        for value, success in converted:
-            success and kwargs.update(value)
+        converted = cast.batch(*args)
+        [kwargs.update(u) for u in converted[0]]
         self._(
-            args=tuple([v for v, s in converted if not s and v is not None]),
-            kwargs={k: v for k, v in kwargs.items() if v is not None},
+            args=converted[1],
+            kwargs=Private(kwargs),
         )
+        
 
+    # XXX TODO Refactor
     def __call__(self, *args, **kwargs):
         """."""
         if args:
@@ -205,7 +211,6 @@ class Arguments(Base):
 arguments = Arguments(42, {"foo": 42}, bar=8)
 print("arguments.args:", arguments.args)
 print("arguments.kwargs:", arguments.kwargs)
-
 ##
 
 
