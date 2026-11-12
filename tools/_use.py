@@ -93,11 +93,11 @@ class List(list):
     def __getitem__(self, index):
         """Returns value by index (without IndexError risk) or sliced section."""
         if isinstance(index, int):
-            if (-len(self) <= index < len(self)):
+            if -len(self) <= index < len(self):
                 return list.__getitem__(self, index)
             # Implicit None-return instead of IndexError
         if isinstance(index, slice):
-            values = [getattr(index, k) for k in ['start', 'stop', 'step']]
+            values = [getattr(index, k) for k in ["start", "stop", "step"]]
             if all([v is None or isinstance(v, int) for v in values]):
                 return list.__getitem__(self, index)
             raise NotImplementedError(f"slice: {index}")
@@ -106,11 +106,6 @@ class List(list):
         if -len(self) <= index < len(self):
             list.__setitem__(self, index, value)
         # NOTE Silently ignores attempts to set out of range
-        
-        
-
-            
-    
 
     def append(self, *args, **kwargs) -> "List":
         """
@@ -197,10 +192,8 @@ class List(list):
         if isinstance(index, int) and (-len(self) <= index < len(self)):
             list.insert(self, index, value)
             return self
-       
+
         return error(index, value) if callable(error) else error
-       
-        
 
     def items(self, *args, **kwargs) -> iter:
         """Returns index-value pairs."""
@@ -218,7 +211,11 @@ class List(list):
         """Removes value by index without IndexError risk (mimics dict.pop)."""
         args = iter(args)
         index, default = next(args, -1), next(args, None)
-        return list.pop(self, index) if isinstance(index, int) and (-len(self) <= index < len(self)) else default
+        return (
+            list.pop(self, index)
+            if isinstance(index, int) and (-len(self) <= index < len(self))
+            else default
+        )
 
     def prepend(self, *args, **kwargs) -> "List":
         """
@@ -246,7 +243,6 @@ class List(list):
             list.__setitem__(self, index, value)
             return self
         return error(index, value) if callable(error) else error
-
 
     def slice(self, *args, **kwargs) -> "List":
         """Returns slice."""
@@ -294,7 +290,7 @@ print("data:", data)
 
 print("data[1:-1]:", data[1:-1])
 
-print("data:", data.insert(15, 'Inserted'))
+print("data:", data.insert(15, "Inserted"))
 print("data:", data)
 
 
@@ -580,7 +576,7 @@ class use(Base):
                                 path,
                                 result["value"],
                                 *arguments.args,
-                                **arguments.kwargs
+                                **arguments.kwargs,
                             )
                             if _result is not None:
                                 result.update(value=_result)
