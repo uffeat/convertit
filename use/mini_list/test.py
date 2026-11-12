@@ -17,13 +17,25 @@ class use:
                 exec(text, {}, locals)
                 value = locals["main"](self, path=specifier, **parcel)
                 parcel.update(default='value', value=value)
+            
             if parcel.get('cache', True):
                 cache[specifier] = parcel
 
-        key = {True: k for k, v in kwargs.items() if k is True and v in parcel}.get(True, parcel.get('default', 'text'))
+        key = {True: k for k, v in kwargs.items() if v is True and k in parcel}.get(True, parcel.get('default'))
+
+        if key in parcel:
+            result = parcel.get(key)
+        else:
+            result = parcel.get('text', '')
+            if specifier.endswith('.json'):
+                result = json.loads(result)
+
+
+            
+
         
        
-        result = parcel.get(key)
+        
 
         return result
             
@@ -38,5 +50,11 @@ if __name__ == "__main__":
     def test():
         MiniList = use('use/mini_list/mini_list.py')
         print('MiniList:', MiniList)
+
+        foo_json = use("test/foo/foo.json", text=True)
+        print("foo_json:", foo_json)
+
+        foo_parsed = use("test/foo/foo.json")
+        print("foo_parsed:", foo_parsed)
 
     test()

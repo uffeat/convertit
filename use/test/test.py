@@ -18,7 +18,7 @@ def main(
 
     def main(*args, **kwargs):
 
-        ##log("Loading", path) ##
+        log("Loading", path) ##
 
         # Implement once pattern
         if state.get("used"):
